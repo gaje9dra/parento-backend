@@ -6,7 +6,11 @@ import { AdminAuthenticationService } from '../../services/admin-authentication-
 import { createAdminAuthRouter } from './admin-auth.routes.js';
 import { createHealthRouter } from './health.routes.js';
 
-export const createV1Router = (database: Database, security: AppConfig['security']): Router => {
+export const createV1Router = (
+  database: Database,
+  security: AppConfig['security'],
+  rateLimit: AppConfig['rateLimit'],
+): Router => {
   const router = Router();
   const adminRepository = new PostgresAdminRepository(database);
   const authentication = new AdminAuthenticationService(
@@ -17,6 +21,6 @@ export const createV1Router = (database: Database, security: AppConfig['security
   );
 
   router.use(createHealthRouter(database));
-  router.use(createAdminAuthRouter(authentication));
+  router.use(createAdminAuthRouter(authentication, rateLimit));
   return router;
 };
