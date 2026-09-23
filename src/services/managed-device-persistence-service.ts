@@ -1,6 +1,10 @@
 import { randomUUID } from 'node:crypto';
-import type { ManagedDevice } from '../domain/managed-device.js';
-import type { ManagedDeviceRepository } from '../repositories/managed-device-repository.js';
+import type { ManagedDevice, ManagedDeviceStatus } from '../domain/managed-device.js';
+import type {
+  DevicePageRequest,
+  DevicePage,
+  ManagedDeviceRepository,
+} from '../repositories/managed-device-repository.js';
 
 export class ManagedDevicePersistenceService {
   constructor(private readonly repository: ManagedDeviceRepository) {}
@@ -35,16 +39,25 @@ export class ManagedDevicePersistenceService {
     return this.repository.findById(id);
   }
 
-  findByStableIdentifier(
-    stableIdentifier: string,
-  ): Promise<ManagedDevice | null> {
-    return this.repository.findByStableIdentifier(stableIdentifier);
+  findByStableIdentifier(stableIdentifier: string): Promise<ManagedDevice | null> {
+    return this.repository.findByStableIdentifier(stableIdentifier.trim());
+  }
+
+  list(page?: DevicePageRequest): Promise<DevicePage> {
+    return this.repository.list(page);
   }
 
   listByAdminId(
     adminId: string,
-    page?: { limit?: number; cursor?: string | null },
-  ) {
+    page?: DevicePageRequest,
+  ): Promise<DevicePage> {
     return this.repository.listByAdminId(adminId, page);
+  }
+
+  updateStatus(
+    id: string,
+    status: ManagedDeviceStatus,
+  ): Promise<ManagedDevice | null> {
+    return this.repository.updateStatus(id, status);
   }
 }
