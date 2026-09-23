@@ -3,7 +3,7 @@ import { PersistenceError } from '../domain/persistence-errors.js';
 import { isValidEnrollmentTransition } from '../domain/enrollment.js';
 import type { EnrollmentRepository } from './enrollment-repository.js';
 import { PostgresRepository } from './postgres-repository.js';
-import { mapPostgresPersistenceError } from './postgres-admin-repository.js';
+import { mapPostgresPersistenceError } from '../db/errors.js';
 
 interface EnrollmentRow {
   id: string;
