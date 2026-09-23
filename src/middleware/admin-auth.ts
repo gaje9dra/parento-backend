@@ -1,4 +1,5 @@
 import type { RequestHandler } from 'express';
+import { logger } from '../logging/logger.js';
 import type { AdminAuthenticationService } from '../services/admin-authentication-service.js';
 
 declare global {
@@ -22,6 +23,10 @@ export const requireAdminAuthentication = (
     const match = header?.match(/^Bearer ([A-Za-z0-9_-]{20,256})$/);
 
     if (match?.[1] === undefined) {
+      logger.warn(
+        { event: 'admin_authentication_failure', requestId: res.locals.requestId },
+        'Administrator authentication failed',
+      );
       res.status(401).json({
         error: {
           code: 'AUTHENTICATION_REQUIRED',
@@ -42,6 +47,10 @@ export const requireAdminAuthentication = (
       };
       next();
     } catch {
+      logger.warn(
+        { event: 'admin_authentication_failure', requestId: res.locals.requestId },
+        'Administrator authentication failed',
+      );
       res.status(401).json({
         error: {
           code: 'AUTHENTICATION_REQUIRED',
