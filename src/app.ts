@@ -84,11 +84,7 @@ app.use(
         ? incoming
         : randomUUID();
     },
-    redact: {
-      req: {
-        headers: ['authorization', 'cookie'],
-      },
-    },
+    redact: ['req.headers.authorization', 'req.headers.cookie'],
   }),
 );
 
