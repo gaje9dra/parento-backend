@@ -91,7 +91,9 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
       "SELECT table_name FROM information_schema.tables " +
         "WHERE table_schema = 'public' AND table_name = 'admin_sessions'",
     );
-    expect(sessionTable.rows.map((row) => row.table_name)).toEqual(['admin_sessions']);
+    expect(sessionTable.rows.map((row) => row.table_name)).toEqual([
+      'admin_sessions',
+    ]);
   });
 
   it('upgrades a Phase 2.3 database to the current schema', async () => {
