@@ -143,7 +143,9 @@ export class PostgresAdminRepository
       'SELECT id, email, status, password_hash, last_authenticated_at FROM admins WHERE id = $1',
       [id],
     );
-    return result.rows[0] === undefined ? null : toAuthenticationRecord(result.rows[0]);
+    return result.rows[0] === undefined
+      ? null
+      : toAuthenticationRecord(result.rows[0]);
   }
 
   async setPasswordHash(
@@ -221,9 +223,9 @@ export class PostgresAdminRepository
     sessionId: string,
     input: {
       currentRefreshTokenHash: string;
-    accessTokenHash: string;
-    refreshTokenHash: string;
-    accessExpiresAt: Date;
+      accessTokenHash: string;
+      refreshTokenHash: string;
+      accessExpiresAt: Date;
     },
   ): Promise<AdminSession | null> {
     const result = await this.query<SessionRow>(
