@@ -186,13 +186,14 @@ export class PostgresAdminRepository
   }
 
   async rotateSession(sessionId: string, input: {
+    currentRefreshTokenHash: string;
     accessTokenHash: string;
     refreshTokenHash: string;
     accessExpiresAt: Date;
   }): Promise<AdminSession | null> {
     const result = await this.query<SessionRow>(
-      'UPDATE admin_sessions SET access_token_hash = $2, refresh_token_hash = $3, access_expires_at = $4, updated_at = NOW() WHERE id = $1 AND revoked_at IS NULL AND expires_at > NOW() RETURNING id, admin_id, access_token_hash, refresh_token_hash, access_expires_at, expires_at, revoked_at',
-      [sessionId, input.accessTokenHash, input.refreshTokenHash, input.accessExpiresAt],
+      'UPDATE admin_sessions SET access_token_hash = $3, refresh_token_hash = $4, access_expires_at = $5, updated_at = NOW() WHERE id = $1 AND refresh_token_hash = $2 AND revoked_at IS NULL AND expires_at > NOW() RETURNING id, admin_id, access_token_hash, refresh_token_hash, access_expires_at, expires_at, revoked_at',
+      [sessionId, input.currentRefreshTokenHash, input.accessTokenHash, input.refreshTokenHash, input.accessExpiresAt],
     );
     return result.rows[0] === undefined ? null : toSession(result.rows[0]);
   }
