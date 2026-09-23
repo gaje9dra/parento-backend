@@ -1,6 +1,7 @@
 import type { RequestHandler } from 'express';
 import type { ApiSuccess } from '../api/contracts.js';
 import type { Database } from '../db/index.js';
+import { checkDatabaseReadiness } from '../db/readiness.js';
 
 const successResponse = <T>(data: T, requestId: string): ApiSuccess<T> => ({
   data,
@@ -24,34 +25,22 @@ export const createHealthController = (database: Database): {
   },
 
   readiness: async (_req, res, next) => {
-    if (!database.configured) {
-      res
-        .status(200)
-        .json(
-          successResponse(
-            {
-              status: 'ready',
-              service: 'parento-backend',
-              version: '1',
-              database: 'not_configured',
-            },
-            res.locals.requestId,
-          ),
-        );
-      return;
-    }
-
     try {
-      const available = await database.isReady();
+      const readiness = await checkDatabaseReadiness(database);
+      const ready = readiness.configured && readiness.available;
       res
-        .status(available ? 200 : 503)
+        .status(ready ? 200 : 503)
         .json(
           successResponse(
             {
-              status: available ? 'ready' : 'not_ready',
+              status: ready ? 'ready' : 'not_ready',
               service: 'parento-backend',
               version: '1',
-              database: available ? 'available' : 'unavailable',
+              database: readiness.available
+                ? 'available'
+                : readiness.configured
+                  ? 'unavailable'
+                  : 'not_configured',
             },
             res.locals.requestId,
           ),
