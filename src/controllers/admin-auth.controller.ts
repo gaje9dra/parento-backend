@@ -1,5 +1,6 @@
 import type { RequestHandler } from 'express';
 import { z } from 'zod';
+import { logger } from '../logging/logger.js';
 import {
   AdminAuthenticationService,
   AuthenticationFailure,
@@ -65,6 +66,10 @@ export const createAdminAuthController = (
       const result = await authentication.login(
         parsed.data.email,
         parsed.data.password,
+      );
+      logger.info(
+        { event: 'admin_login_success', requestId: res.locals.requestId, adminId: result.admin.id },
+        'Administrator login succeeded',
       );
       res.status(200).json({
         data: {
@@ -157,6 +162,10 @@ export const createAdminAuthController = (
         return;
       }
       await authentication.logout(header.slice('Bearer '.length));
+      logger.info(
+        { event: 'admin_logout', requestId: res.locals.requestId, adminId: req.authenticatedAdmin?.id },
+        'Administrator logout completed',
+      );
       res.status(204).send();
     } catch (error) {
       next(error);
