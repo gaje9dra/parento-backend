@@ -2,7 +2,6 @@ import type { RequestHandler } from 'express';
 import type { ApiSuccess } from '../api/contracts.js';
 
 const successResponse = <T>(data: T, requestId: string): ApiSuccess<T> => ({
-  success: true,
   data,
   requestId,
 });
