@@ -1,7 +1,11 @@
-import { beforeAll, afterAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { loadConfig } from '../src/config/env.js';
 import { createDatabase } from '../src/db/index.js';
-import { migrationStatus, resetMigrations, runMigrations } from '../src/db/migrate.js';
+import {
+  migrationStatus,
+  resetMigrations,
+  runMigrations,
+} from '../src/db/migrate.js';
 
 const hasDatabase = Boolean(process.env.DATABASE_URL);
 
