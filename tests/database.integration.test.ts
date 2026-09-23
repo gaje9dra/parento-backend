@@ -79,8 +79,15 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
   it('upgrades a Phase 2.3 database to the Phase 2.4 schema', async () => {
     await resetMigrations(database);
 
-    for (const id of ['0001_phase_2_1_baseline.sql', '0002_core_domain.sql', '0003_phase_2_3_integrity.sql']) {
-      const sql = await readFile(join(process.cwd(), 'migrations', id), 'utf8');
+    for (const id of [
+      '0001_phase_2_1_baseline.sql',
+      '0002_core_domain.sql',
+      '0003_phase_2_3_integrity.sql',
+    ]) {
+      const sql = await readFile(
+        join(process.cwd(), 'migrations', id),
+        'utf8',
+      );
       await database.withTransaction(async (client) => {
         await client.query(sql);
         const migrationId = id.slice(0, 4);
