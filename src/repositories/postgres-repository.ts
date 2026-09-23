@@ -1,4 +1,4 @@
-import type { QueryResultRow } from 'pg';
+import type { PoolClient, QueryResultRow } from 'pg';
 import type { Database } from '../db/index.js';
 import type { Repository } from './repository.js';
 
@@ -15,8 +15,8 @@ export abstract class PostgresRepository implements Repository {
   }
 
   protected transaction<T>(
-    work: Parameters<Database['withTransaction']>[0],
-  ): ReturnType<Database['withTransaction']> {
-    return this.database.withTransaction(work) as ReturnType<Database['withTransaction']>;
+    work: (client: PoolClient) => Promise<T>,
+  ): Promise<T> {
+    return this.database.withTransaction(work);
   }
 }
