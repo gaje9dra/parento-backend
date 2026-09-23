@@ -540,3 +540,26 @@ Refresh rotation uses an atomic database update conditioned on the current refre
 The default rate limiter uses the library's process-local store. It is suitable as a single-instance baseline but is not a distributed abuse-control mechanism. Production deployments with multiple backend instances must use a shared rate-limit store or an equivalent trusted edge control.
 
 No password-change endpoint, OAuth, RBAC system, device enrollment, pairing, realtime communication, device control, monitoring, location, media capture, policy enforcement, or remote command functionality is introduced by Phase 3.2.
+
+
+## Phase 3.3 — Admin Session Lifecycle, Authorization & Account Security
+
+Phase 3.3 hardens the existing opaque server-side administrator session architecture.
+
+Implemented:
+
+- server-side enforcement of access/session expiration
+- immediate rejection of sessions belonging to disabled administrators
+- atomic refresh-token rotation with a refreshed access credential capped by the parent session lifetime
+- independent concurrent administrator sessions
+- authenticated-session-specific logout/revocation
+- opportunistic cleanup of expired and long-revoked session rows
+- structured authentication and authorization security events without credential logging
+- continued generic authentication failures for account-enumeration protection
+- expanded session lifecycle and authorization tests
+- migration/index support for session cleanup
+- Phase 3.3 authentication lifecycle documentation
+
+No password-change endpoint is exposed because credential-change functionality is not yet part of the roadmap. No RBAC system or managed-device functionality is introduced.
+
+See `docs/phase-3.3-admin-session-lifecycle.md`.
