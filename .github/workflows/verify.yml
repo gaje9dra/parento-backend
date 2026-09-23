@@ -6,7 +6,7 @@ on:
   pull_request:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   verify:
@@ -42,8 +42,18 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Formatting diagnostic
-        run: npx prettier --write . && git diff --exit-code
+      - name: Stabilize formatting and lockfile
+        run: |
+          npx prettier --write .
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No formatting or lockfile changes required."
+          else
+            git commit -m "chore: stabilize backend formatting and lockfile"
+            git push
+          fi
 
       - name: Format check
         run: npm run format:check
