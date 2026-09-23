@@ -57,11 +57,11 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
         ') ORDER BY indexname',
     );
     expect(indexes.rows.map((row) => row.indexname)).toEqual([
+      'admin_sessions_revoked_at_idx',
       'admins_email_unique_idx',
       'enrollments_admin_created_id_idx',
       'enrollments_device_created_id_idx',
       'managed_devices_admin_created_id_idx',
-      'admin_sessions_revoked_at_idx',
     ]);
 
     const constraints = await database.query<{ constraint_name: string }>(
