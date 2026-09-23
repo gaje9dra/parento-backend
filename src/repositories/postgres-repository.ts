@@ -1,4 +1,5 @@
 import type { PoolClient, QueryResultRow } from 'pg';
+import { mapPostgresPersistenceError } from '../db/errors.js';
 import type { Database } from '../db/index.js';
 import type { Repository } from './repository.js';
 
@@ -7,11 +8,15 @@ export abstract class PostgresRepository implements Repository {
 
   protected constructor(protected readonly database: Database) {}
 
-  protected query<T extends QueryResultRow = QueryResultRow>(
+  protected async query<T extends QueryResultRow = QueryResultRow>(
     text: string,
     values?: readonly unknown[],
   ) {
-    return this.database.query<T>(text, values);
+    try {
+      return await this.database.query<T>(text, values);
+    } catch (error) {
+      throw mapPostgresPersistenceError(error, 'Database operation failed.');
+    }
   }
 
   protected transaction<T>(
