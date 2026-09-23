@@ -422,3 +422,23 @@ Tests use the configured isolated PostgreSQL test database and reset it before e
 ### Deferred
 
 Authentication, password hashing, JWT/refresh tokens, OAuth, enrollment APIs, QR pairing, Device Owner provisioning, WebSockets, FCM, monitoring, location, camera, microphone, audio, screen capture/sharing, device commands, application blocking, website/DNS/VPN filtering, policy enforcement, notifications, and complete audit logging remain deferred.
+
+
+## Phase 2.4 — Persistence Services, Query Layer & Database Operational Readiness
+
+Phase 2.4 strengthens the persistence foundation without introducing public authentication or device-management APIs.
+
+Implemented:
+- domain-level persistence service contracts for Admin, ManagedDevice, and Enrollment
+- complete repository query contracts including existence checks and bounded list operations
+- cursor pagination with a maximum page size of 100 and deterministic created_at DESC / id DESC ordering
+- PostgreSQL indexes aligned with administrator/device enrollment list access patterns
+- explicit transactional migration execution and rollback behavior
+- safe PostgreSQL constraint/infrastructure error mapping
+- database-backed readiness requiring an actual reachable PostgreSQL connection
+- configuration-driven connection pooling and graceful database shutdown
+- operational persistence documentation and isolated PostgreSQL CI coverage
+
+See `docs/phase-2.4-persistence-operations.md` for the deployment and persistence operations guide.
+
+Phase 2.4 still defers authentication, enrollment APIs, realtime communication, monitoring, sensitive device capabilities, device control, application/website blocking, policy enforcement, and complete audit implementation.
