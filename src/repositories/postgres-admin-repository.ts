@@ -39,7 +39,10 @@ export class PostgresAdminRepository
       );
       return toAdmin(result.rows[0]!);
     } catch (error) {
-      throw mapPostgresPersistenceError(error, 'Unable to create administrator.');
+      throw mapPostgresPersistenceError(
+        error,
+        'Unable to create administrator.',
+      );
     }
   }
 
