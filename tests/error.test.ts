@@ -8,11 +8,11 @@ describe('error contract', () => {
 
     expect(response.status).toBe(404);
     expect(response.body).toMatchObject({
-      success: false,
       error: {
         code: 'NOT_FOUND',
         message: 'Route not found.',
       },
+      requestId: response.headers['x-request-id'],
     });
     expect(response.body).not.toHaveProperty('stack');
   });
