@@ -3,9 +3,7 @@ import type {
   ManagedDeviceStatus,
 } from '../domain/managed-device.js';
 import { PersistenceError } from '../domain/persistence-errors.js';
-import {
-  isValidManagedDeviceTransition,
-} from '../domain/managed-device.js';
+import { isValidManagedDeviceTransition } from '../domain/managed-device.js';
 import type {
   DevicePage,
   DevicePageRequest,
@@ -85,7 +83,8 @@ export class PostgresManagedDeviceRepository
   }): Promise<ManagedDevice> {
     try {
       const result = await this.query<DeviceRow>(
-        'INSERT INTO managed_devices (id, admin_id, stable_identifier, name, platform) VALUES ($1, $2, $3, $4, $5) RETURNING ' + columns,
+        'INSERT INTO managed_devices (id, admin_id, stable_identifier, name, platform) VALUES ($1, $2, $3, $4, $5) RETURNING ' +
+          columns,
         [
           input.id,
           input.adminId,
@@ -115,7 +114,9 @@ export class PostgresManagedDeviceRepository
     stableIdentifier: string,
   ): Promise<ManagedDevice | null> {
     const result = await this.query<DeviceRow>(
-      'SELECT ' + columns + ' FROM managed_devices WHERE stable_identifier = $1',
+      'SELECT ' +
+        columns +
+        ' FROM managed_devices WHERE stable_identifier = $1',
       [stableIdentifier],
     );
     return result.rows[0] === undefined ? null : toDevice(result.rows[0]);
@@ -124,20 +125,23 @@ export class PostgresManagedDeviceRepository
   async list(page: DevicePageRequest = {}): Promise<DevicePage> {
     const limit = Math.min(Math.max(page.limit ?? 50, 1), 100);
     const cursor = page.cursor == null ? null : decodeCursor(page.cursor);
-    const result = cursor === null
-      ? await this.query<DeviceRow>(
-          'SELECT ' + columns +
-            ' FROM managed_devices ' +
-            'ORDER BY created_at DESC, id DESC LIMIT $1',
-          [limit + 1],
-        )
-      : await this.query<DeviceRow>(
-          'SELECT ' + columns +
-            ' FROM managed_devices ' +
-            'WHERE (created_at, id) < ($1, $2) ' +
-            'ORDER BY created_at DESC, id DESC LIMIT $3',
-          [cursor.createdAt, cursor.id, limit + 1],
-        );
+    const result =
+      cursor === null
+        ? await this.query<DeviceRow>(
+            'SELECT ' +
+              columns +
+              ' FROM managed_devices ' +
+              'ORDER BY created_at DESC, id DESC LIMIT $1',
+            [limit + 1],
+          )
+        : await this.query<DeviceRow>(
+            'SELECT ' +
+              columns +
+              ' FROM managed_devices ' +
+              'WHERE (created_at, id) < ($1, $2) ' +
+              'ORDER BY created_at DESC, id DESC LIMIT $3',
+            [cursor.createdAt, cursor.id, limit + 1],
+          );
 
     const hasMore = result.rows.length > limit;
     const rows = hasMore ? result.rows.slice(0, limit) : result.rows;
@@ -152,24 +156,28 @@ export class PostgresManagedDeviceRepository
     page: DevicePageRequest = {},
   ): Promise<DevicePage> {
     const limit = Math.min(Math.max(page.limit ?? 50, 1), 100);
-    const cursor = page.cursor === undefined || page.cursor === null
-      ? null
-      : decodeCursor(page.cursor);
+    const cursor =
+      page.cursor === undefined || page.cursor === null
+        ? null
+        : decodeCursor(page.cursor);
 
-    const result = cursor === null
-      ? await this.query<DeviceRow>(
-          'SELECT ' + columns +
-            ' FROM managed_devices WHERE admin_id = $1 ' +
-            'ORDER BY created_at DESC, id DESC LIMIT $2',
-          [adminId, limit + 1],
-        )
-      : await this.query<DeviceRow>(
-          'SELECT ' + columns +
-            ' FROM managed_devices WHERE admin_id = $1 ' +
-            'AND (created_at, id) < ($2, $3) ' +
-            'ORDER BY created_at DESC, id DESC LIMIT $4',
-          [adminId, cursor.createdAt, cursor.id, limit + 1],
-        );
+    const result =
+      cursor === null
+        ? await this.query<DeviceRow>(
+            'SELECT ' +
+              columns +
+              ' FROM managed_devices WHERE admin_id = $1 ' +
+              'ORDER BY created_at DESC, id DESC LIMIT $2',
+            [adminId, limit + 1],
+          )
+        : await this.query<DeviceRow>(
+            'SELECT ' +
+              columns +
+              ' FROM managed_devices WHERE admin_id = $1 ' +
+              'AND (created_at, id) < ($2, $3) ' +
+              'ORDER BY created_at DESC, id DESC LIMIT $4',
+            [adminId, cursor.createdAt, cursor.id, limit + 1],
+          );
 
     const hasMore = result.rows.length > limit;
     const rows = hasMore ? result.rows.slice(0, limit) : result.rows;
@@ -198,7 +206,8 @@ export class PostgresManagedDeviceRepository
     }
 
     const result = await this.query<DeviceRow>(
-      'UPDATE managed_devices SET enrollment_status = $2, operational_status = $2, updated_at = NOW() WHERE id = $1 RETURNING ' + columns,
+      'UPDATE managed_devices SET enrollment_status = $2, operational_status = $2, updated_at = NOW() WHERE id = $1 RETURNING ' +
+        columns,
       [id, status],
     );
     return result.rows[0] === undefined ? null : toDevice(result.rows[0]);

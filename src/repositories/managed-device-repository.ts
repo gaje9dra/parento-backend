@@ -27,10 +27,7 @@ export interface ManagedDeviceRepository extends Repository {
     stableIdentifier: string,
   ): Promise<ManagedDevice | null>;
   list(page?: DevicePageRequest): Promise<DevicePage>;
-  listByAdminId(
-    adminId: string,
-    page?: DevicePageRequest,
-  ): Promise<DevicePage>;
+  listByAdminId(adminId: string, page?: DevicePageRequest): Promise<DevicePage>;
   updateStatus(
     id: string,
     status: ManagedDeviceStatus,

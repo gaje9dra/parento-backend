@@ -65,9 +65,7 @@ describe('API foundation', () => {
     });
   });
 
-  it(
-    'generates a request ID when none is supplied and preserves a safe incoming ID',
-    async () => {
+  it('generates a request ID when none is supplied and preserves a safe incoming ID', async () => {
     const generated = await request(app).get('/api/v1/health');
     expect(generated.headers['x-request-id']).toBeTruthy();
 
@@ -137,9 +135,7 @@ describe('API foundation', () => {
     });
   });
 
-  it(
-    'does not expose sensitive headers or request bodies through the API response',
-    async () => {
+  it('does not expose sensitive headers or request bodies through the API response', async () => {
     const response = await request(app)
       .get('/api/v1/health')
       .set('Authorization', 'Bearer very-secret-token');

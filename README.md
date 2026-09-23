@@ -313,8 +313,6 @@ Only gaje9dra/parento-backend was modified. No code, configuration, or documenta
 
 Authentication, enrollment, device control, realtime communication, location, media, policy enforcement, surveillance, and Android security bypasses remain deferred.
 
-
-
 ## Phase 2.2 — Core Database Schema & Domain Persistence
 
 Phase 2.2 preserves the Phase 2.1 PostgreSQL architecture and adds the minimal persistent Parento domain foundation. Only `gaje9dra/parento-backend` is modified.
@@ -423,12 +421,12 @@ Tests use the configured isolated PostgreSQL test database and reset it before e
 
 Authentication, password hashing, JWT/refresh tokens, OAuth, enrollment APIs, QR pairing, Device Owner provisioning, WebSockets, FCM, monitoring, location, camera, microphone, audio, screen capture/sharing, device commands, application blocking, website/DNS/VPN filtering, policy enforcement, notifications, and complete audit logging remain deferred.
 
-
 ## Phase 2.4 — Persistence Services, Query Layer & Database Operational Readiness
 
 Phase 2.4 strengthens the persistence foundation without introducing public authentication or device-management APIs.
 
 Implemented:
+
 - domain-level persistence service contracts for Admin, ManagedDevice, and Enrollment
 - complete repository query contracts including existence checks and bounded list operations
 - cursor pagination with a maximum page size of 100 and deterministic created_at DESC / id DESC ordering
@@ -442,7 +440,6 @@ Implemented:
 See `docs/phase-2.4-persistence-operations.md` for the deployment and persistence operations guide.
 
 Phase 2.4 still defers authentication, enrollment APIs, realtime communication, monitoring, sensitive device capabilities, device control, application/website blocking, policy enforcement, and complete audit implementation.
-
 
 ## Phase 2.5 — Database Security, Testing & Phase 2 Completion
 

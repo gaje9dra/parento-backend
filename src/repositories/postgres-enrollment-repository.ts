@@ -74,7 +74,8 @@ export class PostgresEnrollmentRepository
   }): Promise<Enrollment> {
     try {
       const result = await this.query<EnrollmentRow>(
-        'INSERT INTO enrollments (id, enrollment_identifier, device_id, admin_id, expires_at) VALUES ($1, $2, $3, $4, $5) RETURNING ' + columns,
+        'INSERT INTO enrollments (id, enrollment_identifier, device_id, admin_id, expires_at) VALUES ($1, $2, $3, $4, $5) RETURNING ' +
+          columns,
         [
           input.id,
           input.enrollmentIdentifier,
@@ -85,10 +86,7 @@ export class PostgresEnrollmentRepository
       );
       return toEnrollment(result.rows[0]!);
     } catch (error) {
-      throw mapPostgresPersistenceError(
-        error,
-        'Unable to create enrollment.',
-      );
+      throw mapPostgresPersistenceError(error, 'Unable to create enrollment.');
     }
   }
 
@@ -102,7 +100,9 @@ export class PostgresEnrollmentRepository
 
   async findByIdentifier(identifier: string): Promise<Enrollment | null> {
     const result = await this.query<EnrollmentRow>(
-      'SELECT ' + columns + ' FROM enrollments WHERE enrollment_identifier = $1',
+      'SELECT ' +
+        columns +
+        ' FROM enrollments WHERE enrollment_identifier = $1',
       [identifier],
     );
     return result.rows[0] === undefined ? null : toEnrollment(result.rows[0]);
@@ -129,20 +129,27 @@ export class PostgresEnrollmentRepository
   ): Promise<import('./enrollment-repository.js').EnrollmentPage> {
     const limit = Math.min(Math.max(page.limit ?? 50, 1), 100);
     const cursor = page.cursor == null ? null : decodeCursor(page.cursor);
-    const result = cursor === null
-      ? await this.query<EnrollmentRow>(
-          'SELECT ' + columns +
-            ' FROM enrollments WHERE ' + scopeColumn + ' = $1 ' +
-            'ORDER BY created_at DESC, id DESC LIMIT $2',
-          [scopeValue, limit + 1],
-        )
-      : await this.query<EnrollmentRow>(
-          'SELECT ' + columns +
-            ' FROM enrollments WHERE ' + scopeColumn + ' = $1 ' +
-            'AND (created_at, id) < ($2, $3) ' +
-            'ORDER BY created_at DESC, id DESC LIMIT $4',
-          [scopeValue, cursor.createdAt, cursor.id, limit + 1],
-        );
+    const result =
+      cursor === null
+        ? await this.query<EnrollmentRow>(
+            'SELECT ' +
+              columns +
+              ' FROM enrollments WHERE ' +
+              scopeColumn +
+              ' = $1 ' +
+              'ORDER BY created_at DESC, id DESC LIMIT $2',
+            [scopeValue, limit + 1],
+          )
+        : await this.query<EnrollmentRow>(
+            'SELECT ' +
+              columns +
+              ' FROM enrollments WHERE ' +
+              scopeColumn +
+              ' = $1 ' +
+              'AND (created_at, id) < ($2, $3) ' +
+              'ORDER BY created_at DESC, id DESC LIMIT $4',
+            [scopeValue, cursor.createdAt, cursor.id, limit + 1],
+          );
 
     const hasMore = result.rows.length > limit;
     const rows = hasMore ? result.rows.slice(0, limit) : result.rows;
@@ -168,10 +175,11 @@ export class PostgresEnrollmentRepository
     }
 
     const effectiveCompletedAt =
-      status === 'COMPLETED' ? completedAt ?? new Date() : null;
+      status === 'COMPLETED' ? (completedAt ?? new Date()) : null;
 
     const result = await this.query<EnrollmentRow>(
-      'UPDATE enrollments SET status = $2, completed_at = $3, updated_at = NOW() WHERE id = $1 RETURNING ' + columns,
+      'UPDATE enrollments SET status = $2, completed_at = $3, updated_at = NOW() WHERE id = $1 RETURNING ' +
+        columns,
       [id, status, effectiveCompletedAt],
     );
     return result.rows[0] === undefined ? null : toEnrollment(result.rows[0]);

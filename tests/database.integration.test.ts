@@ -47,9 +47,7 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
     expect(status.filter((migration) => migration.applied)).toHaveLength(4);
   });
 
-  it(
-    'verifies the final schema has the Phase 2 integrity constraints and query indexes',
-    async () => {
+  it('verifies the final schema has the Phase 2 integrity constraints and query indexes', async () => {
     const indexes = await database.query<{ indexname: string }>(
       "SELECT indexname FROM pg_indexes WHERE schemaname = 'public' AND indexname IN (" +
         "'admins_email_unique_idx', 'managed_devices_admin_created_id_idx', " +
@@ -64,7 +62,7 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
     ]);
 
     const constraints = await database.query<{ constraint_name: string }>(
-      "SELECT constraint_name FROM information_schema.table_constraints " +
+      'SELECT constraint_name FROM information_schema.table_constraints ' +
         "WHERE constraint_schema = 'public' AND constraint_name IN (" +
         "'managed_devices_stable_identifier_unique', 'enrollments_device_admin_fk', " +
         "'managed_devices_stable_identifier_check', 'enrollments_completed_timestamp_check'" +
@@ -86,10 +84,7 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
       '0002_core_domain.sql',
       '0003_phase_2_3_integrity.sql',
     ]) {
-      const sql = await readFile(
-        join(process.cwd(), 'migrations', id),
-        'utf8',
-      );
+      const sql = await readFile(join(process.cwd(), 'migrations', id), 'utf8');
       await database.withTransaction(async (client) => {
         await client.query(sql);
         const migrationId = id.slice(0, 4);
