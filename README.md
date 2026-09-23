@@ -313,3 +313,112 @@ Only gaje9dra/parento-backend was modified. No code, configuration, or documenta
 
 Authentication, enrollment, device control, realtime communication, location, media, policy enforcement, surveillance, and Android security bypasses remain deferred.
 
+
+
+## Phase 2.2 — Core Database Schema & Domain Persistence
+
+Phase 2.2 preserves the Phase 2.1 PostgreSQL architecture and adds the minimal persistent Parento domain foundation. Only `gaje9dra/parento-backend` is modified.
+
+### Database architecture
+
+```
+API
+ ↓
+Service
+ ↓
+Repository
+ ↓
+PostgreSQL
+```
+
+No new public business API endpoints are exposed in this phase.
+
+### Core entities
+
+The Phase 2.2 schema contains:
+
+- `admins` — administrator identity metadata only.
+- `managed_devices` — minimal managed-device ownership and status.
+- `enrollments` — minimal future enrollment/pairing persistence foundation.
+
+Relationships:
+
+```
+Admin
+ └──< ManagedDevice
+       └──< Enrollment
+          └── Admin
+```
+
+### Admin
+
+Fields include UUID identity, unique case-insensitive email, optional display name, `ACTIVE`/`DISABLED` status, and UTC timestamps.
+
+No passwords, JWTs, OAuth credentials, access tokens, refresh tokens, or other authentication secrets are stored.
+
+### Managed device
+
+Fields include UUID identity, owning admin, name, platform, enrollment status, operational status, UTC creation/update timestamps, and optional last-seen timestamp.
+
+The schema does not contain location history, media, telemetry, camera data, microphone recordings, or screen captures.
+
+### Enrollment
+
+Fields include UUID identity, unique enrollment identifier, admin/device references, status, creation/expiration/completion timestamps.
+
+The persistence model does not implement QR generation, pairing UI, enrollment APIs, provisioning, Device Owner setup, authentication, or reusable permanent pairing secrets.
+
+### Status constraints
+
+Admin:
+`ACTIVE`, `DISABLED`
+
+Managed device:
+`PENDING`, `ACTIVE`, `REVOKED`
+
+Enrollment:
+`PENDING`, `COMPLETED`, `EXPIRED`, `REVOKED`
+
+PostgreSQL CHECK constraints enforce these values.
+
+### Migration
+
+Phase 2.1 baseline:
+
+`migrations/0001_phase_2_1_baseline.sql`
+
+Phase 2.2 schema:
+
+`migrations/0002_core_domain.sql`
+
+The migration is transactional and deterministic. Development reset is explicitly non-production and recreates the PostgreSQL public schema before replaying migrations.
+
+### Repository and service boundaries
+
+Domain models live under `src/domain`.
+
+Repository interfaces live under `src/repositories`, with PostgreSQL implementations kept separate from domain models.
+
+Small persistence services generate UUIDs and enforce persistence-level business checks such as enrollment expiration before repository access.
+
+PostgreSQL constraint errors are mapped to `PersistenceError` categories and are not exposed as raw database errors.
+
+### Testing
+
+With `DATABASE_URL` configured, Phase 2.2 integration tests cover:
+
+- admin creation/retrieval
+- case-insensitive unique email
+- admin status changes
+- managed-device creation and admin ownership
+- orphan foreign-key rejection
+- enrollment creation and references
+- enrollment expiration validation
+- status changes
+- migration application from the Phase 2.1 baseline
+
+Tests use the configured isolated PostgreSQL test database and reset it before each persistence test.
+
+### Deferred
+
+Authentication, password hashing, JWT/refresh tokens, OAuth, enrollment APIs, QR pairing, Device Owner provisioning, WebSockets, FCM, monitoring, location, camera, microphone, audio, screen capture/sharing, device commands, application blocking, website/DNS/VPN filtering, policy enforcement, notifications, and complete audit logging remain deferred.
