@@ -41,7 +41,8 @@ describe.skipIf(!hasDatabase)('Phase 2.3 domain persistence', () => {
     ).rejects.toMatchObject({ code: 'CONFLICT' });
 
     expect(
-      (await admins.updateMetadata(admin.id, { displayName: 'Updated' }))?.displayName,
+      (await admins.updateMetadata(admin.id, { displayName: 'Updated' }))
+        ?.displayName,
     ).toBe('Updated');
     expect((await admins.updateStatus(admin.id, 'DISABLED'))?.status).toBe(
       'DISABLED',
@@ -195,12 +196,12 @@ describe.skipIf(!hasDatabase)('Phase 2.3 domain persistence', () => {
       platform: 'android',
     });
 
-    expect((await devices.updateStatus(device.id, 'ACTIVE'))?.operationalStatus).toBe(
-      'ACTIVE',
-    );
-    expect((await devices.updateStatus(device.id, 'REVOKED'))?.operationalStatus).toBe(
-      'REVOKED',
-    );
+    expect(
+      (await devices.updateStatus(device.id, 'ACTIVE'))?.operationalStatus,
+    ).toBe('ACTIVE');
+    expect(
+      (await devices.updateStatus(device.id, 'REVOKED'))?.operationalStatus,
+    ).toBe('REVOKED');
     await expect(
       devices.updateStatus(device.id, 'ACTIVE'),
     ).rejects.toMatchObject({ code: 'INVALID_STATE' });
