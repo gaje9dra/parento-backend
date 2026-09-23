@@ -145,7 +145,10 @@ export class AdminAuthenticationService {
     const accessToken = generateOpaqueToken();
     const nextRefreshToken = generateOpaqueToken();
     const accessExpiresAt = new Date(
-      Date.now() + this.accessTokenTtlSeconds * 1000,
+      Math.min(
+        Date.now() + this.accessTokenTtlSeconds * 1000,
+        session.expiresAt.getTime(),
+      ),
     );
     const rotated = await this.repository.rotateSession(session.id, {
       currentRefreshTokenHash: refreshTokenHash,
