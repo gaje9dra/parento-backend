@@ -68,6 +68,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
+        '429':
+          description: Authentication rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
   /api/v1/auth/admin/refresh:
     post:
       summary: Rotate administrator access and refresh credentials
@@ -93,6 +99,12 @@ paths:
                 $ref: '#/components/schemas/ApiError'
         '401':
           description: Invalid or expired refresh credential
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '429':
+          description: Authentication rate limit exceeded
           content:
             application/json:
               schema:
@@ -196,7 +208,7 @@ components:
           maxLength: 254
         password:
           type: string
-          minLength: 1
+          minLength: 15
           maxLength: 256
     AdminRefreshRequest:
       type: object
@@ -273,6 +285,7 @@ components:
               type: string
               enum:
                 - AUTHENTICATION_REQUIRED
+                - INVALID_REQUEST
                 - INVALID_CREDENTIALS
                 - AUTHORIZATION_DENIED
                 - INVALID_REQUEST
