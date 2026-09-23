@@ -8,13 +8,21 @@ export const notFoundHandler: RequestHandler = (req, res) => {
       code: 'NOT_FOUND',
       message: 'Route not found.',
     },
-    path: req.originalUrl,
+    requestId: res.locals.requestId,
   });
 };
 
 export const errorHandler: ErrorRequestHandler = (error, req, res, _next) => {
-  const appError =
-    error instanceof AppError
+  const isMalformedJson =
+    error instanceof SyntaxError &&
+    typeof error === 'object' &&
+    error !== null &&
+    'status' in error &&
+    error.status === 400;
+
+  const appError = isMalformedJson
+    ? new AppError(400, 'INVALID_REQUEST', 'Request body contains invalid JSON.')
+    : error instanceof AppError
       ? error
       : new AppError(500, 'INTERNAL_SERVER_ERROR', 'Internal server error.');
 
@@ -23,6 +31,7 @@ export const errorHandler: ErrorRequestHandler = (error, req, res, _next) => {
       err: error,
       method: req.method,
       path: req.originalUrl,
+      requestId: res.locals.requestId,
       statusCode: appError.statusCode,
     },
     'Request failed',
@@ -30,6 +39,7 @@ export const errorHandler: ErrorRequestHandler = (error, req, res, _next) => {
 
   const body: {
     error: { code: string; message: string; metadata?: Record<string, unknown> };
+    requestId?: string;
   } = {
     error: {
       code: appError.code,
@@ -39,6 +49,10 @@ export const errorHandler: ErrorRequestHandler = (error, req, res, _next) => {
 
   if (appError.metadata !== undefined && appError.statusCode < 500) {
     body.error.metadata = appError.metadata;
+  }
+
+  if (res.locals.requestId) {
+    body.requestId = res.locals.requestId;
   }
 
   res.status(appError.statusCode).json(body);
