@@ -36,6 +36,7 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
       { id: '0002', applied: true, name: 'core_domain' },
       { id: '0003', applied: true, name: 'phase_2_3_integrity' },
       { id: '0004', applied: true, name: 'phase_2_4_query_indexes' },
+      { id: '0005', applied: true, name: 'phase_3_1_admin_authentication' },
     ]);
   });
 
@@ -44,7 +45,7 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
     await runMigrations(database);
 
     const status = await migrationStatus(database);
-    expect(status.filter((migration) => migration.applied)).toHaveLength(4);
+    expect(status.filter((migration) => migration.applied)).toHaveLength(5);
   });
 
   it('verifies the final schema has the Phase 2 integrity constraints and query indexes', async () => {
@@ -74,6 +75,19 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
       'managed_devices_stable_identifier_check',
       'managed_devices_stable_identifier_unique',
     ]);
+
+    const authColumns = await database.query<{ column_name: string }>(
+      "SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'admins' AND column_name IN ('password_hash', 'last_authenticated_at') ORDER BY column_name",
+    );
+    expect(authColumns.rows.map((row) => row.column_name)).toEqual([
+      'last_authenticated_at',
+      'password_hash',
+    ]);
+
+    const sessionTable = await database.query<{ table_name: string }>(
+      "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'admin_sessions'",
+    );
+    expect(sessionTable.rows.map((row) => row.table_name)).toEqual(['admin_sessions']);
   });
 
   it('upgrades a Phase 2.3 database to the Phase 2.4 schema', async () => {
@@ -85,6 +99,7 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
       '0001_phase_2_1_baseline.sql',
       '0002_core_domain.sql',
       '0003_phase_2_3_integrity.sql',
+      '0004_phase_2_4_query_indexes.sql',
     ]) {
       const sql = await readFile(join(process.cwd(), 'migrations', id), 'utf8');
       await database.withTransaction(async (client) => {
@@ -101,9 +116,9 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
     await runMigrations(database);
     const status = await migrationStatus(database);
     expect(status.at(-1)).toEqual({
-      id: '0004',
+      id: '0005',
       applied: true,
-      name: 'phase_2_4_query_indexes',
+      name: 'phase_3_1_admin_authentication',
     });
   });
 
