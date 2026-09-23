@@ -1,6 +1,6 @@
 import express, { type RequestHandler } from 'express';
 import pinoHttp from 'pino-http';
-import { apiRouter } from './routes/index.js';
+import { createApiRouter } from './routes/index.js';
 import { logger } from './logging/logger.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
 import { requestContext } from './api/request-context.js';
@@ -23,7 +23,9 @@ const corsMiddleware: RequestHandler = (req, res, next) => {
   if (originAllowed) {
     res.setHeader('Access-Control-Allow-Origin', requestOrigin);
     res.setHeader('Vary', 'Origin');
-    if (config.cors.credentials) res.setHeader('Access-Control-Allow-Credentials', 'true');
+    if (config.cors.credentials) {
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+    }
   }
 
   if (req.method === 'OPTIONS') {
@@ -31,8 +33,15 @@ const corsMiddleware: RequestHandler = (req, res, next) => {
       res.status(403).end();
       return;
     }
-    res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Request-Id');
+
+    res.setHeader(
+      'Access-Control-Allow-Methods',
+      'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    );
+    res.setHeader(
+      'Access-Control-Allow-Headers',
+      'Content-Type, Authorization, X-Request-Id',
+    );
     res.status(204).end();
     return;
   }
@@ -60,10 +69,17 @@ app.use(
   pinoHttp({
     logger,
     autoLogging: true,
-    redact: { req: { headers: ['authorization', 'cookie'] } },
+    customProps: (_req, res) => ({
+      requestId: res.locals.requestId,
+    }),
+    redact: {
+      req: {
+        headers: ['authorization', 'cookie'],
+      },
+    },
   }),
 );
 
-app.use(apiRouter);
+app.use(createApiRouter(config.server.apiBasePath));
 app.use(notFoundHandler);
 app.use(errorHandler);
