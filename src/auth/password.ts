@@ -2,10 +2,24 @@ import {
   randomBytes,
   scrypt as scryptCallback,
   timingSafeEqual,
+  type ScryptOptions,
 } from 'node:crypto';
-import { promisify } from 'node:util';
 
-const scrypt = promisify(scryptCallback);
+const scrypt = (
+  password: string,
+  salt: Buffer,
+  keylen: number,
+  options: ScryptOptions,
+): Promise<Buffer> =>
+  new Promise((resolve, reject) => {
+    scryptCallback(password, salt, keylen, options, (error, derivedKey) => {
+      if (error !== null) {
+        reject(error);
+        return;
+      }
+      resolve(derivedKey);
+    });
+  });
 
 const N = 2 ** 15;
 const R = 8;
