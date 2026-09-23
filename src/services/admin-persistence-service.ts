@@ -6,7 +6,15 @@ export class AdminPersistenceService {
   constructor(private readonly repository: AdminRepository) {}
 
   create(input: { email: string; displayName: string | null }): Promise<Admin> {
-    return this.repository.create({ id: randomUUID(), ...input });
+    const email = input.email.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      throw new Error('Administrator email is invalid.');
+    }
+    return this.repository.create({
+      id: randomUUID(),
+      email,
+      displayName: input.displayName,
+    });
   }
 
   findById(id: string): Promise<Admin | null> {
