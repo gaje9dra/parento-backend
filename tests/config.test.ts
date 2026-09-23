@@ -15,9 +15,9 @@ const validEnvironment = {
   SESSION_TTL_SECONDS: '86400',
   REQUEST_BODY_LIMIT: '100kb',
   TRUST_PROXY: 'false',
-  RATE_LIMIT_ENABLED: 'false',
+  RATE_LIMIT_ENABLED: 'true',
   RATE_LIMIT_WINDOW_MS: '60000',
-  RATE_LIMIT_MAX_REQUESTS: '100',
+  RATE_LIMIT_MAX_REQUESTS: '10',
   REALTIME_ENABLED: 'false',
   EXTERNAL_SERVICE_BASE_URLS: '',
 };
@@ -31,7 +31,7 @@ describe('configuration', () => {
       'http://localhost:5173',
       'http://localhost:3000',
     ]);
-    expect(config.rateLimit.enabled).toBe(false);
+    expect(config.rateLimit.enabled).toBe(true);
     expect(config.security.requestTimeoutMs).toBe(120000);
     expect(config.security.headersTimeoutMs).toBe(15000);
     expect(config.security.keepAliveTimeoutMs).toBe(5000);
@@ -103,6 +103,28 @@ describe('configuration', () => {
         CORS_CREDENTIALS: 'true',
       }),
     ).toThrowError(/CORS_CREDENTIALS/);
+  });
+
+
+  it('requires authentication rate limiting in production', () => {
+    expect(() =>
+      loadConfig({
+        ...validEnvironment,
+        NODE_ENV: 'production',
+        DATABASE_URL: 'postgresql://user:password@localhost:5432/parento',
+        CORS_ORIGINS: 'https://admin.example.invalid',
+        RATE_LIMIT_ENABLED: 'false',
+      }),
+    ).toThrowError(/RATE_LIMIT_ENABLED/);
+  });
+
+  it('rejects unsafe authentication rate-limit request counts', () => {
+    expect(() =>
+      loadConfig({
+        ...validEnvironment,
+        RATE_LIMIT_MAX_REQUESTS: '1001',
+      }),
+    ).toThrowError(/RATE_LIMIT_MAX_REQUESTS/);
   });
 
   it('accepts PostgreSQL database configuration and pool settings', () => {
