@@ -112,6 +112,32 @@ export class PostgresManagedDeviceRepository
     return result.rows[0] === undefined ? null : toDevice(result.rows[0]);
   }
 
+  async list(page: DevicePageRequest = {}): Promise<DevicePage> {
+    const limit = Math.min(Math.max(page.limit ?? 50, 1), 100);
+    const cursor = page.cursor == null ? null : decodeCursor(page.cursor);
+    const result = cursor === null
+      ? await this.query<DeviceRow>(
+          'SELECT ' + columns +
+            ' FROM managed_devices ' +
+            'ORDER BY created_at DESC, id DESC LIMIT $1',
+          [limit + 1],
+        )
+      : await this.query<DeviceRow>(
+          'SELECT ' + columns +
+            ' FROM managed_devices ' +
+            'WHERE (created_at, id) < ($1, $2) ' +
+            'ORDER BY created_at DESC, id DESC LIMIT $3',
+          [cursor.createdAt, cursor.id, limit + 1],
+        );
+
+    const hasMore = result.rows.length > limit;
+    const rows = hasMore ? result.rows.slice(0, limit) : result.rows;
+    return {
+      items: rows.map(toDevice),
+      nextCursor: hasMore ? encodeCursor(rows[rows.length - 1]!) : null,
+    };
+  }
+
   async listByAdminId(
     adminId: string,
     page: DevicePageRequest = {},
