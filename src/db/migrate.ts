@@ -20,7 +20,7 @@ const loadMigrations = async (): Promise<Migration[]> => {
     .filter((entry) => /^\d+_.+\.sql$/.test(entry))
     .sort();
 
-  return Promise.all(
+  const migrations = await Promise.all(
     entries.map(async (entry) => {
       const match = /^(\d+)_(.+)\.sql$/.exec(entry);
       if (match === null || match[1] === undefined || match[2] === undefined) {
@@ -33,6 +33,16 @@ const loadMigrations = async (): Promise<Migration[]> => {
       };
     }),
   );
+
+  const ids = new Set<string>();
+  for (const migration of migrations) {
+    if (ids.has(migration.id)) {
+      throw new Error('Duplicate migration id: ' + migration.id);
+    }
+    ids.add(migration.id);
+  }
+
+  return migrations;
 };
 
 const ensureMigrationTable = async (db: Database): Promise<void> => {
@@ -49,12 +59,34 @@ export const migrationStatus = async (
   db: Database,
 ): Promise<ReadonlyArray<{ id: string; applied: boolean; name: string }>> => {
   await ensureMigrationTable(db);
-  const applied = await db.query<{ id: string }>(
-    'SELECT id FROM schema_migrations ORDER BY id',
+  const applied = await db.query<{ id: string; name: string }>(
+    'SELECT id, name FROM schema_migrations ORDER BY id',
   );
+  const migrations = await loadMigrations();
+  const knownMigrations = new Map(
+    migrations.map((migration) => [migration.id, migration.name]),
+  );
+
+  for (const row of applied.rows) {
+    const expectedName = knownMigrations.get(row.id);
+    if (expectedName === undefined) {
+      throw new Error('Unknown migration id in database: ' + row.id);
+    }
+    if (expectedName !== row.name) {
+      throw new Error(
+        'Migration name mismatch for ' +
+          row.id +
+          ': database=' +
+          row.name +
+          ', repository=' +
+          expectedName,
+      );
+    }
+  }
+
   const appliedIds = new Set(applied.rows.map((row) => row.id));
 
-  return (await loadMigrations()).map((migration) => ({
+  return migrations.map((migration) => ({
     id: migration.id,
     applied: appliedIds.has(migration.id),
     name: migration.name,
@@ -63,12 +95,34 @@ export const migrationStatus = async (
 
 export const runMigrations = async (db: Database): Promise<void> => {
   await ensureMigrationTable(db);
-  const applied = await db.query<{ id: string }>(
-    'SELECT id FROM schema_migrations ORDER BY id',
+  const applied = await db.query<{ id: string; name: string }>(
+    'SELECT id, name FROM schema_migrations ORDER BY id',
   );
+  const migrations = await loadMigrations();
+  const knownMigrations = new Map(
+    migrations.map((migration) => [migration.id, migration.name]),
+  );
+
+  for (const row of applied.rows) {
+    const expectedName = knownMigrations.get(row.id);
+    if (expectedName === undefined) {
+      throw new Error('Unknown migration id in database: ' + row.id);
+    }
+    if (expectedName !== row.name) {
+      throw new Error(
+        'Migration name mismatch for ' +
+          row.id +
+          ': database=' +
+          row.name +
+          ', repository=' +
+          expectedName,
+      );
+    }
+  }
+
   const appliedIds = new Set(applied.rows.map((row) => row.id));
 
-  for (const migration of await loadMigrations()) {
+  for (const migration of migrations) {
     if (appliedIds.has(migration.id)) continue;
 
     await db.withTransaction(async (client) => {
