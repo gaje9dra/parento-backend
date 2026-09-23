@@ -1,12 +1,14 @@
 import { Router } from 'express';
+import type { AppConfig } from '../config/env.js';
 import type { Database } from '../db/index.js';
 import { createV1Router } from './v1/index.js';
 
 export const createApiRouter = (
   apiBasePath: string,
   database: Database,
+  security: AppConfig['security'],
 ): Router => {
   const router = Router();
-  router.use(apiBasePath, createV1Router(database));
+  router.use(apiBasePath, createV1Router(database, security));
   return router;
 };
