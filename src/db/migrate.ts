@@ -93,7 +93,7 @@ export const resetMigrations = async (db: Database): Promise<void> => {
   }
 
   await db.query('DROP TABLE IF EXISTS schema_migrations CASCADE');
-  await up(db);
+  await runMigrations(db);
 };
 
 const main = async (): Promise<void> => {
