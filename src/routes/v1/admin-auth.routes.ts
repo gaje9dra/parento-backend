@@ -30,12 +30,20 @@ export const createAdminAuthRouter = (
     : undefined;
 
   if (authenticationRateLimiter !== undefined) {
-    router.post('/auth/admin/login', authenticationRateLimiter, controller.login);
+    router.post(
+      '/auth/admin/login',
+      authenticationRateLimiter,
+      controller.login,
+    );
   } else {
     router.post('/auth/admin/login', controller.login);
   }
   if (authenticationRateLimiter !== undefined) {
-    router.post('/auth/admin/refresh', authenticationRateLimiter, controller.refresh);
+    router.post(
+      '/auth/admin/refresh',
+      authenticationRateLimiter,
+      controller.refresh,
+    );
   } else {
     router.post('/auth/admin/refresh', controller.refresh);
   }
