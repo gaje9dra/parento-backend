@@ -236,6 +236,93 @@ describe('Phase 3.1 admin authentication', () => {
     expect(afterLogout.status).toBe(401);
   });
 
+  it('rejects an existing session immediately after the administrator is disabled', async () => {
+    const { app, repository } = createFixture();
+    const login = await request(app).post('/api/v1/auth/admin/login').send({
+      email: 'admin@example.com',
+      password: 'correct horse battery staple',
+    });
+    const token = login.body.data.accessToken as string;
+
+    repository.admins.set('admin-1', {
+      ...repository.admins.get('admin-1')!,
+      status: 'DISABLED',
+    });
+
+    const response = await request(app)
+      .get('/api/v1/auth/admin/me')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(401);
+    expect(response.body.error.code).toBe('AUTHENTICATION_REQUIRED');
+  });
+
+  it('keeps independent concurrent sessions independent', async () => {
+    const { app, repository } = createFixture();
+
+    const first = await request(app).post('/api/v1/auth/admin/login').send({
+      email: 'admin@example.com',
+      password: 'correct horse battery staple',
+    });
+    const second = await request(app).post('/api/v1/auth/admin/login').send({
+      email: 'admin@example.com',
+      password: 'correct horse battery staple',
+    });
+
+    const firstToken = first.body.data.accessToken as string;
+    const secondToken = second.body.data.accessToken as string;
+    expect(repository.sessions.size).toBe(2);
+
+    const firstLogout = await request(app)
+      .post('/api/v1/auth/admin/logout')
+      .set('Authorization', `Bearer ${firstToken}`);
+    expect(firstLogout.status).toBe(204);
+
+    const secondCurrent = await request(app)
+      .get('/api/v1/auth/admin/me')
+      .set('Authorization', `Bearer ${secondToken}`);
+    expect(secondCurrent.status).toBe(200);
+
+    const firstCurrent = await request(app)
+      .get('/api/v1/auth/admin/me')
+      .set('Authorization', `Bearer ${firstToken}`);
+    expect(firstCurrent.status).toBe(401);
+  });
+
+  it('rejects refresh once the session is within the access-token lifetime boundary', async () => {
+    const repository = new FakeAdminAuthRepository();
+    repository.admins.set('admin-1', {
+      id: 'admin-1',
+      email: 'admin@example.com',
+      status: 'ACTIVE',
+      passwordHash: 'test-hash:correct horse battery staple',
+      lastAuthenticatedAt: null,
+    });
+
+    const service = new AdminAuthenticationService(
+      repository,
+      new FakePasswordHasher(),
+      900,
+      3600,
+    );
+
+    const now = Date.now();
+    repository.sessions.set('session-1', {
+      id: 'session-1',
+      adminId: 'admin-1',
+      accessTokenHash: hashOpaqueToken('old-access-token'),
+      refreshTokenHash: hashOpaqueToken('refresh-token'),
+      accessExpiresAt: new Date(now + 1000),
+      expiresAt: new Date(now + 5000),
+      revokedAt: null,
+    });
+
+    const tokens = await service.refresh('refresh-token');
+    expect(tokens.accessExpiresAt.getTime()).toBeLessThanOrEqual(
+      tokens.expiresAt.getTime(),
+    );
+  });
+
   it('rotates refresh credentials and rejects refresh-token replay', async () => {
     const { app } = createFixture();
     const login = await request(app).post('/api/v1/auth/admin/login').send({
