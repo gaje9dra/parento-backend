@@ -289,7 +289,7 @@ describe('Phase 3.1 admin authentication', () => {
     expect(firstCurrent.status).toBe(401);
   });
 
-  it('rejects refresh once the session is within the access-token lifetime boundary', async () => {
+  it('caps refreshed access expiry at the session lifetime boundary', async () => {
     const repository = new FakeAdminAuthRepository();
     repository.admins.set('admin-1', {
       id: 'admin-1',
