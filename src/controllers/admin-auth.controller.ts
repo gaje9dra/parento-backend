@@ -33,6 +33,10 @@ const handleAuthenticationError = (
   res: Parameters<RequestHandler>[1],
 ): void => {
   if (error instanceof AuthenticationFailure) {
+    logger.warn(
+      { event: 'admin_login_failure', requestId: res.locals.requestId },
+      'Administrator login failed',
+    );
     res.status(401).json({
       error: {
         code: 'INVALID_CREDENTIALS',
