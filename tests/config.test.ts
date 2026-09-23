@@ -60,7 +60,9 @@ describe('configuration', () => {
   });
 
   it('requires explicit production CORS configuration', () => {
-    const { CORS_ORIGINS: _ignored, ...withoutCors } = validEnvironment;
+    const withoutCors = Object.fromEntries(
+      Object.entries(validEnvironment).filter(([key]) => key !== 'CORS_ORIGINS'),
+    );
     expect(() =>
       loadConfig({
         ...withoutCors,
