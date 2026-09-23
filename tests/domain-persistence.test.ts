@@ -7,6 +7,7 @@ import { PostgresAdminRepository } from '../src/repositories/postgres-admin-repo
 import { PostgresManagedDeviceRepository } from '../src/repositories/postgres-managed-device-repository.js';
 import { PostgresEnrollmentRepository } from '../src/repositories/postgres-enrollment-repository.js';
 import { EnrollmentPersistenceService } from '../src/services/enrollment-persistence-service.js';
+import { AdminPersistenceService } from '../src/services/admin-persistence-service.js';
 
 const hasDatabase = Boolean(process.env.DATABASE_URL);
 
@@ -16,6 +17,7 @@ describe.skipIf(!hasDatabase)('Phase 2.3 domain persistence', () => {
   const devices = new PostgresManagedDeviceRepository(database);
   const enrollments = new PostgresEnrollmentRepository(database);
   const enrollmentService = new EnrollmentPersistenceService(enrollments);
+  const adminService = new AdminPersistenceService(admins);
 
   beforeEach(async () => {
     await resetMigrations(database);
@@ -47,6 +49,38 @@ describe.skipIf(!hasDatabase)('Phase 2.3 domain persistence', () => {
     expect((await admins.updateStatus(admin.id, 'DISABLED'))?.status).toBe(
       'DISABLED',
     );
+  });
+
+  it('normalizes new administrator identifiers and validates profile metadata', async () => {
+    const admin = await adminService.create({
+      email: '  Admin@Example.com  ',
+      displayName: '  Parent Admin  ',
+    });
+
+    expect(admin.email).toBe('admin@example.com');
+    expect(admin.displayName).toBe('Parent Admin');
+    expect(await adminService.findByEmail(' ADMIN@EXAMPLE.COM ')).toMatchObject({
+      id: admin.id,
+      email: 'admin@example.com',
+    });
+
+    expect(
+      adminService.create({
+        email: 'invalid',
+        displayName: null,
+      }),
+    ).rejects.toThrow('Administrator email is invalid.');
+
+    expect(
+      adminService.updateMetadata(admin.id, 'x'.repeat(101)),
+    ).rejects.toThrow(/must not exceed 100/);
+
+    await expect(
+      adminService.create({
+        email: 'second@example.com',
+        displayName: '',
+      }),
+    ).resolves.toMatchObject({ displayName: null });
   });
 
   it('requires a valid admin relationship for devices', async () => {
