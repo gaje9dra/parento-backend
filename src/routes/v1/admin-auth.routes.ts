@@ -2,6 +2,8 @@ import { Router, type RequestHandler } from 'express';
 import type { AdminAuthenticationService } from '../../services/admin-authentication-service.js';
 import { createAdminAuthController } from '../../controllers/admin-auth.controller.js';
 import { requireAdminAuthentication } from '../../middleware/admin-auth.js';
+import { createAuthenticationRateLimiter } from '../../middleware/auth-rate-limit.js';
+import type { AppConfig } from '../../config/env.js';
 
 const methodNotAllowed = (allow: string): RequestHandler => {
   return (_req, res): void => {
@@ -18,12 +20,24 @@ const methodNotAllowed = (allow: string): RequestHandler => {
 
 export const createAdminAuthRouter = (
   authentication: AdminAuthenticationService,
+  rateLimitConfig?: AppConfig['rateLimit'],
 ): Router => {
   const router = Router();
   const controller = createAdminAuthController(authentication);
+  const authenticationRateLimiter = rateLimitConfig
+    ? createAuthenticationRateLimiter(rateLimitConfig)
+    : undefined;
 
-  router.post('/auth/admin/login', controller.login);
-  router.post('/auth/admin/refresh', controller.refresh);
+  if (authenticationRateLimiter !== undefined) {
+    router.post('/auth/admin/login', authenticationRateLimiter, controller.login);
+  } else {
+    router.post('/auth/admin/login', controller.login);
+  }
+  if (authenticationRateLimiter !== undefined) {
+    router.post('/auth/admin/refresh', authenticationRateLimiter, controller.refresh);
+  } else {
+    router.post('/auth/admin/refresh', controller.refresh);
+  }
   router.get(
     '/auth/admin/me',
     requireAdminAuthentication(authentication),
