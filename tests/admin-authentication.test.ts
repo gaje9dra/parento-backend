@@ -251,6 +251,46 @@ describe('Phase 3.1 admin authentication', () => {
     expect(afterLogout.status).toBe(401);
   });
 
+  it('cleans expired and long-revoked sessions without affecting active sessions', async () => {
+    const { repository } = createFixture();
+    const now = new Date();
+
+    repository.sessions.set('expired', {
+      id: 'expired',
+      adminId: 'admin-1',
+      accessTokenHash: 'expired-access',
+      refreshTokenHash: 'expired-refresh',
+      accessExpiresAt: new Date(now.getTime() - 1000),
+      expiresAt: new Date(now.getTime() - 1000),
+      revokedAt: null,
+    });
+    repository.sessions.set('old-revoked', {
+      id: 'old-revoked',
+      adminId: 'admin-1',
+      accessTokenHash: 'old-revoked-access',
+      refreshTokenHash: 'old-revoked-refresh',
+      accessExpiresAt: new Date(now.getTime() + 1000),
+      expiresAt: new Date(now.getTime() + 1000),
+      revokedAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
+    });
+    repository.sessions.set('active', {
+      id: 'active',
+      adminId: 'admin-1',
+      accessTokenHash: 'active-access',
+      refreshTokenHash: 'active-refresh',
+      accessExpiresAt: new Date(now.getTime() + 60_000),
+      expiresAt: new Date(now.getTime() + 3_600_000),
+      revokedAt: null,
+    });
+
+    const deleted = await repository.cleanupSessions(now);
+
+    expect(deleted).toBe(2);
+    expect(repository.sessions.has('active')).toBe(true);
+    expect(repository.sessions.has('expired')).toBe(false);
+    expect(repository.sessions.has('old-revoked')).toBe(false);
+  });
+
   it('rejects an existing session immediately after the administrator is disabled', async () => {
     const { app, repository } = createFixture();
     const login = await request(app).post('/api/v1/auth/admin/login').send({
