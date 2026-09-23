@@ -72,7 +72,11 @@ export const createAdminAuthController = (
         parsed.data.password,
       );
       logger.info(
-        { event: 'admin_login_success', requestId: res.locals.requestId, adminId: result.admin.id },
+        {
+          event: 'admin_login_success',
+          requestId: res.locals.requestId,
+          adminId: result.admin.id,
+        },
         'Administrator login succeeded',
       );
       res.status(200).json({
@@ -168,7 +172,11 @@ export const createAdminAuthController = (
       }
       await authentication.logout(header.slice('Bearer '.length));
       logger.info(
-        { event: 'admin_logout', requestId: res.locals.requestId, adminId: req.authenticatedAdmin?.id },
+        {
+          event: 'admin_logout',
+          requestId: res.locals.requestId,
+          adminId: req.authenticatedAdmin?.id,
+        },
         'Administrator logout completed',
       );
       res.status(204).send();
