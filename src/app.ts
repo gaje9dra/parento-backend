@@ -95,6 +95,8 @@ app.use(securityHeaders);
 app.use(corsMiddleware);
 app.use(express.json({ limit: config.security.requestBodyLimit }));
 
-app.use(createApiRouter(config.server.apiBasePath, database));
+app.use(
+  createApiRouter(config.server.apiBasePath, database, config.security),
+);
 app.use(notFoundHandler);
 app.use(errorHandler);
