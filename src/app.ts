@@ -6,6 +6,7 @@ import { logger } from './logging/logger.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
 import { requestContext } from './api/request-context.js';
 import { loadConfig } from './config/env.js';
+import { AppError } from './types/errors.js';
 
 const config = loadConfig();
 
@@ -31,7 +32,7 @@ const corsMiddleware: RequestHandler = (req, res, next) => {
 
   if (req.method === 'OPTIONS') {
     if (!originAllowed) {
-      res.status(403).end();
+      next(new AppError(403, 'AUTHORIZATION_DENIED', 'CORS origin is not allowed.'));
       return;
     }
 
