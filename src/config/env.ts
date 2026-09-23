@@ -299,7 +299,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
 
   if (parsed.data.DATABASE_URL !== undefined) {
     const databaseUrl = new URL(parsed.data.DATABASE_URL);
-    if (databaseUrl.protocol !== 'postgres:' && databaseUrl.protocol !== 'postgresql:') {
+    if (
+      databaseUrl.protocol !== 'postgres:' &&
+      databaseUrl.protocol !== 'postgresql:'
+    ) {
       throw new ConfigurationError([
         {
           variable: 'DATABASE_URL',
