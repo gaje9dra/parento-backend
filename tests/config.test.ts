@@ -104,6 +104,43 @@ describe('configuration', () => {
     ).toThrowError(/CORS_CREDENTIALS/);
   });
 
+  it('accepts PostgreSQL database configuration and pool settings', () => {
+    const config = loadConfig({
+      ...validEnvironment,
+      DATABASE_URL: 'postgresql://user:password@localhost:5432/parento',
+      DATABASE_POOL_MAX: '12',
+      DATABASE_IDLE_TIMEOUT_MS: '15000',
+      DATABASE_CONNECTION_TIMEOUT_MS: '7000',
+      DATABASE_SSL: 'true',
+    });
+
+    expect(config.database.url).toBe(
+      'postgresql://user:password@localhost:5432/parento',
+    );
+    expect(config.database.poolMax).toBe(12);
+    expect(config.database.idleTimeoutMs).toBe(15000);
+    expect(config.database.connectionTimeoutMs).toBe(7000);
+    expect(config.database.ssl).toBe(true);
+  });
+
+  it('rejects non-PostgreSQL database URLs', () => {
+    expect(() =>
+      loadConfig({
+        ...validEnvironment,
+        DATABASE_URL: 'https://example.invalid/database',
+      }),
+    ).toThrowError(/DATABASE_URL/);
+  });
+
+  it('rejects an unsafe database pool size', () => {
+    expect(() =>
+      loadConfig({
+        ...validEnvironment,
+        DATABASE_POOL_MAX: '51',
+      }),
+    ).toThrowError(/DATABASE_POOL_MAX/);
+  });
+
   it('rejects malformed CORS origins', () => {
     expect(() =>
       loadConfig({
