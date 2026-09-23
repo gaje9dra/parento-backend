@@ -1,5 +1,5 @@
 import express, { type RequestHandler } from 'express';
-import pinoHttp from 'pino-http';
+import { pinoHttp } from 'pino-http';
 import { randomUUID } from 'node:crypto';
 import { createApiRouter } from './routes/index.js';
 import { logger } from './logging/logger.js';
