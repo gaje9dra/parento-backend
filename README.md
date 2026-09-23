@@ -1,214 +1,250 @@
 # Parento Backend
 
-Backend foundation for **Parento**, an authorized Android device-management platform.
+Backend/API/database/realtime foundation for Parento.
 
-## Architecture
+## Repository boundary
 
-Parento is intentionally split into three repositories:
+This phase modifies only:
 
-- `gaje9dra/parento-admin` — Android administrator/controller application.
-- `gaje9dra/parento-managed` — Android managed-device application.
-- `gaje9dra/parento-backend` — API, persistence, realtime infrastructure, and authorization boundary.
+- gaje9dra/parento-backend
 
-The backend is the trusted communication and authorization layer between the two Android applications.
+The companion Android repositories are intentionally untouched:
 
-```text
-Admin App
-    |
-    v
-Parento Backend
-    |
-    v
-Managed Device App
-```
+- gaje9dra/parento-admin
+- gaje9dra/parento-managed
 
-Repositories remain strictly separated. This repository must not contain Android application code.
+## Phase 1.2 — Backend Core Architecture & Contracts
 
-## Phase 1.1 scope
+Phase 1.2 builds on Phase 1.1 and establishes reusable contracts without implementing authentication, enrollment, device control, or policy functionality.
 
-Phase 1.1 establishes only the backend development foundation:
+### Project structure
 
-- TypeScript/Node.js application startup
-- Environment-based configuration
-- Versioned API routing under `/api/v1`
-- Health check
-- Centralized error responses
-- Structured, redacted logging
-- Database boundary preparation
-- Security/identity boundary preparation
-- Realtime transport boundary preparation
-- Automated test foundation
-
-The following are intentionally **not implemented** in Phase 1.1:
-
-- Administrator authentication
-- Managed-device authentication
-- Device enrollment or pairing
-- Device identity persistence
-- Location
-- Screen sharing
-- Audio functionality
-- Application management/blocking
-- Website/network policies
-- Device restrictions
-- Policy synchronization
-- Device commands or remote control
-- Notifications
-- Audit/security event persistence
-
-No mock endpoint pretends that these features exist.
-
-## Project structure
-
-```text
+~~~
 src/
-  app.ts                    # Express application composition
-  server.ts                 # Process startup and graceful shutdown
+  api/
+    contracts.ts
+    request-context.ts
   config/
-    env.ts                  # Validated environment configuration
+    env.ts
   controllers/
-    health.controller.ts    # Phase 1.1 health endpoint
+    health.controller.ts
   db/
-    index.ts                # Future database boundary
+    entities.ts
+    index.ts
   logging/
-    logger.ts               # Structured/redacted logger
+    logger.ts
   middleware/
-    error-handler.ts        # 404 and centralized error handling
+    error-handler.ts
+    validate.ts
+  rate-limit/
+    index.ts
   realtime/
-    index.ts                # Future realtime boundary
+    index.ts
+  repositories/
+    repository.ts
   routes/
-    index.ts                # API router
+    index.ts
     v1/
       index.ts
       health.routes.ts
   security/
-    index.ts                # Future identity/security boundary
+    authorization.ts
+    index.ts
+  services/
+    service.ts
   types/
-    errors.ts               # Application error type
+    errors.ts
+  validation/
+    index.ts
 
 tests/
+  contracts.test.ts
+  error.test.ts
   health.test.ts
-```
 
-## Requirements
+openapi.yaml
+~~~
 
-- Node.js 24.21.0 or newer
-- npm 11.x or newer
+## API versioning
 
-## Local setup
+All public API routes use /api/v1.
 
-1. Install dependencies:
+Future resource areas are planned beneath that namespace:
 
-```bash
-npm install
-```
+~~~
+/api/v1/auth
+/api/v1/devices
+/api/v1/enrollment
+/api/v1/policies
+/api/v1/events
+/api/v1/admin
+~~~
 
-2. Create local configuration:
+These are architectural plans, not implemented endpoints.
 
-Windows CMD:
+## Request/response contract
 
-```cmd
-copy .env.example .env
-```
+Successful responses use a typed data envelope:
 
-macOS/Linux:
-
-```bash
-cp .env.example .env
-```
-
-3. Start the development server:
-
-```bash
-npm run dev
-```
-
-The default local server listens on `http://127.0.0.1:3000`.
-
-## Health check
-
-Unauthenticated endpoint:
-
-```text
-GET /api/v1/health
-```
-
-Example response:
-
-```json
+~~~
 {
-  "status": "ok",
-  "service": "parento-backend",
-  "version": "1"
+  "data": {}
 }
-```
+~~~
 
-The endpoint is intentionally small and suitable for future deployment health checks.
+A request correlation ID may also be returned. The server accepts a safe X-Request-Id value or generates one and returns it in the response header.
 
-## Configuration
+Validation is centralized through the validation module and route middleware. Future request schemas must be applied before business logic executes.
 
-Copy `.env.example` to `.env`.
+## Error contract
 
-### Required
+Errors use:
 
-There are no secrets or production credentials required by Phase 1.1.
+~~~
+{
+  "error": {
+    "code": "INVALID_REQUEST",
+    "message": "Request validation failed."
+  },
+  "requestId": "..."
+}
+~~~
 
-### Optional
+Stable error codes:
 
-- `NODE_ENV` — `development`, `test`, or `production`
-- `HOST` — bind address; defaults to `127.0.0.1`
-- `PORT` — HTTP port; defaults to `3000`
-- `LOG_LEVEL` — Pino log level; defaults to `info`
-- `DATABASE_URL` — reserved for later database phases; unused in Phase 1.1
-- `REALTIME_ENABLED` — reserved for later realtime phases; defaults to `false`
+- AUTHENTICATION_REQUIRED
+- AUTHORIZATION_DENIED
+- INVALID_REQUEST
+- RESOURCE_NOT_FOUND
+- CONFLICT
+- RATE_LIMITED
+- INTERNAL_SERVER_ERROR
+- NOT_FOUND
 
-Never commit `.env`, passwords, API keys, tokens, private keys, or production credentials.
+Production responses must not expose stack traces, database errors, secrets, credentials, or internal file paths.
 
-## Error handling
+## Service/repository architecture
 
-The backend has one centralized error boundary. Application errors can expose:
+Business logic follows:
 
-- HTTP status
-- stable error code
-- safe human-readable message
-- optional safe metadata for non-5xx errors
+~~~
+HTTP route/controller
+        |
+        v
+     Service
+        |
+        v
+ Repository / data access
+        |
+        v
+     Database
+~~~
 
-Unexpected errors are returned as a generic `500 INTERNAL_SERVER_ERROR` response. Stack traces are logged server-side and are not returned to clients.
+Controllers handle HTTP translation. Services own business rules. Repositories own persistence access.
 
-## Logging and security
+## Identity and authorization boundaries
 
-Pino provides structured logging. Authorization headers, cookies, tokens, passwords, private keys, and secrets are redacted from logs.
+The backend keeps these identities separate:
 
-Future authentication must distinguish:
+- Administrator — the authenticated person authorized to operate Parento.
+- Managed Device — the enrolled Android device.
 
-- **Administrator identity** — the authenticated controller user.
-- **Managed-device identity** — an enrolled Android device.
+Conceptually:
 
-They must not be treated as interchangeable identities. Future device commands must require explicit authentication and authorization; no unauthenticated command endpoint is part of this foundation.
+~~~
+Administrator
+   |
+   +-- Managed Device A
+   +-- Managed Device B
+   +-- Managed Device C
+~~~
 
-## Database and realtime boundaries
+Authentication is not implemented in Phase 1.2.
 
-Phase 1.1 deliberately does not define speculative domain tables or connect to a production database. The database module is a boundary for later persistence work.
+The authorization boundary in src/security/authorization.ts requires a verified administrator identity and a policy decision for the specific managed-device resource. An arbitrary client-supplied device ID is never proof of authorization.
 
-Likewise, realtime is represented only as an architectural boundary. No device commands, remote control, session signaling, or policy synchronization are implemented.
+## Database architecture
+
+The database abstraction defines future boundaries for:
+
+- Administrator
+- ManagedDevice
+- DeviceEnrollment
+- DeviceCredential
+- Policy
+- ApplicationRule
+- WebsiteRule
+- DeviceEvent
+- AuditEvent
+
+No production schema, speculative fields, ORM, credentials, or live database connection is introduced in this phase.
+
+## API documentation
+
+openapi.yaml is the documentation foundation. It describes the implemented health endpoint and shared error contract without pretending planned resources are implemented.
+
+Implemented:
+
+- GET /api/v1/health
+
+Planned only:
+
+- authentication
+- enrollment
+- device resources
+- policies
+- events
+- admin resources
+- remote/device-control operations
+
+## Testing strategy
+
+The test structure supports:
+
+- API validation and contract tests
+- service tests
+- error handling tests
+- repository/data-access tests
+
+Phase 1.2 adds focused validation and error-contract tests. Later phases should add tests at each service/repository boundary.
+
+## Security baseline
+
+- Secrets are environment-based and excluded from Git.
+- Input validation is centralized.
+- Error responses are safe for production.
+- Structured logging redacts authorization headers, cookies, tokens, passwords, private keys, and secrets.
+- No arbitrary command execution is exposed.
+- No hidden admin access or undocumented privileged endpoints exist.
+- Future device commands must be explicitly authenticated and authorized.
+- Rate limiting, throttling, abuse detection, and audit logging have extension points only; no production abuse system is implemented here.
+
+## Cross-repository requirements
+
+No code changes are required in the companion repositories for Phase 1.2.
+
+Future interface work:
+
+| Repository | Required change | Reason | Expected interface |
+|---|---|---|---|
+| parento-admin | Later integrate documented API contracts | Admin operations will eventually call backend resources | HTTPS JSON API under /api/v1 with request IDs and shared error codes |
+| parento-managed | Later integrate device-facing contracts | Managed device will eventually authenticate/enroll and receive authorized traffic | HTTPS/realtime interfaces defined in later phases |
+
+These are documentation requirements only; neither repository was modified.
 
 ## Development commands
 
-```bash
+~~~
+npm install
 npm run dev
 npm run build
 npm run typecheck
 npm run lint
 npm test
+npm run format
 npm run format:check
-```
+~~~
 
-## Cross-repository policy
+## Phase status
 
-This repository is limited to `gaje9dra/parento-backend`.
-
-If a future requirement belongs in `parento-admin` or `parento-managed`, it must be documented as a cross-repository requirement and implemented in that repository during its own phase. It must not be implemented here.
-
-## Phase 1.1 status
-
-This phase is complete when the repository passes formatting, lint/static analysis, tests, build/type checking, and local health-check verification without introducing functionality from future phases.
+Phase 1.2 establishes architecture and contracts only. It does not implement admin login, OAuth, enrollment, QR pairing, device credentials, location, streaming, application/website blocking, device locking, remote commands, or push notifications.
