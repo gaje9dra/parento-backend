@@ -95,7 +95,6 @@ The authentication layer does not implement:
 
 Future Android clients must store received credentials using platform secure storage and communicate over HTTPS. urlOWASP Mobile Application Security guidancehttps://cheatsheetseries.owasp.org/cheatsheets/Mobile_Application_Security_Cheat_Sheet.html
 
-
 ## Phase 3.2 — Authentication Hardening
 
 Phase 3.2 preserves the Phase 3.1 opaque-session architecture and hardens its security boundary.
