@@ -245,6 +245,18 @@ const parseExternalServices = (value: string): Record<string, string> => {
 };
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
+  if (
+    env.NODE_ENV === 'production' &&
+    (env.CORS_ORIGINS === undefined || env.CORS_ORIGINS.trim() === '')
+  ) {
+    throw new ConfigurationError([
+      {
+        variable: 'CORS_ORIGINS',
+        message: 'Required in production configuration.',
+      },
+    ]);
+  }
+
   const parsed = rawEnvSchema.safeParse(env);
 
   if (!parsed.success) {
