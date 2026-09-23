@@ -24,6 +24,7 @@ export interface ManagedDeviceRepository extends Repository {
   }): Promise<ManagedDevice>;
   findById(id: string): Promise<ManagedDevice | null>;
   findByStableIdentifier(stableIdentifier: string): Promise<ManagedDevice | null>;
+  list(page?: DevicePageRequest): Promise<DevicePage>;
   listByAdminId(
     adminId: string,
     page?: DevicePageRequest,
