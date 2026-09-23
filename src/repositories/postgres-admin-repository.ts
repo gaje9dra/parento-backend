@@ -59,6 +59,14 @@ export class PostgresAdminRepository
     return result.rows[0] === undefined ? null : toAdmin(result.rows[0]);
   }
 
+  async existsByEmail(email: string): Promise<boolean> {
+    const result = await this.query<{ exists: boolean }>(
+      'SELECT EXISTS (SELECT 1 FROM admins WHERE LOWER(email) = LOWER($1)) AS exists',
+      [email],
+    );
+    return result.rows[0]?.exists === true;
+  }
+
   async updateStatus(id: string, status: AdminStatus): Promise<Admin | null> {
     const result = await this.query<AdminRow>(
       'UPDATE admins SET status = $2, updated_at = NOW() WHERE id = $1 RETURNING id, email, display_name, status, created_at, updated_at',
@@ -115,10 +123,23 @@ export const mapPostgresPersistenceError = (
       error,
     );
   }
-  if (code?.startsWith('08')) {
+  if (
+    code?.startsWith('08') ||
+    code === '53300' ||
+    code === '57P01' ||
+    code === '57P02' ||
+    code === '57P03'
+  ) {
     return new PersistenceError(
       'DATABASE_UNAVAILABLE',
       'The database service is unavailable.',
+      error,
+    );
+  }
+  if (code === '57014' || code === '55P03') {
+    return new PersistenceError(
+      'DATABASE_UNAVAILABLE',
+      'The database operation timed out or could not acquire a lock.',
       error,
     );
   }
