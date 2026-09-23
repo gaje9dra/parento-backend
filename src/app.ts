@@ -1,5 +1,6 @@
 import express, { type RequestHandler } from 'express';
 import pinoHttp from 'pino-http';
+import { randomUUID } from 'node:crypto';
 import { createApiRouter } from './routes/index.js';
 import { logger } from './logging/logger.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
@@ -61,17 +62,17 @@ export const app = express();
 
 app.disable('x-powered-by');
 app.set('trust proxy', config.security.trustProxy);
-app.use(requestContext);
-app.use(securityHeaders);
-app.use(corsMiddleware);
-app.use(express.json({ limit: config.security.requestBodyLimit }));
+
 app.use(
   pinoHttp({
     logger,
     autoLogging: true,
-    customProps: (_req, res) => ({
-      requestId: res.locals.requestId,
-    }),
+    genReqId: (req) => {
+      const incoming = req.headers['x-request-id'];
+      return typeof incoming === 'string' && /^[A-Za-z0-9._:-]{1,128}$/.test(incoming)
+        ? incoming
+        : randomUUID();
+    },
     redact: {
       req: {
         headers: ['authorization', 'cookie'],
@@ -79,6 +80,11 @@ app.use(
     },
   }),
 );
+
+app.use(requestContext);
+app.use(securityHeaders);
+app.use(corsMiddleware);
+app.use(express.json({ limit: config.security.requestBodyLimit }));
 
 app.use(createApiRouter(config.server.apiBasePath));
 app.use(notFoundHandler);
