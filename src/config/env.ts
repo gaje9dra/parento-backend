@@ -90,7 +90,10 @@ export interface AppConfig {
     readonly level: 'fatal' | 'error' | 'warn' | 'info' | 'debug' | 'trace';
     readonly pretty: boolean;
   };
-  readonly cors: { readonly origins: readonly string[]; readonly credentials: boolean };
+  readonly cors: {
+    readonly origins: readonly string[];
+    readonly credentials: boolean;
+  };
   readonly security: {
     readonly jwtIssuer?: string;
     readonly jwtAudience?: string;
@@ -143,7 +146,13 @@ const parseOrigins = (value: string): string[] => {
       ]);
     }
 
-    if (parsed.pathname !== '/' || parsed.search !== '' || parsed.hash !== '' || parsed.username !== '' || parsed.password !== '') {
+    if (
+      parsed.pathname !== '/' ||
+      parsed.search !== '' ||
+      parsed.hash !== '' ||
+      parsed.username !== '' ||
+      parsed.password !== ''
+    ) {
       throw new ConfigurationError([
         {
           variable: 'CORS_ORIGINS',
@@ -180,7 +189,8 @@ const validateRequestBodyLimit = (value: string): void => {
 
   const amount = Number(amountText);
   const unit = unitText.toLowerCase();
-  const multiplier = unit === 'b' ? 1 : unit === 'kb' ? 1024 : unit === 'mb' ? 1024 ** 2 : 1024 ** 3;
+  const multiplier =
+    unit === 'b' ? 1 : unit === 'kb' ? 1024 : unit === 'mb' ? 1024 ** 2 : 1024 ** 3;
 
   if (!Number.isFinite(amount) || amount * multiplier > 10 * 1024 * 1024) {
     throw new ConfigurationError([
