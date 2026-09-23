@@ -12,12 +12,19 @@ Phase 2 backend work establishes the server-side persistence and HTTP foundation
 
 ## Current interface
 
-Both Android applications may use the backend's versioned operational API boundary:
+The backend currently exposes the versioned operational API boundary:
 
 GET /api/v1/health
 GET /api/v1/ready
 
-These are operational endpoints only. They are not authentication or device-management APIs.
+It also exposes the Phase 3.1 administrator authentication boundary:
+
+POST /api/v1/auth/admin/login
+POST /api/v1/auth/admin/refresh
+GET /api/v1/auth/admin/me
+POST /api/v1/auth/admin/logout
+
+The authentication endpoints identify authorized administrator accounts and manage opaque server-side sessions. They do not implement managed-device operations.
 
 ## Phase 2 identity and state compatibility
 
@@ -52,11 +59,13 @@ The backend exposes structured HTTP errors using an error code, message, and req
 
 Future API clients must map stable backend error codes to appropriate Android domain errors without exposing raw PostgreSQL, Room, or infrastructure exceptions to UI.
 
-## Future Admin integration
+## Admin integration boundary
 
-parento-admin will eventually require authenticated backend APIs for administrator sessions, managed-device listing/details, policy operations, audit information, and realtime coordination.
+parento-admin will consume the Phase 3.1 administrator authentication contract in its repository-specific integration phase.
 
-Administrator credential authentication, opaque access/refresh sessions, and the authenticated-admin identity boundary are implemented in Phase 3.1. Authorization rules beyond authenticated-admin identity and business endpoints remain future work.
+Implemented backend authentication includes administrator credential verification, account-status enforcement, opaque access/refresh sessions, authenticated-admin identity, and logout/session invalidation.
+
+Managed-device listing/details, policy operations, audit information, and realtime coordination remain future work.
 
 ## Future Managed integration
 
