@@ -7,10 +7,9 @@ const isHttpError = (
 ): error is Error & { status?: number; type?: string } =>
   error instanceof Error && typeof error === 'object';
 
-export const methodNotAllowedHandler: RequestHandler = (req, res) => {
+export const methodNotAllowedHandler: RequestHandler = (_req, res) => {
   res.setHeader('Allow', 'GET, HEAD, OPTIONS');
   res.status(405).json({
-    success: false,
     error: {
       code: 'METHOD_NOT_ALLOWED',
       message: 'HTTP method is not allowed for this endpoint.',
@@ -21,7 +20,6 @@ export const methodNotAllowedHandler: RequestHandler = (req, res) => {
 
 export const notFoundHandler: RequestHandler = (_req, res) => {
   res.status(404).json({
-    success: false,
     error: {
       code: 'NOT_FOUND',
       message: 'Route not found.',
@@ -61,11 +59,9 @@ export const errorHandler: ErrorRequestHandler = (error, req, res, _next) => {
   );
 
   const body: {
-    success: false;
     error: { code: string; message: string; metadata?: Record<string, unknown> };
     requestId: string;
   } = {
-    success: false,
     error: {
       code: appError.code,
       message: appError.message,
