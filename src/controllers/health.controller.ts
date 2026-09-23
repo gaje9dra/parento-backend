@@ -7,6 +7,7 @@ const successResponse = <T>(data: T, requestId: string): ApiSuccess<T> => ({
   requestId,
 });
 
+// prettier-ignore
 export const createHealthController = (database: Database): {
   health: RequestHandler;
   readiness: RequestHandler;
