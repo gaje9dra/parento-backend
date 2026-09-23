@@ -71,7 +71,7 @@ const productionRequirements = (env: Record<string, unknown>) => {
         message: 'Required in production.',
       });
     }
-    if (env.RATE_LIMIT_ENABLED !== 'true') {
+    if (env.RATE_LIMIT_ENABLED !== true) {
       issues.push({
         path: ['RATE_LIMIT_ENABLED'],
         message:
