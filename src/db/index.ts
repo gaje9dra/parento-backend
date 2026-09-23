@@ -47,7 +47,9 @@ class PostgresDatabase implements Database {
     text: string,
     values?: readonly unknown[],
   ): Promise<QueryResult<T>> {
-    return this.pool.query<T>(text, values);
+    return values === undefined
+      ? this.pool.query<T>(text)
+      : this.pool.query<T>(text, values as unknown as any[]);
   }
 
   async withTransaction<T>(
