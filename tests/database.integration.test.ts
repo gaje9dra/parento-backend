@@ -77,7 +77,8 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
   });
 
   it('upgrades a Phase 2.3 database to the Phase 2.4 schema', async () => {
-    await resetMigrations(database);
+    await database.query('DROP SCHEMA public CASCADE');
+    await database.query('CREATE SCHEMA public');
 
     for (const id of [
       '0001_phase_2_1_baseline.sql',
