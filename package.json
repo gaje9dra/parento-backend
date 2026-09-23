@@ -19,14 +19,18 @@
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "audit": "npm audit --audit-level=high",
-    "verify": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build && npm run audit"
+    "verify": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build && npm run audit",
+    "db:migrate": "tsx src/db/migrate.ts up",
+    "db:migrate:status": "tsx src/db/migrate.ts status",
+    "db:reset": "tsx src/db/migrate.ts reset"
   },
   "dependencies": {
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
     "pino": "^10.0.0",
     "pino-http": "^11.0.0",
-    "zod": "^4.1.8"
+    "zod": "^4.1.8",
+    "pg": "^8.23.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.3",
@@ -38,6 +42,7 @@
     "supertest": "^7.1.4",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "@types/pg": "^8.23.1"
   }
 }
