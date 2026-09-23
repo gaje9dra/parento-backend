@@ -10,7 +10,7 @@ export class PersistenceError extends Error {
   constructor(
     public readonly code: PersistenceErrorCode,
     message: string,
-    public readonly cause?: unknown,
+    override public readonly cause?: unknown,
   ) {
     super(message);
     this.name = 'PersistenceError';
