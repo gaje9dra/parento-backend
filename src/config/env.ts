@@ -40,9 +40,9 @@ const rawEnvSchema = z.object({
   HEADERS_TIMEOUT_MS: z.coerce.number().int().positive().default(15000),
   KEEP_ALIVE_TIMEOUT_MS: z.coerce.number().int().positive().default(5000),
   TRUST_PROXY: booleanString.default(false),
-  RATE_LIMIT_ENABLED: booleanString.default(false),
+  RATE_LIMIT_ENABLED: booleanString.default(true),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60000),
-  RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(100),
+  RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().min(1).max(1000).default(10),
   REALTIME_ENABLED: booleanString.default(false),
   EXTERNAL_SERVICE_BASE_URLS: z.string().default(''),
 });
@@ -64,6 +64,12 @@ const productionRequirements = (env: Record<string, unknown>) => {
       issues.push({
         path: ['CORS_ORIGINS'],
         message: 'Required in production.',
+      });
+    }
+    if (env.RATE_LIMIT_ENABLED !== 'true') {
+      issues.push({
+        path: ['RATE_LIMIT_ENABLED'],
+        message: 'Authentication rate limiting must be enabled in production.',
       });
     }
   }
