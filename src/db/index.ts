@@ -1,14 +1,41 @@
-/**
- * Database boundary for future Parento persistence.
- *
- * Phase 1.1 intentionally does not connect to a database or define domain tables.
- * Later phases should introduce the selected ORM/client here rather than coupling
- * HTTP handlers directly to persistence.
- */
+import type {
+  Administrator,
+  ApplicationRule,
+  AuditEvent,
+  DeviceCredential,
+  DeviceEnrollment,
+  DeviceEvent,
+  ManagedDevice,
+  Policy,
+  WebsiteRule,
+} from './entities.js';
+
 export interface Database {
-  readonly kind: 'not-configured';
+  readonly kind: 'abstract';
+  readonly entities: {
+    administrator: Administrator;
+    managedDevice: ManagedDevice;
+    deviceEnrollment: DeviceEnrollment;
+    deviceCredential: DeviceCredential;
+    policy: Policy;
+    applicationRule: ApplicationRule;
+    websiteRule: WebsiteRule;
+    deviceEvent: DeviceEvent;
+    auditEvent: AuditEvent;
+  };
 }
 
 export const database: Database = {
-  kind: 'not-configured',
+  kind: 'abstract',
+  entities: {
+    administrator: {},
+    managedDevice: {},
+    deviceEnrollment: {},
+    deviceCredential: {},
+    policy: {},
+    applicationRule: {},
+    websiteRule: {},
+    deviceEvent: {},
+    auditEvent: {},
+  },
 };
