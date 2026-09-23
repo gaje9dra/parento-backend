@@ -1,4 +1,7 @@
-import type { ManagedDevice, ManagedDeviceStatus } from '../domain/managed-device.js';
+import type {
+  ManagedDevice,
+  ManagedDeviceStatus,
+} from '../domain/managed-device.js';
 import { PersistenceError } from '../domain/persistence-errors.js';
 import {
   isValidManagedDeviceTransition,
@@ -60,7 +63,10 @@ const decodeCursor = (cursor: string): { createdAt: Date; id: string } => {
     if (Number.isNaN(createdAt.getTime())) throw new Error('Invalid cursor.');
     return { createdAt, id: parsed.id };
   } catch {
-    throw new PersistenceError('INVALID_STATE', 'The device page cursor is invalid.');
+    throw new PersistenceError(
+      'INVALID_STATE',
+      'The device page cursor is invalid.',
+    );
   }
 };
 
@@ -90,7 +96,10 @@ export class PostgresManagedDeviceRepository
       );
       return toDevice(result.rows[0]!);
     } catch (error) {
-      throw mapPostgresPersistenceError(error, 'Unable to create managed device.');
+      throw mapPostgresPersistenceError(
+        error,
+        'Unable to create managed device.',
+      );
     }
   }
 
