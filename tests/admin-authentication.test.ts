@@ -126,7 +126,7 @@ class FakeAdminAuthRepository implements AdminAuthenticationRepository {
   }
 }
 
-const createFixture = () => {
+const createFixture = (rateLimit = { enabled: false, windowMs: 60_000, maxRequests: 10 }) => {
   const repository = new FakeAdminAuthRepository();
   repository.admins.set('admin-1', {
     id: 'admin-1',
@@ -156,7 +156,7 @@ const createFixture = () => {
     res.locals.requestId = 'test-request';
     next();
   });
-  app.use('/api/v1', createAdminAuthRouter(service));
+  app.use('/api/v1', createAdminAuthRouter(service, rateLimit));
 
   return { repository, service, app };
 };
@@ -189,13 +189,13 @@ describe('Phase 3.1 admin authentication', () => {
 
     const unknown = await request(app)
       .post('/api/v1/auth/admin/login')
-      .send({ email: 'missing@example.com', password: 'wrong password' });
+      .send({ email: 'missing@example.com', password: 'wrong administrator password' });
 
     const wrong = await request(app)
       .post('/api/v1/auth/admin/login')
       .send({
         email: 'admin@example.com',
-        password: 'wrong password',
+        password: 'wrong administrator password',
       });
 
     expect(unknown.status).toBe(401);
@@ -277,6 +277,51 @@ describe('Phase 3.1 admin authentication', () => {
       .get('/api/v1/auth/admin/me')
       .set('Authorization', 'Basic secret');
     expect(malformed.status).toBe(401);
+  });
+
+
+  it('rejects unexpected authentication request fields', async () => {
+    const { app } = createFixture();
+
+    const response = await request(app)
+      .post('/api/v1/auth/admin/login')
+      .send({
+        email: 'admin@example.com',
+        password: 'correct horse battery staple',
+        adminId: 'admin-2',
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe('INVALID_REQUEST');
+  });
+
+  it('applies the configured authentication rate limit by network peer', async () => {
+    const { app } = createFixture({
+      enabled: true,
+      windowMs: 60_000,
+      maxRequests: 2,
+    });
+
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const response = await request(app)
+        .post('/api/v1/auth/admin/login')
+        .send({
+          email: 'admin@example.com',
+          password: 'wrong administrator password',
+        });
+      expect(response.status).toBe(401);
+    }
+
+    const limited = await request(app)
+      .post('/api/v1/auth/admin/login')
+      .send({
+        email: 'admin@example.com',
+        password: 'wrong administrator password',
+      });
+
+    expect(limited.status).toBe(429);
+    expect(limited.body.error.code).toBe('RATE_LIMITED');
+    expect(limited.body.error.message).not.toContain('admin@example.com');
   });
 
   it('stores only token hashes in session persistence', async () => {
