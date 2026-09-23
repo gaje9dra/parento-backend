@@ -4,13 +4,9 @@ import { logger } from './logging/logger.js';
 
 const config = loadConfig();
 
-const server = app.listen(config.PORT, config.HOST, () => {
+const server = app.listen(config.server.port, config.server.host, () => {
   logger.info(
-    {
-      host: config.HOST,
-      port: config.PORT,
-      environment: config.NODE_ENV,
-    },
+    { host: config.server.host, port: config.server.port, environment: config.app.environment },
     'Parento backend started',
   );
 });
@@ -23,7 +19,6 @@ const shutdown = (signal: string) => {
       process.exitCode = 1;
       return;
     }
-
     process.exit(0);
   });
 };
