@@ -6,6 +6,7 @@ import { resetMigrations, runMigrations } from '../src/db/migrate.js';
 import { PostgresAdminRepository } from '../src/repositories/postgres-admin-repository.js';
 import { PostgresManagedDeviceRepository } from '../src/repositories/postgres-managed-device-repository.js';
 import { PostgresEnrollmentRepository } from '../src/repositories/postgres-enrollment-repository.js';
+import { EnrollmentPersistenceService } from '../src/services/enrollment-persistence-service.js';
 
 const hasDatabase = Boolean(process.env.DATABASE_URL);
 
@@ -14,6 +15,7 @@ describe.skipIf(!hasDatabase)('Phase 2.2 domain persistence', () => {
   const admins = new PostgresAdminRepository(database);
   const devices = new PostgresManagedDeviceRepository(database);
   const enrollments = new PostgresEnrollmentRepository(database);
+  const enrollmentService = new EnrollmentPersistenceService(enrollments);
 
   beforeEach(async () => {
     await resetMigrations(database);
@@ -68,14 +70,14 @@ describe.skipIf(!hasDatabase)('Phase 2.2 domain persistence', () => {
   it('rejects expired enrollment at the service boundary', async () => {
     const admin = await admins.create({ id: randomUUID(), email: 'expiry@example.com', displayName: null });
     const device = await devices.create({ id: randomUUID(), adminId: admin.id, name: 'Expiry Device', platform: 'android' });
-    const enrollment = await enrollments.create({
-      id: randomUUID(),
-      enrollmentIdentifier: 'expired-at-create',
-      deviceId: device.id,
-      adminId: admin.id,
-      expiresAt: new Date(Date.now() - 1000),
-    });
-    expect(enrollment.status).toBe('PENDING');
+    await expect(
+      enrollmentService.create({
+        enrollmentIdentifier: 'expired-at-create',
+        deviceId: device.id,
+        adminId: admin.id,
+        expiresAt: new Date(Date.now() - 1000),
+      }),
+    ).rejects.toThrow('Enrollment expiration must be in the future.');
   });
 
   it('supports disabled admin and status changes', async () => {
