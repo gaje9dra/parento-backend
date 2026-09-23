@@ -119,4 +119,6 @@ const main = async (): Promise<void> => {
   }
 };
 
-await main();
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  await main();
+}
