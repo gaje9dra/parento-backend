@@ -1,14 +1,17 @@
 import { Router } from 'express';
-import {
-  healthController,
-  readinessController,
-} from '../../controllers/health.controller.js';
+import { createHealthController } from '../../controllers/health.controller.js';
+import type { Database } from '../../db/index.js';
 import { methodNotAllowedHandler } from '../../middleware/error-handler.js';
 
-export const healthRouter = Router();
+export const createHealthRouter = (database: Database): Router => {
+  const router = Router();
+  const controllers = createHealthController(database);
 
-healthRouter.get('/health', healthController);
-healthRouter.all('/health', methodNotAllowedHandler);
+  router.get('/health', controllers.health);
+  router.all('/health', methodNotAllowedHandler);
 
-healthRouter.get('/ready', readinessController);
-healthRouter.all('/ready', methodNotAllowedHandler);
+  router.get('/ready', controllers.readiness);
+  router.all('/ready', methodNotAllowedHandler);
+
+  return router;
+};
