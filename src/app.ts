@@ -7,6 +7,9 @@ import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
 import { requestContext } from './api/request-context.js';
 import { loadConfig } from './config/env.js';
 import { AppError } from './types/errors.js';
+import { createDatabase } from './db/index.js';
+
+export const database = createDatabase(config);
 
 const config = loadConfig();
 
