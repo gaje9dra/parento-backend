@@ -56,6 +56,19 @@ describe('configuration', () => {
     ).toThrowError(/JWT_ISSUER/);
   });
 
+  it('rejects wildcard CORS in production', () => {
+    expect(() =>
+      loadConfig({
+        ...validEnvironment,
+        NODE_ENV: 'production',
+        DATABASE_URL: 'https://database.invalid/connection',
+        CORS_ORIGINS: '*',
+        JWT_ISSUER: 'https://issuer.invalid',
+        JWT_AUDIENCE: 'parento',
+      }),
+    ).toThrowError(/CORS_ORIGINS/);
+  });
+
   it('rejects malformed external-service configuration', () => {
     expect(() =>
       loadConfig({ ...validEnvironment, EXTERNAL_SERVICE_BASE_URLS: 'payments=not-a-url' }),
