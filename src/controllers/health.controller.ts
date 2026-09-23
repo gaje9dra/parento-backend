@@ -7,19 +7,23 @@ const successResponse = <T>(data: T, requestId: string): ApiSuccess<T> => ({
 });
 
 export const healthController: RequestHandler = (_req, res) => {
-  res.status(200).json(
-    successResponse(
-      { status: 'ok', service: 'parento-backend', version: '1' },
-      res.locals.requestId,
-    ),
-  );
+  res
+    .status(200)
+    .json(
+      successResponse(
+        { status: 'ok', service: 'parento-backend', version: '1' },
+        res.locals.requestId,
+      ),
+    );
 };
 
 export const readinessController: RequestHandler = (_req, res) => {
-  res.status(200).json(
-    successResponse(
-      { status: 'ready', service: 'parento-backend', version: '1' },
-      res.locals.requestId,
-    ),
-  );
+  res
+    .status(200)
+    .json(
+      successResponse(
+        { status: 'ready', service: 'parento-backend', version: '1' },
+        res.locals.requestId,
+      ),
+    );
 };

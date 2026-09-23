@@ -109,7 +109,9 @@ describe('API foundation', () => {
       .set('Access-Control-Request-Method', 'GET');
 
     expect(response.status).toBe(204);
-    expect(response.headers['access-control-allow-origin']).toBe('http://localhost:3000');
+    expect(response.headers['access-control-allow-origin']).toBe(
+      'http://localhost:3000',
+    );
   });
 
   it('rejects disallowed CORS origins through the standard error contract', async () => {
@@ -136,7 +138,9 @@ describe('API foundation', () => {
     expect(response.headers['x-content-type-options']).toBe('nosniff');
     expect(response.headers['x-frame-options']).toBe('DENY');
     expect(response.headers['referrer-policy']).toBe('no-referrer');
-    expect(response.headers['permissions-policy']).toBe('camera=(), microphone=(), geolocation=()');
+    expect(response.headers['permissions-policy']).toBe(
+      'camera=(), microphone=(), geolocation=()',
+    );
     expect(response.headers['x-dns-prefetch-control']).toBe('off');
     expect(response.headers['x-download-options']).toBe('noopen');
   });

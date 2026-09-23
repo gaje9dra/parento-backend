@@ -6,7 +6,11 @@ const config = loadConfig();
 
 const server = app.listen(config.server.port, config.server.host, () => {
   logger.info(
-    { host: config.server.host, port: config.server.port, environment: config.app.environment },
+    {
+      host: config.server.host,
+      port: config.server.port,
+      environment: config.app.environment,
+    },
     'Parento backend started',
   );
 });

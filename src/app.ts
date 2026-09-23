@@ -19,7 +19,8 @@ const corsMiddleware: RequestHandler = (req, res, next) => {
 
   const originAllowed =
     config.app.environment !== 'production'
-      ? config.cors.origins.includes(requestOrigin) || config.cors.origins.includes('*')
+      ? config.cors.origins.includes(requestOrigin) ||
+        config.cors.origins.includes('*')
       : config.cors.origins.includes(requestOrigin);
 
   if (originAllowed) {
@@ -32,14 +33,17 @@ const corsMiddleware: RequestHandler = (req, res, next) => {
 
   if (req.method === 'OPTIONS') {
     if (!originAllowed) {
-      next(new AppError(403, 'AUTHORIZATION_DENIED', 'CORS origin is not allowed.'));
+      next(
+        new AppError(
+          403,
+          'AUTHORIZATION_DENIED',
+          'CORS origin is not allowed.',
+        ),
+      );
       return;
     }
 
-    res.setHeader(
-      'Access-Control-Allow-Methods',
-      'GET,HEAD,OPTIONS',
-    );
+    res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,OPTIONS');
     res.setHeader(
       'Access-Control-Allow-Headers',
       'Content-Type, Authorization, X-Request-Id',
@@ -55,7 +59,10 @@ const securityHeaders: RequestHandler = (_req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'no-referrer');
-  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader(
+    'Permissions-Policy',
+    'camera=(), microphone=(), geolocation=()',
+  );
   res.setHeader('X-DNS-Prefetch-Control', 'off');
   res.setHeader('X-Download-Options', 'noopen');
   next();
@@ -72,7 +79,8 @@ app.use(
     autoLogging: true,
     genReqId: (req) => {
       const incoming = req.headers['x-request-id'];
-      return typeof incoming === 'string' && /^[A-Za-z0-9._:-]{1,128}$/.test(incoming)
+      return typeof incoming === 'string' &&
+        /^[A-Za-z0-9._:-]{1,128}$/.test(incoming)
         ? incoming
         : randomUUID();
     },

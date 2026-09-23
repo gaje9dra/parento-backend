@@ -1,16 +1,25 @@
 import 'dotenv/config';
 import { z } from 'zod';
 
-const booleanString = z.enum(['true', 'false']).transform((value) => value === 'true');
+const booleanString = z
+  .enum(['true', 'false'])
+  .transform((value) => value === 'true');
 
 const rawEnvSchema = z.object({
-  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  NODE_ENV: z
+    .enum(['development', 'test', 'production'])
+    .default('development'),
   APP_NAME: z.string().min(1).default('parento-backend'),
   HOST: z.string().min(1).default('127.0.0.1'),
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
-  API_BASE_PATH: z.string().regex(/^\/api\/v\d+$/).default('/api/v1'),
+  API_BASE_PATH: z
+    .string()
+    .regex(/^\/api\/v\d+$/)
+    .default('/api/v1'),
   DATABASE_URL: z.string().url().optional(),
-  LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
+  LOG_LEVEL: z
+    .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace'])
+    .default('info'),
   LOG_PRETTY: booleanString.default('false'),
   CORS_ORIGINS: z.string().default('http://localhost:3000'),
   CORS_CREDENTIALS: booleanString.default('false'),
@@ -35,13 +44,19 @@ const productionRequirements = (env: Record<string, unknown>) => {
 
   if (env.NODE_ENV === 'production') {
     if (typeof env.DATABASE_URL !== 'string' || env.DATABASE_URL.length === 0) {
-      issues.push({ path: ['DATABASE_URL'], message: 'Required in production.' });
+      issues.push({
+        path: ['DATABASE_URL'],
+        message: 'Required in production.',
+      });
     }
     if (
       typeof env.CORS_ORIGINS !== 'string' ||
       env.CORS_ORIGINS.trim().length === 0
     ) {
-      issues.push({ path: ['CORS_ORIGINS'], message: 'Required in production.' });
+      issues.push({
+        path: ['CORS_ORIGINS'],
+        message: 'Required in production.',
+      });
     }
     if (typeof env.JWT_ISSUER !== 'string' || env.JWT_ISSUER.length === 0) {
       issues.push({
@@ -66,9 +81,7 @@ export class ConfigurationError extends Error {
   constructor(issues: ReadonlyArray<{ variable: string; message: string }>) {
     super(
       'Invalid backend configuration: ' +
-        issues
-          .map((issue) => issue.variable + ': ' + issue.message)
-          .join('; '),
+        issues.map((issue) => issue.variable + ': ' + issue.message).join('; '),
     );
     this.name = 'ConfigurationError';
     this.issues = issues;
@@ -190,7 +203,13 @@ const validateRequestBodyLimit = (value: string): void => {
   const amount = Number(amountText);
   const unit = unitText.toLowerCase();
   const multiplier =
-    unit === 'b' ? 1 : unit === 'kb' ? 1024 : unit === 'mb' ? 1024 ** 2 : 1024 ** 3;
+    unit === 'b'
+      ? 1
+      : unit === 'kb'
+        ? 1024
+        : unit === 'mb'
+          ? 1024 ** 2
+          : 1024 ** 3;
 
   if (!Number.isFinite(amount) || amount * multiplier > 10 * 1024 * 1024) {
     throw new ConfigurationError([

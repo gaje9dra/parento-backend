@@ -21,18 +21,18 @@ Phase 1.4 establishes the HTTP request pipeline around the architecture from Pha
 
 The configured API base path defaults to:
 
-~~~
+```
 /api/v1
-~~~
+```
 
 It is controlled by API_BASE_PATH, validated as a versioned /api/vN path, and mounted centrally so future route groups can be added without duplicating the prefix.
 
 ### Implemented endpoints
 
-~~~
+```
 GET  /api/v1/health
 GET  /api/v1/ready
-~~~
+```
 
 HEAD is supported by Express for the GET health route. CORS preflight uses OPTIONS when an allowed Origin is supplied.
 
@@ -44,7 +44,7 @@ No authentication, enrollment, device, policy, realtime, or surveillance endpoin
 
 The current lifecycle is:
 
-~~~
+```
 Incoming request
       ↓
 Request ID / correlation context
@@ -62,7 +62,7 @@ Versioned API router
 Endpoint/controller
       ↓
 Centralized error handling
-~~~
+```
 
 Future request validation middleware remains available as an architectural boundary for resource-specific schemas. No speculative business schemas are added here.
 
@@ -76,16 +76,16 @@ A syntactically safe incoming X-Request-Id may be reused for correlation. Otherw
 
 Successful JSON API responses use:
 
-~~~json
+```json
 {
   "data": {},
   "requestId": "..."
 }
-~~~
+```
 
 Health and readiness use the same envelope:
 
-~~~json
+```json
 {
   "data": {
     "status": "ok",
@@ -94,13 +94,13 @@ Health and readiness use the same envelope:
   },
   "requestId": "..."
 }
-~~~
+```
 
 ### Error response contract
 
 Client-facing errors use:
 
-~~~json
+```json
 {
   "error": {
     "code": "NOT_FOUND",
@@ -108,7 +108,7 @@ Client-facing errors use:
   },
   "requestId": "..."
 }
-~~~
+```
 
 Validation metadata may be included for non-server errors when a future endpoint supplies a schema.
 
@@ -118,23 +118,23 @@ Production responses do not expose stack traces, SQL errors, filesystem paths, e
 
 The backend reserves these conventions:
 
-| Status | Convention |
-|---|---|
-| 200 | Successful request |
-| 201 | Resource created |
-| 202 | Request accepted for asynchronous processing |
-| 204 | Successful response with no body, including accepted CORS preflight |
-| 400 | Malformed or invalid request |
-| 401 | Authentication required; reserved for future authentication |
-| 403 | Authorization denied or CORS origin rejected |
-| 404 | Route/resource not found |
-| 405 | HTTP method not allowed |
-| 409 | Resource conflict |
-| 413 | Request body exceeds configured limit |
-| 422 | Semantically invalid entity; reserved for future resource validation |
-| 429 | Rate limited; reserved for future rate-limit enforcement |
-| 500 | Unexpected internal server error |
-| 503 | Service unavailable; reserved for future dependency readiness |
+| Status | Convention                                                           |
+| ------ | -------------------------------------------------------------------- |
+| 200    | Successful request                                                   |
+| 201    | Resource created                                                     |
+| 202    | Request accepted for asynchronous processing                         |
+| 204    | Successful response with no body, including accepted CORS preflight  |
+| 400    | Malformed or invalid request                                         |
+| 401    | Authentication required; reserved for future authentication          |
+| 403    | Authorization denied or CORS origin rejected                         |
+| 404    | Route/resource not found                                             |
+| 405    | HTTP method not allowed                                              |
+| 409    | Resource conflict                                                    |
+| 413    | Request body exceeds configured limit                                |
+| 422    | Semantically invalid entity; reserved for future resource validation |
+| 429    | Rate limited; reserved for future rate-limit enforcement             |
+| 500    | Unexpected internal server error                                     |
+| 503    | Service unavailable; reserved for future dependency readiness        |
 
 Only the operational behavior required by Phase 1.4 is implemented.
 
@@ -231,7 +231,7 @@ Future phases will integrate those repositories against the documented \`/api/v1
 
 ## Development commands
 
-~~~
+```
 npm install
 npm run dev
 npm run build
@@ -240,7 +240,7 @@ npm run lint
 npm test
 npm run format
 npm run format:check
-~~~
+```
 
 ## Phase status
 

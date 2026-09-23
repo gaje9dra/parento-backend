@@ -27,7 +27,10 @@ describe('configuration', () => {
     const config = loadConfig(validEnvironment);
     expect(config.app.environment).toBe('test');
     expect(config.server.apiBasePath).toBe('/api/v1');
-    expect(config.cors.origins).toEqual(['http://localhost:5173', 'http://localhost:3000']);
+    expect(config.cors.origins).toEqual([
+      'http://localhost:5173',
+      'http://localhost:3000',
+    ]);
     expect(config.rateLimit.enabled).toBe(false);
     expect(config.security.requestTimeoutMs).toBe(120000);
     expect(config.security.headersTimeoutMs).toBe(15000);
@@ -35,7 +38,9 @@ describe('configuration', () => {
   });
 
   it('rejects invalid configuration with variable names but no secret values', () => {
-    expect(() => loadConfig({ ...validEnvironment, PORT: 'not-a-port' })).toThrowError(/PORT/);
+    expect(() =>
+      loadConfig({ ...validEnvironment, PORT: 'not-a-port' }),
+    ).toThrowError(/PORT/);
 
     try {
       loadConfig({
@@ -61,7 +66,9 @@ describe('configuration', () => {
 
   it('requires explicit production CORS configuration', () => {
     const withoutCors = Object.fromEntries(
-      Object.entries(validEnvironment).filter(([key]) => key !== 'CORS_ORIGINS'),
+      Object.entries(validEnvironment).filter(
+        ([key]) => key !== 'CORS_ORIGINS',
+      ),
     );
     expect(() =>
       loadConfig({
@@ -135,7 +142,10 @@ describe('configuration', () => {
 
   it('rejects malformed external-service configuration', () => {
     expect(() =>
-      loadConfig({ ...validEnvironment, EXTERNAL_SERVICE_BASE_URLS: 'payments=not-a-url' }),
+      loadConfig({
+        ...validEnvironment,
+        EXTERNAL_SERVICE_BASE_URLS: 'payments=not-a-url',
+      }),
     ).toThrowError(/EXTERNAL_SERVICE_BASE_URLS/);
   });
 });

@@ -40,9 +40,17 @@ export const errorHandler: ErrorRequestHandler = (error, req, res, _next) => {
     error.type === 'entity.too.large';
 
   const appError = malformedJson
-    ? new AppError(400, 'INVALID_REQUEST', 'Request body contains invalid JSON.')
+    ? new AppError(
+        400,
+        'INVALID_REQUEST',
+        'Request body contains invalid JSON.',
+      )
     : requestTooLarge
-      ? new AppError(413, 'REQUEST_TOO_LARGE', 'Request body exceeds the configured size limit.')
+      ? new AppError(
+          413,
+          'REQUEST_TOO_LARGE',
+          'Request body exceeds the configured size limit.',
+        )
       : error instanceof AppError
         ? error
         : new AppError(500, 'INTERNAL_SERVER_ERROR', 'Internal server error.');
@@ -59,7 +67,11 @@ export const errorHandler: ErrorRequestHandler = (error, req, res, _next) => {
   );
 
   const body: {
-    error: { code: string; message: string; metadata?: Record<string, unknown> };
+    error: {
+      code: string;
+      message: string;
+      metadata?: Record<string, unknown>;
+    };
     requestId: string;
   } = {
     error: {

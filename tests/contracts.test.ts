@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { parseInput, validationErrorMetadata } from '../src/validation/index.js';
+import {
+  parseInput,
+  validationErrorMetadata,
+} from '../src/validation/index.js';
 
 describe('validation foundation', () => {
   it('parses valid input through a schema', () => {
@@ -17,7 +20,9 @@ describe('validation foundation', () => {
       throw new Error('Expected validation to fail');
     } catch (error) {
       expect(error).toBeInstanceOf(z.ZodError);
-      expect(validationErrorMetadata(error as z.ZodError)).toHaveProperty('issues');
+      expect(validationErrorMetadata(error as z.ZodError)).toHaveProperty(
+        'issues',
+      );
     }
   });
 });
