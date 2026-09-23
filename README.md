@@ -498,3 +498,46 @@ Endpoints:
 Existing Phase 1–2 health/readiness endpoints remain unchanged. The authentication layer does not implement Admin Android UI, Google OAuth, managed-device enrollment, realtime communication, device commands, monitoring, or policy enforcement.
 
 See `docs/phase-3.1-admin-authentication.md` for the detailed security and integration contract.
+
+## Phase 3.2 — Authentication Hardening & Admin Authorization
+
+Phase 3.2 hardens the existing Phase 3.1 administrator authentication boundary without changing the opaque session architecture.
+
+### Authentication security
+
+- Authenticated identity is derived only from the server-validated opaque access credential.
+- GET /api/v1/auth/admin/me and logout require centralized authentication and explicit administrator authorization middleware.
+- Disabled administrators are rejected both during login and when validating an existing session.
+- Access credentials are short-lived and server-side sessions remain authoritative.
+- Refresh credentials are rotated atomically; a previously used refresh credential is rejected on replay.
+- Session persistence stores SHA-256 hashes of opaque credentials rather than plaintext tokens.
+- Passwords use the existing scrypt policy and persisted hashes are accepted only when they use the backend's supported scrypt parameters.
+- Login failures use the same safe INVALID_CREDENTIALS response for nonexistent, wrong-password, and disabled administrator accounts.
+- Authentication request bodies reject unexpected fields and enforce the password length policy before authentication work.
+- Request bodies remain globally bounded by REQUEST_BODY_LIMIT.
+
+### Authentication rate limiting
+
+Admin login and refresh endpoints use express-rate-limit through the existing backend rate-limit configuration.
+
+The default configuration is 10 requests per 15 minutes per direct network peer. Production configuration must keep RATE_LIMIT_ENABLED=true.
+
+The limiter deliberately keys from the direct TCP peer rather than trusting client-supplied forwarding headers. If the backend is deployed behind a reverse proxy, the proxy must be part of the intended network boundary; at multi-instance scale, a shared rate-limit store or edge/API-gateway limiter is required because the default store is process-local.
+
+Rate-limit responses use HTTP 429 with the standard RATE_LIMITED error contract.
+
+### Account-status behavior
+
+Account status is checked from PostgreSQL on every authenticated access-token validation and refresh. A session issued while an administrator is ACTIVE therefore stops authenticating after the account is changed to DISABLED; this is server-side immediate status enforcement for the current architecture.
+
+### Logout and revocation
+
+Logout revokes the current server-side session. Existing access credentials for that session fail authentication immediately after revocation.
+
+Refresh rotation uses an atomic database update conditioned on the current refresh-token hash, so a previously rotated refresh credential cannot be replayed.
+
+### Security limitations
+
+The default rate limiter uses the library's process-local store. It is suitable as a single-instance baseline but is not a distributed abuse-control mechanism. Production deployments with multiple backend instances must use a shared rate-limit store or an equivalent trusted edge control.
+
+No password-change endpoint, OAuth, RBAC system, device enrollment, pairing, realtime communication, device control, monitoring, location, media capture, policy enforcement, or remote command functionality is introduced by Phase 3.2.
