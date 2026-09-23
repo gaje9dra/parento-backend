@@ -11,9 +11,19 @@ export class EnrollmentPersistenceService {
     adminId: string;
     expiresAt: Date;
   }): Promise<Enrollment> {
+    const identifier = input.enrollmentIdentifier.trim();
+    if (identifier === '') {
+      throw new Error('Enrollment identifier is required.');
+    }
     if (input.expiresAt.getTime() <= Date.now()) {
       throw new Error('Enrollment expiration must be in the future.');
     }
-    return this.repository.create({ id: randomUUID(), ...input });
+    return this.repository.create({
+      id: randomUUID(),
+      enrollmentIdentifier: identifier,
+      deviceId: input.deviceId,
+      adminId: input.adminId,
+      expiresAt: input.expiresAt,
+    });
   }
 }
