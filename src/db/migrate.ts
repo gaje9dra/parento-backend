@@ -94,7 +94,8 @@ export const resetMigrations = async (db: Database): Promise<void> => {
     throw new Error('Database reset requires DATABASE_URL.');
   }
 
-  await db.query('DROP TABLE IF EXISTS schema_migrations CASCADE');
+  await db.query('DROP SCHEMA public CASCADE');
+  await db.query('CREATE SCHEMA public');
   await runMigrations(db);
 };
 
