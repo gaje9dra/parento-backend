@@ -1,0 +1,52 @@
+import type { RequestHandler } from 'express';
+import type { AdminAuthenticationService } from '../services/admin-authentication-service.js';
+
+declare global {
+  namespace Express {
+    interface Request {
+      authenticatedAdmin?: {
+        id: string;
+        email: string;
+        status: 'ACTIVE' | 'DISABLED';
+      };
+    }
+  }
+}
+
+export const requireAdminAuthentication = (
+  authentication: AdminAuthenticationService,
+): RequestHandler => {
+  return async (req, res, next) => {
+    const header = req.header('authorization');
+    const match = header?.match(/^Bearer ([A-Za-z0-9_-]{20,256})$/);
+
+    if (match?.[1] === undefined) {
+      res.status(401).json({
+        error: {
+          code: 'AUTHENTICATION_REQUIRED',
+          message: 'Administrator authentication is required.',
+        },
+        requestId: res.locals.requestId,
+      });
+      return;
+    }
+
+    try {
+      const admin = await authentication.authenticateAccessToken(match[1]);
+      req.authenticatedAdmin = {
+        id: admin.id,
+        email: admin.email,
+        status: admin.status,
+      };
+      next();
+    } catch {
+      res.status(401).json({
+        error: {
+          code: 'AUTHENTICATION_REQUIRED',
+          message: 'Administrator authentication is required.',
+        },
+        requestId: res.locals.requestId,
+      });
+    }
+  };
+};
