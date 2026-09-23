@@ -121,6 +121,21 @@ class FakeAdminAuthRepository implements AdminAuthenticationRepository {
     this.sessions.set(sessionId, { ...session, revokedAt });
     return true;
   }
+
+  async cleanupSessions(now: Date) {
+    let deleted = 0;
+    for (const [id, session] of this.sessions.entries()) {
+      const expired = session.expiresAt.getTime() <= now.getTime();
+      const oldRevocation =
+        session.revokedAt !== null &&
+        session.revokedAt.getTime() <= now.getTime() - 24 * 60 * 60 * 1000;
+      if (expired || oldRevocation) {
+        this.sessions.delete(id);
+        deleted += 1;
+      }
+    }
+    return deleted;
+  }
 }
 
 const createFixture = (
