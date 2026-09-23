@@ -3,9 +3,30 @@ import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { app } from '../src/app.js';
 import { errorHandler } from '../src/middleware/error-handler.js';
+import { mapPostgresPersistenceError } from '../src/db/errors.js';
 import { requestContext } from '../src/api/request-context.js';
 
 describe('error contract', () => {
+  it('maps PostgreSQL failures to stable persistence errors', () => {
+    expect(
+      mapPostgresPersistenceError({ code: '23505' }, 'fallback'),
+    ).toMatchObject({
+      code: 'CONFLICT',
+      message: 'The resource already exists.',
+    });
+    expect(
+      mapPostgresPersistenceError({ code: '23503' }, 'fallback'),
+    ).toMatchObject({
+      code: 'FOREIGN_KEY',
+      message: 'The referenced resource does not exist.',
+    });
+    expect(
+      mapPostgresPersistenceError({ code: '57P01' }, 'fallback'),
+    ).toMatchObject({
+      code: 'DATABASE_UNAVAILABLE',
+      message: 'The database service is unavailable.',
+    });
+  });
   it('returns a stable not-found error without internals', async () => {
     const response = await request(app).get('/api/v1/does-not-exist');
 
