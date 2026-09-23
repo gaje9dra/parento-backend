@@ -35,4 +35,5 @@ export interface AdminAuthenticationRepository {
     },
   ): Promise<AdminSession | null>;
   revokeSession(sessionId: string, revokedAt: Date): Promise<boolean>;
+  cleanupSessions(now: Date): Promise<number>;
 }
