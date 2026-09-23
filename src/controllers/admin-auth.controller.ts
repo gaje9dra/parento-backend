@@ -95,21 +95,22 @@ export const createAdminAuthController = (
     }
   }) as RequestHandler,
 
-  me: (async (req, res, next) => {
-    try {
-      if (req.authenticatedAdmin === undefined) {
-        throw new SessionFailure();
-      }
-      const admin = await authentication.authenticateAccessToken(
-        req.header('authorization')!.slice('Bearer '.length),
-      );
-      res.status(200).json({
-        data: { admin: toAdminResponse(admin) },
+  me: (async (req, res) => {
+    if (req.authenticatedAdmin === undefined) {
+      res.status(401).json({
+        error: {
+          code: 'AUTHENTICATION_REQUIRED',
+          message: 'Administrator authentication is required.',
+        },
         requestId: res.locals.requestId,
       });
-    } catch (error) {
-      next(error);
+      return;
     }
+
+    res.status(200).json({
+      data: { admin: toAdminResponse(req.authenticatedAdmin) },
+      requestId: res.locals.requestId,
+    });
   }) as RequestHandler,
 
   refresh: (async (req, res, next) => {
