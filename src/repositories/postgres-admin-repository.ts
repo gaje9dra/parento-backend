@@ -248,6 +248,7 @@ export class PostgresAdminRepository
     );
     return result.rowCount === 1;
   }
+
   async cleanupSessions(now: Date): Promise<number> {
     try {
       const result = await this.query(
