@@ -11,6 +11,10 @@ const server = app.listen(config.server.port, config.server.host, () => {
   );
 });
 
+server.requestTimeout = config.security.requestTimeoutMs;
+server.headersTimeout = config.security.headersTimeoutMs;
+server.keepAliveTimeout = config.security.keepAliveTimeoutMs;
+
 const shutdown = (signal: string) => {
   logger.info({ signal }, 'Shutdown requested');
   server.close((error) => {
