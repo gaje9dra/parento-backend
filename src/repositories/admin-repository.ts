@@ -10,4 +10,8 @@ export interface AdminRepository extends Repository {
   findById(id: string): Promise<Admin | null>;
   findByEmail(email: string): Promise<Admin | null>;
   updateStatus(id: string, status: AdminStatus): Promise<Admin | null>;
+  updateMetadata(
+    id: string,
+    metadata: { displayName: string | null },
+  ): Promise<Admin | null>;
 }

@@ -11,6 +11,8 @@ export interface EnrollmentRepository extends Repository {
   }): Promise<Enrollment>;
   findById(id: string): Promise<Enrollment | null>;
   findByIdentifier(identifier: string): Promise<Enrollment | null>;
+  listByAdminId(adminId: string): Promise<Enrollment[]>;
+  listByDeviceId(deviceId: string): Promise<Enrollment[]>;
   updateStatus(
     id: string,
     status: EnrollmentStatus,

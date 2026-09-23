@@ -1,4 +1,3 @@
-import type { Database } from '../db/index.js';
 import type { Admin, AdminStatus } from '../domain/admin.js';
 import { PersistenceError } from '../domain/persistence-errors.js';
 import type { AdminRepository } from './admin-repository.js';
@@ -40,10 +39,7 @@ export class PostgresAdminRepository
       );
       return toAdmin(result.rows[0]!);
     } catch (error) {
-      throw mapPostgresPersistenceError(
-        error,
-        'Unable to create administrator.',
-      );
+      throw mapPostgresPersistenceError(error, 'Unable to create administrator.');
     }
   }
 
@@ -63,13 +59,21 @@ export class PostgresAdminRepository
     return result.rows[0] === undefined ? null : toAdmin(result.rows[0]);
   }
 
-  async updateStatus(
-    id: string,
-    status: AdminStatus,
-  ): Promise<Admin | null> {
+  async updateStatus(id: string, status: AdminStatus): Promise<Admin | null> {
     const result = await this.query<AdminRow>(
       'UPDATE admins SET status = $2, updated_at = NOW() WHERE id = $1 RETURNING id, email, display_name, status, created_at, updated_at',
       [id, status],
+    );
+    return result.rows[0] === undefined ? null : toAdmin(result.rows[0]);
+  }
+
+  async updateMetadata(
+    id: string,
+    metadata: { displayName: string | null },
+  ): Promise<Admin | null> {
+    const result = await this.query<AdminRow>(
+      'UPDATE admins SET display_name = $2, updated_at = NOW() WHERE id = $1 RETURNING id, email, display_name, status, created_at, updated_at',
+      [id, metadata.displayName],
     );
     return result.rows[0] === undefined ? null : toAdmin(result.rows[0]);
   }
@@ -88,11 +92,7 @@ export const mapPostgresPersistenceError = (
       : undefined;
 
   if (code === '23505') {
-    return new PersistenceError(
-      'CONFLICT',
-      'The resource already exists.',
-      error,
-    );
+    return new PersistenceError('CONFLICT', 'The resource already exists.', error);
   }
   if (code === '23503') {
     return new PersistenceError(

@@ -7,16 +7,25 @@ export class ManagedDevicePersistenceService {
 
   create(input: {
     adminId: string;
+    stableIdentifier: string;
     name: string;
     platform: string;
   }): Promise<ManagedDevice> {
-    if (input.name.trim() === '' || input.platform.trim() === '') {
-      throw new Error('Managed device name and platform are required.');
+    const stableIdentifier = input.stableIdentifier.trim();
+    if (
+      stableIdentifier === '' ||
+      input.name.trim() === '' ||
+      input.platform.trim() === ''
+    ) {
+      throw new Error(
+        'Managed device stable identifier, name, and platform are required.',
+      );
     }
 
     return this.repository.create({
       id: randomUUID(),
       adminId: input.adminId,
+      stableIdentifier,
       name: input.name.trim(),
       platform: input.platform.trim(),
     });
@@ -26,7 +35,16 @@ export class ManagedDevicePersistenceService {
     return this.repository.findById(id);
   }
 
-  listByAdminId(adminId: string): Promise<ManagedDevice[]> {
-    return this.repository.listByAdminId(adminId);
+  findByStableIdentifier(
+    stableIdentifier: string,
+  ): Promise<ManagedDevice | null> {
+    return this.repository.findByStableIdentifier(stableIdentifier);
+  }
+
+  listByAdminId(
+    adminId: string,
+    page?: { limit?: number; cursor?: string | null },
+  ) {
+    return this.repository.listByAdminId(adminId, page);
   }
 }

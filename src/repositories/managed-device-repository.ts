@@ -4,15 +4,30 @@ import type {
 } from '../domain/managed-device.js';
 import type { Repository } from './repository.js';
 
+export interface DevicePageRequest {
+  readonly limit?: number;
+  readonly cursor?: string | null;
+}
+
+export interface DevicePage {
+  readonly items: ManagedDevice[];
+  readonly nextCursor: string | null;
+}
+
 export interface ManagedDeviceRepository extends Repository {
   create(input: {
     id: string;
     adminId: string;
+    stableIdentifier: string;
     name: string;
     platform: string;
   }): Promise<ManagedDevice>;
   findById(id: string): Promise<ManagedDevice | null>;
-  listByAdminId(adminId: string): Promise<ManagedDevice[]>;
+  findByStableIdentifier(stableIdentifier: string): Promise<ManagedDevice | null>;
+  listByAdminId(
+    adminId: string,
+    page?: DevicePageRequest,
+  ): Promise<DevicePage>;
   updateStatus(
     id: string,
     status: ManagedDeviceStatus,
