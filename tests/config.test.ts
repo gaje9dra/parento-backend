@@ -59,6 +59,19 @@ describe('configuration', () => {
     ).toThrowError(/JWT_ISSUER/);
   });
 
+  it('requires explicit production CORS configuration', () => {
+    const { CORS_ORIGINS: _ignored, ...withoutCors } = validEnvironment;
+    expect(() =>
+      loadConfig({
+        ...withoutCors,
+        NODE_ENV: 'production',
+        DATABASE_URL: 'https://database.invalid/connection',
+        JWT_ISSUER: 'https://issuer.invalid',
+        JWT_AUDIENCE: 'parento',
+      }),
+    ).toThrowError(/CORS_ORIGINS/);
+  });
+
   it('rejects wildcard CORS in production', () => {
     expect(() =>
       loadConfig({
