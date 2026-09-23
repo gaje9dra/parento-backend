@@ -47,10 +47,7 @@ class FakeAdminAuthRepository implements AdminAuthenticationRepository {
     return true;
   }
 
-  async updateLastAuthenticatedAt(
-    adminId: string,
-    authenticatedAt: Date,
-  ) {
+  async updateLastAuthenticatedAt(adminId: string, authenticatedAt: Date) {
     const admin = this.admins.get(adminId);
     if (admin === undefined) return false;
     this.admins.set(adminId, {
@@ -167,12 +164,10 @@ describe('Phase 3.1 admin authentication', () => {
   it('authenticates valid active-admin credentials without returning password hashes', async () => {
     const { app } = createFixture();
 
-    const response = await request(app)
-      .post('/api/v1/auth/admin/login')
-      .send({
-        email: 'ADMIN@example.com',
-        password: 'correct horse battery staple',
-      });
+    const response = await request(app).post('/api/v1/auth/admin/login').send({
+      email: 'ADMIN@example.com',
+      password: 'correct horse battery staple',
+    });
 
     expect(response.status).toBe(200);
     expect(response.body.data.admin).toEqual({
@@ -189,19 +184,15 @@ describe('Phase 3.1 admin authentication', () => {
   it('uses the same credential failure contract for unknown and wrong-password accounts', async () => {
     const { app } = createFixture();
 
-    const unknown = await request(app)
-      .post('/api/v1/auth/admin/login')
-      .send({
-        email: 'missing@example.com',
-        password: 'wrong administrator password',
-      });
+    const unknown = await request(app).post('/api/v1/auth/admin/login').send({
+      email: 'missing@example.com',
+      password: 'wrong administrator password',
+    });
 
-    const wrong = await request(app)
-      .post('/api/v1/auth/admin/login')
-      .send({
-        email: 'admin@example.com',
-        password: 'wrong administrator password',
-      });
+    const wrong = await request(app).post('/api/v1/auth/admin/login').send({
+      email: 'admin@example.com',
+      password: 'wrong administrator password',
+    });
 
     expect(unknown.status).toBe(401);
     expect(wrong.status).toBe(401);
@@ -211,12 +202,10 @@ describe('Phase 3.1 admin authentication', () => {
   it('rejects disabled administrators', async () => {
     const { app } = createFixture();
 
-    const response = await request(app)
-      .post('/api/v1/auth/admin/login')
-      .send({
-        email: 'disabled@example.com',
-        password: 'correct horse battery staple',
-      });
+    const response = await request(app).post('/api/v1/auth/admin/login').send({
+      email: 'disabled@example.com',
+      password: 'correct horse battery staple',
+    });
 
     expect(response.status).toBe(401);
     expect(response.body.error.code).toBe('INVALID_CREDENTIALS');
@@ -224,12 +213,10 @@ describe('Phase 3.1 admin authentication', () => {
 
   it('protects the current-admin endpoint and supports logout revocation', async () => {
     const { app } = createFixture();
-    const login = await request(app)
-      .post('/api/v1/auth/admin/login')
-      .send({
-        email: 'admin@example.com',
-        password: 'correct horse battery staple',
-      });
+    const login = await request(app).post('/api/v1/auth/admin/login').send({
+      email: 'admin@example.com',
+      password: 'correct horse battery staple',
+    });
     const token = login.body.data.accessToken as string;
 
     const current = await request(app)
@@ -287,13 +274,11 @@ describe('Phase 3.1 admin authentication', () => {
   it('rejects unexpected authentication request fields', async () => {
     const { app } = createFixture();
 
-    const response = await request(app)
-      .post('/api/v1/auth/admin/login')
-      .send({
-        email: 'admin@example.com',
-        password: 'correct horse battery staple',
-        adminId: 'admin-2',
-      });
+    const response = await request(app).post('/api/v1/auth/admin/login').send({
+      email: 'admin@example.com',
+      password: 'correct horse battery staple',
+      adminId: 'admin-2',
+    });
 
     expect(response.status).toBe(400);
     expect(response.body.error.code).toBe('INVALID_REQUEST');
@@ -316,12 +301,10 @@ describe('Phase 3.1 admin authentication', () => {
       expect(response.status).toBe(401);
     }
 
-    const limited = await request(app)
-      .post('/api/v1/auth/admin/login')
-      .send({
-        email: 'admin@example.com',
-        password: 'wrong administrator password',
-      });
+    const limited = await request(app).post('/api/v1/auth/admin/login').send({
+      email: 'admin@example.com',
+      password: 'wrong administrator password',
+    });
 
     expect(limited.status).toBe(429);
     expect(limited.body.error.code).toBe('RATE_LIMITED');
@@ -360,14 +343,11 @@ describe('PasswordHasher', () => {
     expect(first).not.toBe(second);
     expect(first).not.toContain('a sufficiently long administrator password');
     expect(
-      await hasher.verify(
-        'a sufficiently long administrator password',
-        first,
-      ),
+      await hasher.verify('a sufficiently long administrator password', first),
     ).toBe(true);
-    expect(
-      await hasher.verify('wrong administrator password', first),
-    ).toBe(false);
+    expect(await hasher.verify('wrong administrator password', first)).toBe(
+      false,
+    );
   });
 
   it('rejects passwords outside the configured length policy', async () => {
