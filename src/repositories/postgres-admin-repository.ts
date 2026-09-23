@@ -248,4 +248,18 @@ export class PostgresAdminRepository
     );
     return result.rowCount === 1;
   }
+  async cleanupSessions(now: Date): Promise<number> {
+    try {
+      const result = await this.query(
+        'DELETE FROM admin_sessions WHERE expires_at <= $1 OR (revoked_at IS NOT NULL AND revoked_at <= $1 - INTERVAL \'1 day\')',
+        [now],
+      );
+      return result.rowCount ?? 0;
+    } catch (error) {
+      throw mapPostgresPersistenceError(
+        error,
+        'Unable to clean up authentication sessions.',
+      );
+    }
+  }
 }
