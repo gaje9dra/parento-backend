@@ -33,7 +33,7 @@ const rawEnvSchema = z.object({
   CORS_CREDENTIALS: booleanString.default(false),
   JWT_ISSUER: z.string().min(1).optional(),
   JWT_AUDIENCE: z.string().min(1).optional(),
-  JWT_ACCESS_TOKEN_TTL_SECONDS: z.coerce.number().int().positive().default(900),
+  AUTH_ACCESS_TOKEN_TTL_SECONDS: z.coerce.number().int().positive().default(900),
   SESSION_TTL_SECONDS: z.coerce.number().int().positive().default(86400),
   REQUEST_BODY_LIMIT: z.string().min(1).default('100kb'),
   REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(120000),
@@ -64,18 +64,6 @@ const productionRequirements = (env: Record<string, unknown>) => {
       issues.push({
         path: ['CORS_ORIGINS'],
         message: 'Required in production.',
-      });
-    }
-    if (typeof env.JWT_ISSUER !== 'string' || env.JWT_ISSUER.length === 0) {
-      issues.push({
-        path: ['JWT_ISSUER'],
-        message: 'Required in production configuration.',
-      });
-    }
-    if (typeof env.JWT_AUDIENCE !== 'string' || env.JWT_AUDIENCE.length === 0) {
-      issues.push({
-        path: ['JWT_AUDIENCE'],
-        message: 'Required in production configuration.',
       });
     }
   }
@@ -392,7 +380,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       ...(parsed.data.JWT_AUDIENCE === undefined
         ? {}
         : { jwtAudience: parsed.data.JWT_AUDIENCE }),
-      accessTokenTtlSeconds: parsed.data.JWT_ACCESS_TOKEN_TTL_SECONDS,
+      accessTokenTtlSeconds: parsed.data.AUTH_ACCESS_TOKEN_TTL_SECONDS,
       sessionTtlSeconds: parsed.data.SESSION_TTL_SECONDS,
       requestBodyLimit: parsed.data.REQUEST_BODY_LIMIT,
       requestTimeoutMs: parsed.data.REQUEST_TIMEOUT_MS,
