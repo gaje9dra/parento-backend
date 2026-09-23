@@ -38,7 +38,7 @@ const corsMiddleware: RequestHandler = (req, res, next) => {
 
     res.setHeader(
       'Access-Control-Allow-Methods',
-      'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+      'GET,HEAD,OPTIONS',
     );
     res.setHeader(
       'Access-Control-Allow-Headers',
@@ -56,6 +56,8 @@ const securityHeaders: RequestHandler = (_req, res, next) => {
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'no-referrer');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader('X-DNS-Prefetch-Control', 'off');
+  res.setHeader('X-Download-Options', 'noopen');
   next();
 };
 
