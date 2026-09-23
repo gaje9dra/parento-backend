@@ -1,0 +1,59 @@
+openapi: 3.1.0
+info:
+  title: Parento Backend API
+  version: 1.0.0
+  description: |
+    API contract foundation for Parento. This document describes architecture
+    and implemented endpoints only; planned resources are explicitly marked
+    as planned and are not represented as implemented operations.
+servers:
+  - url: /
+paths:
+  /api/v1/health:
+    get:
+      summary: Backend health check
+      operationId: getHealth
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, service, version]
+                properties:
+                  status: { type: string, example: ok }
+                  service: { type: string, example: parento-backend }
+                  version: { type: string, example: '1' }
+components:
+  schemas:
+    ApiError:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum:
+                - AUTHENTICATION_REQUIRED
+                - AUTHORIZATION_DENIED
+                - INVALID_REQUEST
+                - RESOURCE_NOT_FOUND
+                - CONFLICT
+                - RATE_LIMITED
+                - INTERNAL_SERVER_ERROR
+                - NOT_FOUND
+            message:
+              type: string
+            metadata:
+              type: object
+        requestId:
+          type: string
+  securitySchemes:
+    FutureAuthentication:
+      type: http
+      scheme: bearer
+      description: Planned contract boundary; authentication is not implemented in Phase 1.2.
