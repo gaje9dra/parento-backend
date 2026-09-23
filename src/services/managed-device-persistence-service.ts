@@ -5,10 +5,15 @@ import type { ManagedDeviceRepository } from '../repositories/managed-device-rep
 export class ManagedDevicePersistenceService {
   constructor(private readonly repository: ManagedDeviceRepository) {}
 
-  create(input: { adminId: string; name: string; platform: string }): Promise<ManagedDevice> {
+  create(input: {
+    adminId: string;
+    name: string;
+    platform: string;
+  }): Promise<ManagedDevice> {
     if (input.name.trim() === '' || input.platform.trim() === '') {
       throw new Error('Managed device name and platform are required.');
     }
+
     return this.repository.create({
       id: randomUUID(),
       adminId: input.adminId,
