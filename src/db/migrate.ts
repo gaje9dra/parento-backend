@@ -45,26 +45,21 @@ const ensureMigrationTable = async (db: Database): Promise<void> => {
   );
 };
 
-const status = async (db: Database): Promise<void> => {
+export const migrationStatus = async (db: Database): Promise<ReadonlyArray<{ id: string; applied: boolean; name: string }>> => {
   await ensureMigrationTable(db);
   const applied = await db.query<{ id: string }>(
     'SELECT id FROM schema_migrations ORDER BY id',
   );
   const appliedIds = new Set(applied.rows.map((row) => row.id));
 
-  for (const migration of await loadMigrations()) {
-    process.stdout.write(
-      migration.id +
-        ' ' +
-        (appliedIds.has(migration.id) ? 'applied' : 'pending') +
-        ' ' +
-        migration.name +
-        '\n',
-    );
-  }
+  return (await loadMigrations()).map((migration) => ({
+    id: migration.id,
+    applied: appliedIds.has(migration.id),
+    name: migration.name,
+  }));
 };
 
-const up = async (db: Database): Promise<void> => {
+export const runMigrations = async (db: Database): Promise<void> => {
   await ensureMigrationTable(db);
   const applied = await db.query<{ id: string }>(
     'SELECT id FROM schema_migrations ORDER BY id',
@@ -88,7 +83,7 @@ const up = async (db: Database): Promise<void> => {
   }
 };
 
-const reset = async (db: Database): Promise<void> => {
+export const resetMigrations = async (db: Database): Promise<void> => {
   const config = loadConfig();
   if (config.app.environment === 'production') {
     throw new Error('Database reset is disabled in production.');
@@ -110,9 +105,14 @@ const main = async (): Promise<void> => {
       throw new Error('DATABASE_URL is required for database commands.');
     }
 
-    if (command === 'status') await status(db);
-    else if (command === 'up') await up(db);
-    else if (command === 'reset') await reset(db);
+    if (command === 'status') {
+      for (const migration of await migrationStatus(db)) {
+        process.stdout.write(
+          migration.id + ' ' + (migration.applied ? 'applied' : 'pending') + ' ' + migration.name + '\n',
+        );
+      }
+    } else if (command === 'up') await runMigrations(db);
+    else if (command === 'reset') await resetMigrations(db);
     else throw new Error('Unknown migration command: ' + command);
   } finally {
     await db.close();
