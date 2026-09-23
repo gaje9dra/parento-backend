@@ -167,8 +167,19 @@ const validateRequestBodyLimit = (value: string): void => {
     ]);
   }
 
-  const amount = Number(match[1]);
-  const unit = match[2].toLowerCase();
+  const amountText = match[1];
+  const unitText = match[2];
+  if (amountText === undefined || unitText === undefined) {
+    throw new ConfigurationError([
+      {
+        variable: 'REQUEST_BODY_LIMIT',
+        message: 'Expected a size such as 100kb or 1mb.',
+      },
+    ]);
+  }
+
+  const amount = Number(amountText);
+  const unit = unitText.toLowerCase();
   const multiplier = unit === 'b' ? 1 : unit === 'kb' ? 1024 : unit === 'mb' ? 1024 ** 2 : 1024 ** 3;
 
   if (!Number.isFinite(amount) || amount * multiplier > 10 * 1024 * 1024) {
