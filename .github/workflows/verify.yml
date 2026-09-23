@@ -25,7 +25,7 @@ jobs:
         run: npm install --ignore-scripts
 
       - name: Format diagnostics
-        run: npx prettier --check . --list-different > prettier-check.txt 2>&1 || true
+        run: npx prettier . --list-different > prettier-check.txt 2>&1 || true
 
       - name: Upload format diagnostics
         if: always()
