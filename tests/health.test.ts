@@ -21,7 +21,9 @@ describe('API foundation', () => {
   it('returns the standardized readiness response', async () => {
     const response = await request(app).get('/api/v1/ready');
 
-    expect(response.status).toBe(process.env.DATABASE_URL === undefined ? 503 : 200);
+    expect(response.status).toBe(
+      process.env.DATABASE_URL === undefined ? 503 : 200,
+    );
     expect(response.body).toEqual({
       data: {
         status: process.env.DATABASE_URL === undefined ? 'not_ready' : 'ready',
@@ -63,7 +65,9 @@ describe('API foundation', () => {
     });
   });
 
-  it('generates a request ID when none is supplied and preserves a safe incoming ID', async () => {
+  it(
+    'generates a request ID when none is supplied and preserves a safe incoming ID',
+    async () => {
     const generated = await request(app).get('/api/v1/health');
     expect(generated.headers['x-request-id']).toBeTruthy();
 
@@ -133,7 +137,9 @@ describe('API foundation', () => {
     });
   });
 
-  it('does not expose sensitive headers or request bodies through the API response', async () => {
+  it(
+    'does not expose sensitive headers or request bodies through the API response',
+    async () => {
     const response = await request(app)
       .get('/api/v1/health')
       .set('Authorization', 'Bearer very-secret-token');
