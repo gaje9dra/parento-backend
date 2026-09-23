@@ -105,7 +105,6 @@ describe('configuration', () => {
     ).toThrowError(/CORS_CREDENTIALS/);
   });
 
-
   it('requires authentication rate limiting in production', () => {
     expect(() =>
       loadConfig({
