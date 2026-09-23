@@ -16,7 +16,10 @@ class FakePasswordHasher extends PasswordHasher {
     return `test-hash:${password}`;
   }
 
-  override async verify(password: string, encodedHash: string): Promise<boolean> {
+  override async verify(
+    password: string,
+    encodedHash: string,
+  ): Promise<boolean> {
     return encodedHash === `test-hash:${password}`;
   }
 }
@@ -44,10 +47,16 @@ class FakeAdminAuthRepository implements AdminAuthenticationRepository {
     return true;
   }
 
-  async updateLastAuthenticatedAt(adminId: string, authenticatedAt: Date) {
+  async updateLastAuthenticatedAt(
+    adminId: string,
+    authenticatedAt: Date,
+  ) {
     const admin = this.admins.get(adminId);
     if (admin === undefined) return false;
-    this.admins.set(adminId, { ...admin, lastAuthenticatedAt: authenticatedAt });
+    this.admins.set(adminId, {
+      ...admin,
+      lastAuthenticatedAt: authenticatedAt,
+    });
     return true;
   }
 
@@ -65,23 +74,30 @@ class FakeAdminAuthRepository implements AdminAuthenticationRepository {
   }
 
   async findSessionByAccessTokenHash(hash: string) {
-    return [...this.sessions.values()].find(
-      (session) => session.accessTokenHash === hash,
-    ) ?? null;
+    return (
+      [...this.sessions.values()].find(
+        (session) => session.accessTokenHash === hash,
+      ) ?? null
+    );
   }
 
   async findSessionByRefreshTokenHash(hash: string) {
-    return [...this.sessions.values()].find(
-      (session) => session.refreshTokenHash === hash,
-    ) ?? null;
+    return (
+      [...this.sessions.values()].find(
+        (session) => session.refreshTokenHash === hash,
+      ) ?? null
+    );
   }
 
-  async rotateSession(sessionId: string, input: {
-    currentRefreshTokenHash: string;
-    accessTokenHash: string;
-    refreshTokenHash: string;
-    accessExpiresAt: Date;
-  }) {
+  async rotateSession(
+    sessionId: string,
+    input: {
+      currentRefreshTokenHash: string;
+      accessTokenHash: string;
+      refreshTokenHash: string;
+      accessExpiresAt: Date;
+    },
+  ) {
     const session = this.sessions.get(sessionId);
     if (
       session === undefined ||
@@ -285,12 +301,21 @@ describe('Phase 3.1 admin authentication', () => {
 describe('PasswordHasher', () => {
   it('hashes with a unique salt and verifies without storing plaintext', async () => {
     const hasher = new PasswordHasher();
-    const first = await hasher.hash('a sufficiently long administrator password');
-    const second = await hasher.hash('a sufficiently long administrator password');
+    const first = await hasher.hash(
+      'a sufficiently long administrator password',
+    );
+    const second = await hasher.hash(
+      'a sufficiently long administrator password',
+    );
 
     expect(first).not.toBe(second);
     expect(first).not.toContain('a sufficiently long administrator password');
-    expect(await hasher.verify('a sufficiently long administrator password', first)).toBe(true);
+    expect(
+      await hasher.verify(
+        'a sufficiently long administrator password',
+        first,
+      ),
+    ).toBe(true);
     expect(await hasher.verify('wrong administrator password', first)).toBe(false);
   });
 
