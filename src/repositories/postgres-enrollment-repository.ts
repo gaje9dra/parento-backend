@@ -85,7 +85,10 @@ export class PostgresEnrollmentRepository
       );
       return toEnrollment(result.rows[0]!);
     } catch (error) {
-      throw mapPostgresPersistenceError(error, 'Unable to create enrollment.');
+      throw mapPostgresPersistenceError(
+        error,
+        'Unable to create enrollment.',
+      );
     }
   }
 
