@@ -1,10 +1,10 @@
-import { Router } from 'express';
+import { Router, type RequestHandler } from 'express';
 import type { AdminAuthenticationService } from '../../services/admin-authentication-service.js';
 import { createAdminAuthController } from '../../controllers/admin-auth.controller.js';
 import { requireAdminAuthentication } from '../../middleware/admin-auth.js';
 
-const methodNotAllowed = (allow: string) => {
-  return (_req: Parameters<Router['all']>[1], res: any): void => {
+const methodNotAllowed = (allow: string): RequestHandler => {
+  return (_req, res): void => {
     res.setHeader('Allow', allow);
     res.status(405).json({
       error: {
