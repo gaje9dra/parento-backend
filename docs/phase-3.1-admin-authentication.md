@@ -94,3 +94,8 @@ The authentication layer does not implement:
 - covert monitoring or security bypasses
 
 Future Android clients must store received credentials using platform secure storage and communicate over HTTPS. urlOWASP Mobile Application Security guidancehttps://cheatsheetseries.owasp.org/cheatsheets/Mobile_Application_Security_Cheat_Sheet.html
+
+
+## Verification branch
+
+This branch exists only to run the repository CI verification against the Phase 3.1 implementation.
