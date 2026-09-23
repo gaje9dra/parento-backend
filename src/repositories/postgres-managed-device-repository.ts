@@ -9,7 +9,7 @@ import type {
   ManagedDeviceRepository,
 } from './managed-device-repository.js';
 import { PostgresRepository } from './postgres-repository.js';
-import { mapPostgresPersistenceError } from './postgres-admin-repository.js';
+import { mapPostgresPersistenceError } from '../db/errors.js';
 
 interface DeviceRow {
   id: string;
