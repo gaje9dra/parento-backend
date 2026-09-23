@@ -8,7 +8,7 @@ const rawEnvSchema = z.object({
   APP_NAME: z.string().min(1).default('parento-backend'),
   HOST: z.string().min(1).default('127.0.0.1'),
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
-  API_BASE_PATH: z.string().regex(/^\/api\/v\\d+$/).default('/api/v1'),
+  API_BASE_PATH: z.string().regex(/^\/api\/v\d+$/).default('/api/v1'),
   DATABASE_URL: z.string().url().optional(),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
   LOG_PRETTY: booleanString.default('false'),
