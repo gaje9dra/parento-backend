@@ -169,6 +169,16 @@ describe('configuration', () => {
     ).toThrowError(/REQUEST_BODY_LIMIT/);
   });
 
+  it('rejects an access-token lifetime longer than the session lifetime', () => {
+    expect(() =>
+      loadConfig({
+        ...validEnvironment,
+        AUTH_ACCESS_TOKEN_TTL_SECONDS: '900',
+        SESSION_TTL_SECONDS: '600',
+      }),
+    ).toThrowError(/AUTH_ACCESS_TOKEN_TTL_SECONDS/);
+  });
+
   it('rejects invalid timeout configuration', () => {
     expect(() =>
       loadConfig({
