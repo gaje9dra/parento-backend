@@ -59,7 +59,7 @@ describe('configuration', () => {
       loadConfig({
         ...validEnvironment,
         NODE_ENV: 'production',
-        DATABASE_URL: 'https://database.invalid/connection',
+        DATABASE_URL: 'postgresql://user:password@localhost:5432/parento',
       }),
     ).toThrowError(/JWT_ISSUER/);
   });
@@ -74,7 +74,7 @@ describe('configuration', () => {
       loadConfig({
         ...withoutCors,
         NODE_ENV: 'production',
-        DATABASE_URL: 'https://database.invalid/connection',
+        DATABASE_URL: 'postgresql://user:password@localhost:5432/parento',
         JWT_ISSUER: 'https://issuer.invalid',
         JWT_AUDIENCE: 'parento',
       }),
@@ -86,7 +86,7 @@ describe('configuration', () => {
       loadConfig({
         ...validEnvironment,
         NODE_ENV: 'production',
-        DATABASE_URL: 'https://database.invalid/connection',
+        DATABASE_URL: 'postgresql://user:password@localhost:5432/parento',
         CORS_ORIGINS: '*',
         JWT_ISSUER: 'https://issuer.invalid',
         JWT_AUDIENCE: 'parento',
