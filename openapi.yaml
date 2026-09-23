@@ -84,16 +84,14 @@ components:
                 version: { type: string, example: '1' }
     ApiSuccess:
       type: object
-      required: [success, data, requestId]
+      required: [data, requestId]
       properties:
-        success: { type: boolean, const: true }
         data: {}
         requestId: { type: string }
     ApiError:
       type: object
-      required: [success, error, requestId]
+      required: [error, requestId]
       properties:
-        success: { type: boolean, const: false }
         error:
           type: object
           required: [code, message]
