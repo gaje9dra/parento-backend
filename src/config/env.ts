@@ -19,6 +19,9 @@ const rawEnvSchema = z.object({
   JWT_ACCESS_TOKEN_TTL_SECONDS: z.coerce.number().int().positive().default(900),
   SESSION_TTL_SECONDS: z.coerce.number().int().positive().default(86400),
   REQUEST_BODY_LIMIT: z.string().min(1).default('100kb'),
+  REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(120000),
+  HEADERS_TIMEOUT_MS: z.coerce.number().int().positive().default(15000),
+  KEEP_ALIVE_TIMEOUT_MS: z.coerce.number().int().positive().default(5000),
   TRUST_PROXY: booleanString.default('false'),
   RATE_LIMIT_ENABLED: booleanString.default('false'),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60000),
@@ -94,6 +97,9 @@ export interface AppConfig {
     readonly accessTokenTtlSeconds: number;
     readonly sessionTtlSeconds: number;
     readonly requestBodyLimit: string;
+    readonly requestTimeoutMs: number;
+    readonly headersTimeoutMs: number;
+    readonly keepAliveTimeoutMs: number;
     readonly trustProxy: boolean;
   };
   readonly rateLimit: {
@@ -107,11 +113,73 @@ export interface AppConfig {
   };
 }
 
-const parseOrigins = (value: string): string[] =>
-  value
+const parseOrigins = (value: string): string[] => {
+  const origins = value
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);
+
+  for (const origin of origins) {
+    if (origin === '*') continue;
+
+    let parsed: URL;
+    try {
+      parsed = new URL(origin);
+    } catch {
+      throw new ConfigurationError([
+        {
+          variable: 'CORS_ORIGINS',
+          message: 'Origins must be valid HTTP(S) origins.',
+        },
+      ]);
+    }
+
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      throw new ConfigurationError([
+        {
+          variable: 'CORS_ORIGINS',
+          message: 'Origins must use HTTP or HTTPS.',
+        },
+      ]);
+    }
+
+    if (parsed.pathname !== '/' || parsed.search !== '' || parsed.hash !== '' || parsed.username !== '' || parsed.password !== '') {
+      throw new ConfigurationError([
+        {
+          variable: 'CORS_ORIGINS',
+          message: 'Origins must contain only scheme, host, and optional port.',
+        },
+      ]);
+    }
+  }
+
+  return origins;
+};
+
+const validateRequestBodyLimit = (value: string): void => {
+  const match = /^(\d+(?:\.\d+)?)\s*(b|kb|mb|gb)$/i.exec(value.trim());
+  if (match === null) {
+    throw new ConfigurationError([
+      {
+        variable: 'REQUEST_BODY_LIMIT',
+        message: 'Expected a size such as 100kb or 1mb.',
+      },
+    ]);
+  }
+
+  const amount = Number(match[1]);
+  const unit = match[2].toLowerCase();
+  const multiplier = unit === 'b' ? 1 : unit === 'kb' ? 1024 : unit === 'mb' ? 1024 ** 2 : 1024 ** 3;
+
+  if (!Number.isFinite(amount) || amount * multiplier > 10 * 1024 * 1024) {
+    throw new ConfigurationError([
+      {
+        variable: 'REQUEST_BODY_LIMIT',
+        message: 'Request body limit must not exceed 10mb.',
+      },
+    ]);
+  }
+};
 
 const parseExternalServices = (value: string): Record<string, string> => {
   if (value.trim() === '') return {};
@@ -178,6 +246,16 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   }
 
   const corsOrigins = parseOrigins(parsed.data.CORS_ORIGINS);
+  validateRequestBodyLimit(parsed.data.REQUEST_BODY_LIMIT);
+
+  if (parsed.data.CORS_CREDENTIALS && corsOrigins.includes('*')) {
+    throw new ConfigurationError([
+      {
+        variable: 'CORS_CREDENTIALS',
+        message: 'Credentials cannot be enabled with a wildcard CORS origin.',
+      },
+    ]);
+  }
 
   if (parsed.data.NODE_ENV === 'production') {
     if (corsOrigins.length === 0) {
@@ -231,6 +309,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       accessTokenTtlSeconds: parsed.data.JWT_ACCESS_TOKEN_TTL_SECONDS,
       sessionTtlSeconds: parsed.data.SESSION_TTL_SECONDS,
       requestBodyLimit: parsed.data.REQUEST_BODY_LIMIT,
+      requestTimeoutMs: parsed.data.REQUEST_TIMEOUT_MS,
+      headersTimeoutMs: parsed.data.HEADERS_TIMEOUT_MS,
+      keepAliveTimeoutMs: parsed.data.KEEP_ALIVE_TIMEOUT_MS,
       trustProxy: parsed.data.TRUST_PROXY,
     },
     rateLimit: {
