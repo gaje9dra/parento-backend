@@ -20,9 +20,9 @@ const rawEnvSchema = z.object({
   LOG_LEVEL: z
     .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace'])
     .default('info'),
-  LOG_PRETTY: booleanString.default('false'),
+  LOG_PRETTY: booleanString.default(false),
   CORS_ORIGINS: z.string().default('http://localhost:3000'),
-  CORS_CREDENTIALS: booleanString.default('false'),
+  CORS_CREDENTIALS: booleanString.default(false),
   JWT_ISSUER: z.string().min(1).optional(),
   JWT_AUDIENCE: z.string().min(1).optional(),
   JWT_ACCESS_TOKEN_TTL_SECONDS: z.coerce.number().int().positive().default(900),
@@ -31,11 +31,11 @@ const rawEnvSchema = z.object({
   REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(120000),
   HEADERS_TIMEOUT_MS: z.coerce.number().int().positive().default(15000),
   KEEP_ALIVE_TIMEOUT_MS: z.coerce.number().int().positive().default(5000),
-  TRUST_PROXY: booleanString.default('false'),
-  RATE_LIMIT_ENABLED: booleanString.default('false'),
+  TRUST_PROXY: booleanString.default(false),
+  RATE_LIMIT_ENABLED: booleanString.default(false),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60000),
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(100),
-  REALTIME_ENABLED: booleanString.default('false'),
+  REALTIME_ENABLED: booleanString.default(false),
   EXTERNAL_SERVICE_BASE_URLS: z.string().default(''),
 });
 
