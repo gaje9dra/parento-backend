@@ -8,6 +8,7 @@ declare global {
         id: string;
         email: string;
         status: 'ACTIVE' | 'DISABLED';
+        lastAuthenticatedAt: Date | null;
       };
     }
   }
@@ -37,6 +38,7 @@ export const requireAdminAuthentication = (
         id: admin.id,
         email: admin.email,
         status: admin.status,
+        lastAuthenticatedAt: admin.lastAuthenticatedAt,
       };
       next();
     } catch {
