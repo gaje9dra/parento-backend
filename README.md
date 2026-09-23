@@ -465,3 +465,36 @@ See docs/phase-2.5-security-testing.md for the final Phase 2 database security, 
 Phase 2 now provides PostgreSQL persistence, migrations, Admin/ManagedDevice/Enrollment models, relational integrity, repository contracts, persistence services, bounded queries, cursor pagination, transactions, database readiness, sanitized persistence errors, isolated PostgreSQL testing, and operational documentation.
 
 Authentication, enrollment/pairing workflows, realtime communication, monitoring, location, camera/microphone/audio/screen capture, device control, application/website blocking, policy enforcement, notifications, and complete audit functionality remain deferred to later phases.
+
+
+## Phase 3.1 — Backend Admin Authentication Foundation
+
+Phase 3.1 adds the backend foundation for administrator authentication while preserving the Phase 1–2 architecture and repository boundaries.
+
+Implemented:
+
+- separate administrator authentication identity from managed-device and Android installation identities
+- scrypt password hashing with per-password random salts
+- nullable password credential storage for existing Admin records without inventing credentials
+- short-lived opaque access credentials
+- rotating opaque refresh credentials
+- server-side session persistence, expiration, and revocation
+- generic authentication failure behavior to reduce account enumeration
+- reusable administrator authentication middleware
+- authenticated current-admin identity endpoint
+- logout/session invalidation
+- configuration-driven access/session TTLs
+- Phase 3.1 database migration
+- authentication API documentation
+- authentication unit/API tests and database migration coverage
+
+Endpoints:
+
+- `POST /api/v1/auth/admin/login`
+- `POST /api/v1/auth/admin/refresh`
+- `GET /api/v1/auth/admin/me`
+- `POST /api/v1/auth/admin/logout`
+
+Existing Phase 1–2 health/readiness endpoints remain unchanged. The authentication layer does not implement Admin Android UI, Google OAuth, managed-device enrollment, realtime communication, device commands, monitoring, or policy enforcement.
+
+See `docs/phase-3.1-admin-authentication.md` for the detailed security and integration contract.
