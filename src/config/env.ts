@@ -42,7 +42,12 @@ const rawEnvSchema = z.object({
   TRUST_PROXY: booleanString.default(false),
   RATE_LIMIT_ENABLED: booleanString.default(true),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60000),
-  RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().min(1).max(1000).default(10),
+  RATE_LIMIT_MAX_REQUESTS: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(1000)
+    .default(10),
   REALTIME_ENABLED: booleanString.default(false),
   EXTERNAL_SERVICE_BASE_URLS: z.string().default(''),
 });
@@ -69,7 +74,8 @@ const productionRequirements = (env: Record<string, unknown>) => {
     if (env.RATE_LIMIT_ENABLED !== 'true') {
       issues.push({
         path: ['RATE_LIMIT_ENABLED'],
-        message: 'Authentication rate limiting must be enabled in production.',
+        message:
+          'Authentication rate limiting must be enabled in production.',
       });
     }
   }
@@ -310,7 +316,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     }
   }
 
-  if (parsed.data.AUTH_ACCESS_TOKEN_TTL_SECONDS > parsed.data.SESSION_TTL_SECONDS) {
+  if (
+    parsed.data.AUTH_ACCESS_TOKEN_TTL_SECONDS >
+    parsed.data.SESSION_TTL_SECONDS
+  ) {
     throw new ConfigurationError([
       {
         variable: 'AUTH_ACCESS_TOKEN_TTL_SECONDS',
