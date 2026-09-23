@@ -70,9 +70,9 @@ export class PasswordHasher {
       !Number.isSafeInteger(p) ||
       saltPart === undefined ||
       hashPart === undefined ||
-      n < 2 ** 13 ||
-      r < 1 ||
-      p < 1
+      n !== N ||
+      r !== R ||
+      p !== P
     ) {
       return false;
     }
@@ -80,7 +80,7 @@ export class PasswordHasher {
     try {
       const salt = Buffer.from(saltPart, 'base64url');
       const expected = Buffer.from(hashPart, 'base64url');
-      if (salt.length < 16 || expected.length !== KEY_LENGTH) return false;
+      if (salt.length !== SALT_LENGTH || expected.length !== KEY_LENGTH) return false;
 
       const derived = (await scrypt(password, salt, expected.length, {
         N: n,
