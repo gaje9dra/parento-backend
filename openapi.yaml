@@ -4,7 +4,7 @@ info:
   version: 1.0.0
   description: |
     API foundation for Parento. This document describes implemented operational
-    and Phase 3.1–3.2 administrator authentication endpoints and shared contracts.
+    and Phase 3.1–3.3 administrator authentication endpoints and shared contracts.
 servers:
   - url: /
 paths:
