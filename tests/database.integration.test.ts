@@ -47,7 +47,9 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
     expect(status.filter((migration) => migration.applied)).toHaveLength(4);
   });
 
-  it('verifies the final schema has the Phase 2 integrity constraints and query indexes', async () => {
+  it(
+    'verifies the final schema has the Phase 2 integrity constraints and query indexes',
+    async () => {
     const indexes = await database.query<{ indexname: string }>(
       "SELECT indexname FROM pg_indexes WHERE schemaname = 'public' AND indexname IN (" +
         "'admins_email_unique_idx', 'managed_devices_admin_created_id_idx', " +
