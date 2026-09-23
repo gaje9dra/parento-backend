@@ -245,3 +245,70 @@ npm run format:check
 ## Phase status
 
 Phase 1.4 establishes the HTTP/API request pipeline and operational endpoints only. It does not implement admin login, OAuth, enrollment, QR pairing, device credentials, location, streaming, application/website blocking, device locking, remote commands, push notifications, or other future business functionality.
+
+## Phase 1.5 — Backend Security Baseline, Testing Infrastructure & Phase 1 Completion
+
+Phase 1.5 hardens the existing Phase 1 backend foundation without rewriting its architecture or introducing business functionality.
+
+### Security hardening
+
+- Explicit CORS origins are validated as HTTP(S) origins.
+- Production rejects wildcard CORS.
+- CORS credentials cannot be combined with a wildcard origin.
+- CORS preflight advertises only the currently supported GET/HEAD/OPTIONS methods.
+- JSON request bodies remain bounded and configuration is capped at 10mb.
+- Request, header, and keep-alive timeouts are explicitly configurable.
+- Additional HTTP security headers include X-DNS-Prefetch-Control and X-Download-Options.
+- Unexpected server errors remain sanitized from client responses.
+- Sensitive logging fields remain redacted.
+
+### Configuration
+
+New server settings are available in .env.example:
+
+- REQUEST_TIMEOUT_MS=120000
+- HEADERS_TIMEOUT_MS=15000
+- KEEP_ALIVE_TIMEOUT_MS=5000
+
+The existing configuration boundary continues to validate environment-specific requirements and now validates CORS origin syntax and request-body size values.
+
+### Verification
+
+The repository now exposes:
+
+- npm run format:check
+- npm run lint
+- npm run typecheck
+- npm test
+- npm run build
+- npm run audit
+- npm run verify
+
+npm run verify executes formatting, lint, type checking, tests, build, and dependency audit.
+
+### CI
+
+GitHub Actions workflow: .github/workflows/verify.yml
+
+The workflow installs dependencies with npm install, then runs the complete verification suite on pushes to main and pull requests. Deployment automation is intentionally not included.
+
+The repository currently has no committed package-lock.json, so CI deliberately uses npm install rather than npm ci.
+
+### Dependency audit
+
+The package manifest was reviewed for duplicate/obsolete functionality and no new dependency was introduced by Phase 1.5. A local npm audit could not be completed in the implementation environment because registry access was unavailable. npm run audit is therefore part of the CI verification workflow rather than being reported as locally passed.
+
+### Documentation
+
+Added:
+
+- docs/phase-1-architecture.md
+- docs/cross-repository-contracts.md
+
+These documents distinguish implemented foundation work from future/deferred functionality.
+
+### Cross-repository boundary
+
+Only gaje9dra/parento-backend was modified. No code, configuration, or documentation was changed in gaje9dra/parento-admin or gaje9dra/parento-managed.
+
+Authentication, enrollment, device control, realtime communication, location, media, policy enforcement, surveillance, and Android security bypasses remain deferred.
