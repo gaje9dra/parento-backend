@@ -53,7 +53,7 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
     const indexes = await database.query<{ indexname: string }>(
       "SELECT indexname FROM pg_indexes WHERE schemaname = 'public' AND indexname IN (" +
         "'admins_email_unique_idx', 'managed_devices_admin_created_id_idx', " +
-        "'enrollments_admin_created_id_idx', 'enrollments_device_created_id_idx'" +
+        "'enrollments_admin_created_id_idx', 'enrollments_device_created_id_idx', 'admin_sessions_revoked_at_idx'" +
         ') ORDER BY indexname',
     );
     expect(indexes.rows.map((row) => row.indexname)).toEqual([
