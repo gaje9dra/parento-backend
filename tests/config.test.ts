@@ -11,7 +11,7 @@ const validEnvironment = {
   LOG_PRETTY: 'false',
   CORS_ORIGINS: 'http://localhost:5173,http://localhost:3000',
   CORS_CREDENTIALS: 'false',
-  JWT_ACCESS_TOKEN_TTL_SECONDS: '900',
+  AUTH_ACCESS_TOKEN_TTL_SECONDS: '900',
   SESSION_TTL_SECONDS: '86400',
   REQUEST_BODY_LIMIT: '100kb',
   TRUST_PROXY: 'false',
@@ -54,14 +54,15 @@ describe('configuration', () => {
     }
   });
 
-  it('requires explicit production security configuration', () => {
-    expect(() =>
-      loadConfig({
-        ...validEnvironment,
-        NODE_ENV: 'production',
-        DATABASE_URL: 'postgresql://user:password@localhost:5432/parento',
-      }),
-    ).toThrowError(/JWT_ISSUER/);
+  it('accepts production configuration without unused JWT requirements', () => {
+    const config = loadConfig({
+      ...validEnvironment,
+      NODE_ENV: 'production',
+      DATABASE_URL: 'postgresql://user:password@localhost:5432/parento',
+      CORS_ORIGINS: 'https://admin.example.invalid',
+      AUTH_ACCESS_TOKEN_TTL_SECONDS: '600',
+    });
+    expect(config.security.accessTokenTtlSeconds).toBe(600);
   });
 
   it('requires explicit production CORS configuration', () => {
