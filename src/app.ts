@@ -45,7 +45,7 @@ const corsMiddleware: RequestHandler = (req, res, next) => {
       return;
     }
 
-    res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,OPTIONS');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,POST,OPTIONS');
     res.setHeader(
       'Access-Control-Allow-Headers',
       'Content-Type, Authorization, X-Request-Id',
