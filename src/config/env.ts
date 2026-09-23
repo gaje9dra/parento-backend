@@ -51,7 +51,10 @@ const productionRequirements = (env: Record<string, unknown>) => {
   const issues: { path: string[]; message: string }[] = [];
 
   if (env.NODE_ENV === 'production') {
-    if (typeof env.DATABASE_URL !== 'string' || env.DATABASE_URL.length === 0) {
+    if (
+      typeof env.DATABASE_URL !== 'string' ||
+      env.DATABASE_URL.length === 0
+    ) {
       issues.push({
         path: ['DATABASE_URL'],
         message: 'Required in production.',
@@ -66,7 +69,10 @@ const productionRequirements = (env: Record<string, unknown>) => {
         message: 'Required in production.',
       });
     }
-    if (typeof env.JWT_ISSUER !== 'string' || env.JWT_ISSUER.length === 0) {
+    if (
+      typeof env.JWT_ISSUER !== 'string' ||
+      env.JWT_ISSUER.length === 0
+    ) {
       issues.push({
         path: ['JWT_ISSUER'],
         message: 'Required in production configuration.',
