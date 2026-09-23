@@ -25,14 +25,20 @@ jobs:
         run: npm install --ignore-scripts
 
       - name: Format diagnostics
-        run: npx prettier . --list-different > prettier-check.txt 2>&1 || true
+        run: |
+          npx prettier --write .
+          mkdir -p formatted
+          git diff --name-only | while read -r file; do
+            mkdir -p "formatted/$(dirname "$file")"
+            cp "$file" "formatted/$file"
+          done
 
-      - name: Upload format diagnostics
+      - name: Upload formatted files
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: prettier-check
-          path: prettier-check.txt
+          name: formatted-files
+          path: formatted
 
       - name: Format check
         run: npm run format:check
