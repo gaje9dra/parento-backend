@@ -64,16 +64,16 @@ describe.skipIf(!hasDatabase)('Phase 2.3 domain persistence', () => {
       email: 'admin@example.com',
     });
 
-    expect(
+    expect(() =>
       adminService.create({
         email: 'invalid',
         displayName: null,
       }),
-    ).rejects.toThrow('Administrator email is invalid.');
+    ).toThrow('Administrator email is invalid.');
 
-    expect(
+    expect(() =>
       adminService.updateMetadata(admin.id, 'x'.repeat(101)),
-    ).rejects.toThrow(/must not exceed 100/);
+    ).toThrow(/must not exceed 100/);
 
     await expect(
       adminService.create({
