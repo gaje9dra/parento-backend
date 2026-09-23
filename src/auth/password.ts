@@ -80,7 +80,12 @@ export class PasswordHasher {
     try {
       const salt = Buffer.from(saltPart, 'base64url');
       const expected = Buffer.from(hashPart, 'base64url');
-      if (salt.length !== SALT_LENGTH || expected.length !== KEY_LENGTH) return false;
+      if (
+        salt.length !== SALT_LENGTH ||
+        expected.length !== KEY_LENGTH
+      ) {
+        return false;
+      }
 
       const derived = (await scrypt(password, salt, expected.length, {
         N: n,
