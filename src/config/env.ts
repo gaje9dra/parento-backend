@@ -304,6 +304,15 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     }
   }
 
+  if (parsed.data.AUTH_ACCESS_TOKEN_TTL_SECONDS > parsed.data.SESSION_TTL_SECONDS) {
+    throw new ConfigurationError([
+      {
+        variable: 'AUTH_ACCESS_TOKEN_TTL_SECONDS',
+        message: 'Access-token lifetime cannot exceed session lifetime.',
+      },
+    ]);
+  }
+
   const productionIssues = productionRequirements(parsed.data);
   if (productionIssues.length > 0) {
     throw new ConfigurationError(
