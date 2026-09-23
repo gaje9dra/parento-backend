@@ -3,8 +3,8 @@ info:
   title: Parento Backend API
   version: 1.0.0
   description: |
-    API foundation for Parento. This document describes implemented
-    operational endpoints and shared response/error contracts only.
+    API foundation for Parento. This document describes implemented operational
+    and Phase 3.1 administrator authentication endpoints and shared contracts.
 servers:
   - url: /
 paths:
@@ -39,6 +39,98 @@ paths:
       responses:
         '405':
           $ref: '#/components/responses/MethodNotAllowed'
+  /api/v1/auth/admin/login:
+    post:
+      summary: Authenticate an administrator
+      operationId: adminLogin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminLoginRequest'
+      responses:
+        '200':
+          description: Authenticated administrator and opaque session credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminLoginResponse'
+        '400':
+          description: Invalid request shape
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '401':
+          description: Invalid administrator credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /api/v1/auth/admin/refresh:
+    post:
+      summary: Rotate administrator access and refresh credentials
+      operationId: adminRefresh
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminRefreshRequest'
+      responses:
+        '200':
+          description: Rotated opaque session credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminTokenResponse'
+        '400':
+          description: Invalid request shape
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '401':
+          description: Invalid or expired refresh credential
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /api/v1/auth/admin/me:
+    get:
+      summary: Get the authenticated administrator identity
+      operationId: getCurrentAdmin
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Authenticated administrator identity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminIdentityResponse'
+        '401':
+          description: Missing or invalid access credential
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /api/v1/auth/admin/logout:
+    post:
+      summary: Revoke the current administrator session
+      operationId: adminLogout
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Session revoked
+        '401':
+          description: Missing or invalid access credential
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
   /api/v1/ready:
     get:
       summary: Backend readiness check
@@ -57,6 +149,11 @@ paths:
         '405':
           $ref: '#/components/responses/MethodNotAllowed'
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque
   schemas:
     ApiSuccessHealth:
       allOf:
@@ -88,6 +185,82 @@ components:
       properties:
         data: {}
         requestId: { type: string }
+    AdminLoginRequest:
+      type: object
+      required: [email, password]
+      additionalProperties: false
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        password:
+          type: string
+          minLength: 1
+          maxLength: 256
+    AdminRefreshRequest:
+      type: object
+      required: [refreshToken]
+      additionalProperties: false
+      properties:
+        refreshToken:
+          type: string
+          minLength: 20
+          maxLength: 256
+    AdminIdentity:
+      type: object
+      required: [id, email, status, lastAuthenticatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        status:
+          type: string
+          enum: [ACTIVE, DISABLED]
+        lastAuthenticatedAt:
+          type: string
+          format: date-time
+          nullable: true
+    AdminIdentityResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccess'
+        - type: object
+          properties:
+            data:
+              type: object
+              required: [admin]
+              properties:
+                admin:
+                  $ref: '#/components/schemas/AdminIdentity'
+    AdminTokenResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccess'
+        - type: object
+          properties:
+            data:
+              type: object
+              required: [accessToken, refreshToken, accessTokenExpiresAt, sessionExpiresAt, tokenType]
+              properties:
+                accessToken: { type: string }
+                refreshToken: { type: string }
+                accessTokenExpiresAt: { type: string, format: date-time }
+                sessionExpiresAt: { type: string, format: date-time }
+                tokenType: { type: string, enum: [Bearer] }
+    AdminLoginResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccess'
+        - type: object
+          properties:
+            data:
+              type: object
+              required: [admin, accessToken, refreshToken, accessTokenExpiresAt, sessionExpiresAt, tokenType]
+              properties:
+                admin:
+                  $ref: '#/components/schemas/AdminIdentity'
+                accessToken: { type: string }
+                refreshToken: { type: string }
+                accessTokenExpiresAt: { type: string, format: date-time }
+                sessionExpiresAt: { type: string, format: date-time }
+                tokenType: { type: string, enum: [Bearer] }
     ApiError:
       type: object
       required: [error, requestId]
