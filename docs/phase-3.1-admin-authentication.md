@@ -94,3 +94,42 @@ The authentication layer does not implement:
 - covert monitoring or security bypasses
 
 Future Android clients must store received credentials using platform secure storage and communicate over HTTPS. urlOWASP Mobile Application Security guidancehttps://cheatsheetseries.owasp.org/cheatsheets/Mobile_Application_Security_Cheat_Sheet.html
+
+
+## Phase 3.2 — Authentication Hardening
+
+Phase 3.2 preserves the Phase 3.1 opaque-session architecture and hardens its security boundary.
+
+### Authorization boundary
+
+Authentication remains centralized in the Bearer middleware. A separate reusable administrator-authorization middleware now requires an authenticated ACTIVE administrator before protected administrator resources execute. No client-supplied adminId, userId, role, or isAdmin field is consulted.
+
+### Account status
+
+The authentication service reads the administrator record from PostgreSQL during every access-token validation and refresh. DISABLED administrators therefore cannot continue using an already-issued session.
+
+### Request validation
+
+Login and refresh payload schemas are strict and reject unexpected properties. Login passwords must meet the existing 15–256 character password policy before authentication work begins.
+
+### Abuse protection
+
+Login and refresh use the existing rate-limit configuration through express-rate-limit. The baseline is 10 requests per 15 minutes per direct network peer. Production requires the limiter to be enabled.
+
+The default limiter store is process-local. Multi-instance production deployments must add a shared store or an equivalent trusted edge/API-gateway control. The backend does not claim distributed rate limiting.
+
+### Password verification hardening
+
+Persisted scrypt hashes are accepted only with the backend's supported N/r/p parameters and expected salt/key sizes. This prevents attacker-controlled or accidentally corrupted stored parameters from selecting an unexpectedly expensive or incompatible verification workload.
+
+### Revocation and rotation
+
+Logout revokes the server-side session. Refresh rotation uses an atomic compare-and-update operation against the current refresh-token hash, so an already-rotated refresh token cannot authenticate again.
+
+### Error and information disclosure
+
+Authentication failures remain generic. Password hashes, opaque credentials, database errors, stack traces, and internal paths are excluded from API responses and structured logging.
+
+### Deferred
+
+No managed-device enrollment, pairing, device registration, realtime communication, WebSockets, FCM, monitoring, location, camera, microphone, audio, screen sharing, application blocking, website blocking, device locking, remote commands, or remote policies are implemented by Phase 3.2.
