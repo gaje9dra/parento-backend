@@ -1,0 +1,16 @@
+name: Temporary Prettier Helper
+
+on:
+  push:
+    branches: [phase-3-3-verification-3]
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.21.0
+      - run: npm install --ignore-scripts
+      - run: npx prettier src/repositories/postgres-admin-repository.ts
