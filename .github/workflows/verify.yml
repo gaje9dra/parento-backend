@@ -50,7 +50,7 @@ jobs:
           git add package-lock.json
           if ! git diff --cached --quiet; then
             git commit -m 'test: update temporary verification lockfile'
-            git push origin HEAD:${GITHUB_HEAD_REF}
+            git push --force origin HEAD:${GITHUB_HEAD_REF}
           fi
 
       - name: Temporary format normalization
