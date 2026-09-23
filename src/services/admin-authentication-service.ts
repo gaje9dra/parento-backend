@@ -35,14 +35,16 @@ export class AdminAuthenticationService {
     private readonly sessionTtlSeconds = 86400,
   ) {}
 
-  async login(email: string, password: string): Promise<{
+  async login(
+    email: string,
+    password: string,
+  ): Promise<{
     readonly admin: AdminAuthenticationRecord;
     readonly tokens: AuthenticationTokens;
   }> {
     const normalizedEmail = email.trim().toLowerCase();
-    const record = await this.repository.findAuthenticationRecordByEmail(
-      normalizedEmail,
-    );
+    const record =
+      await this.repository.findAuthenticationRecordByEmail(normalizedEmail);
 
     let passwordValid = false;
     if (record !== null && record.passwordHash !== null) {
