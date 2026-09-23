@@ -28,7 +28,11 @@ export const mapPostgresPersistenceError = (
       : undefined;
 
   if (code === '23505') {
-    return new PersistenceError('CONFLICT', 'The resource already exists.', error);
+    return new PersistenceError(
+      'CONFLICT',
+      'The resource already exists.',
+      error,
+    );
   }
   if (code === '23503') {
     return new PersistenceError(
