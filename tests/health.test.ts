@@ -27,9 +27,10 @@ describe('API foundation', () => {
         status: 'ready',
         service: 'parento-backend',
         version: '1',
-        database: process.env.DATABASE_URL === undefined
-          ? 'not_configured'
-          : 'available',
+        database:
+          process.env.DATABASE_URL === undefined
+            ? 'not_configured'
+            : 'available',
       },
       requestId: response.headers['x-request-id'],
     });
