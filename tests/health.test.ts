@@ -9,7 +9,6 @@ describe('API foundation', () => {
     expect(response.status).toBe(200);
     expect(response.headers['x-request-id']).toBeTruthy();
     expect(response.body).toEqual({
-      success: true,
       data: {
         status: 'ok',
         service: 'parento-backend',
@@ -24,7 +23,6 @@ describe('API foundation', () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({
-      success: true,
       data: {
         status: 'ready',
         service: 'parento-backend',
@@ -39,7 +37,6 @@ describe('API foundation', () => {
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({
-      success: false,
       error: {
         code: 'NOT_FOUND',
         message: 'Route not found.',
@@ -54,11 +51,11 @@ describe('API foundation', () => {
     expect(response.status).toBe(405);
     expect(response.headers.allow).toBe('GET, HEAD, OPTIONS');
     expect(response.body).toMatchObject({
-      success: false,
       error: {
         code: 'METHOD_NOT_ALLOWED',
         message: 'HTTP method is not allowed for this endpoint.',
       },
+      requestId: response.headers['x-request-id'],
     });
   });
 
@@ -82,11 +79,11 @@ describe('API foundation', () => {
 
     expect(response.status).toBe(400);
     expect(response.body).toMatchObject({
-      success: false,
       error: {
         code: 'INVALID_REQUEST',
         message: 'Request body contains invalid JSON.',
       },
+      requestId: response.headers['x-request-id'],
     });
   });
 
@@ -98,10 +95,10 @@ describe('API foundation', () => {
 
     expect(response.status).toBe(413);
     expect(response.body).toMatchObject({
-      success: false,
       error: {
         code: 'REQUEST_TOO_LARGE',
       },
+      requestId: response.headers['x-request-id'],
     });
   });
 
@@ -113,6 +110,21 @@ describe('API foundation', () => {
 
     expect(response.status).toBe(204);
     expect(response.headers['access-control-allow-origin']).toBe('http://localhost:3000');
+  });
+
+  it('rejects disallowed CORS origins through the standard error contract', async () => {
+    const response = await request(app)
+      .options('/api/v1/health')
+      .set('Origin', 'https://not-allowed.invalid');
+
+    expect(response.status).toBe(403);
+    expect(response.body).toMatchObject({
+      error: {
+        code: 'AUTHORIZATION_DENIED',
+        message: 'CORS origin is not allowed.',
+      },
+      requestId: response.headers['x-request-id'],
+    });
   });
 
   it('does not expose sensitive headers or request bodies through the API response', async () => {
