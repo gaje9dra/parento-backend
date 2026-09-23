@@ -442,3 +442,29 @@ Implemented:
 See `docs/phase-2.4-persistence-operations.md` for the deployment and persistence operations guide.
 
 Phase 2.4 still defers authentication, enrollment APIs, realtime communication, monitoring, sensitive device capabilities, device control, application/website blocking, policy enforcement, and complete audit implementation.
+
+
+## Phase 2.5 — Database Security, Testing & Phase 2 Completion
+
+Phase 2.5 is the final backend persistence hardening pass before authentication work. It keeps the API → validation → service → repository → PostgreSQL architecture and does not introduce Phase 3 functionality.
+
+### Hardening completed
+
+- PostgreSQL persistence errors are mapped centrally to stable persistence-domain errors.
+- Repository queries remain parameterized and bounded.
+- Cursor pagination retains deterministic created_at DESC, id DESC ordering with a maximum page size of 100.
+- Migration history is validated for unknown IDs, name mismatches, and duplicate repository migration IDs.
+- Migration execution and its schema_migrations record remain transactional.
+- Clean-install and Phase 2.3 → Phase 2.4 migration paths are integration-tested.
+- Final schema constraints and Phase 2.4 query indexes are integration-tested.
+- Database credentials remain environment-only and production reset remains disabled.
+
+### Documentation
+
+See docs/phase-2.5-security-testing.md for the final Phase 2 database security, operational, testing, and deferred-work boundary.
+
+### Phase 2 completion boundary
+
+Phase 2 now provides PostgreSQL persistence, migrations, Admin/ManagedDevice/Enrollment models, relational integrity, repository contracts, persistence services, bounded queries, cursor pagination, transactions, database readiness, sanitized persistence errors, isolated PostgreSQL testing, and operational documentation.
+
+Authentication, enrollment/pairing workflows, realtime communication, monitoring, location, camera/microphone/audio/screen capture, device control, application/website blocking, policy enforcement, notifications, and complete audit functionality remain deferred to later phases.
