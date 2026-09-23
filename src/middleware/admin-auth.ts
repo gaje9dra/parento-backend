@@ -51,7 +51,10 @@ export const requireAdminAuthentication = (
       next();
     } catch {
       logger.warn(
-        { event: 'admin_authentication_failure', requestId: res.locals.requestId },
+        {
+          event: 'admin_authentication_failure',
+          requestId: res.locals.requestId,
+        },
         'Administrator authentication failed',
       );
       res.status(401).json({
