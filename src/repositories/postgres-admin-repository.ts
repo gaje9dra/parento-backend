@@ -74,7 +74,10 @@ export class PostgresAdminRepository
       );
       return toAdmin(result.rows[0]!);
     } catch (error) {
-      throw mapPostgresPersistenceError(error, 'Unable to create administrator.');
+      throw mapPostgresPersistenceError(
+        error,
+        'Unable to create administrator.',
+      );
     }
   }
 
@@ -110,7 +113,10 @@ export class PostgresAdminRepository
     return result.rows[0] === undefined ? null : toAdmin(result.rows[0]);
   }
 
-  async updateMetadata(id: string, metadata: { displayName: string | null }): Promise<Admin | null> {
+  async updateMetadata(
+    id: string,
+    metadata: { displayName: string | null },
+  ): Promise<Admin | null> {
     const result = await this.query<AdminRow>(
       'UPDATE admins SET display_name = $2, updated_at = NOW() WHERE id = $1 RETURNING id, email, display_name, status, created_at, updated_at',
       [id, metadata.displayName],
@@ -118,15 +124,21 @@ export class PostgresAdminRepository
     return result.rows[0] === undefined ? null : toAdmin(result.rows[0]);
   }
 
-  async findAuthenticationRecordByEmail(email: string): Promise<AdminAuthenticationRecord | null> {
+  async findAuthenticationRecordByEmail(
+    email: string,
+  ): Promise<AdminAuthenticationRecord | null> {
     const result = await this.query<AdminRow>(
       'SELECT id, email, status, password_hash, last_authenticated_at FROM admins WHERE LOWER(email) = LOWER($1)',
       [email],
     );
-    return result.rows[0] === undefined ? null : toAuthenticationRecord(result.rows[0]);
+    return result.rows[0] === undefined
+      ? null
+      : toAuthenticationRecord(result.rows[0]);
   }
 
-  async findAuthenticationRecordById(id: string): Promise<AdminAuthenticationRecord | null> {
+  async findAuthenticationRecordById(
+    id: string,
+  ): Promise<AdminAuthenticationRecord | null> {
     const result = await this.query<AdminRow>(
       'SELECT id, email, status, password_hash, last_authenticated_at FROM admins WHERE id = $1',
       [id],
@@ -134,7 +146,10 @@ export class PostgresAdminRepository
     return result.rows[0] === undefined ? null : toAuthenticationRecord(result.rows[0]);
   }
 
-  async setPasswordHash(adminId: string, passwordHash: string): Promise<boolean> {
+  async setPasswordHash(
+    adminId: string,
+    passwordHash: string,
+  ): Promise<boolean> {
     const result = await this.query(
       'UPDATE admins SET password_hash = $2, updated_at = NOW() WHERE id = $1',
       [adminId, passwordHash],
@@ -142,7 +157,10 @@ export class PostgresAdminRepository
     return result.rowCount === 1;
   }
 
-  async updateLastAuthenticatedAt(adminId: string, authenticatedAt: Date): Promise<boolean> {
+  async updateLastAuthenticatedAt(
+    adminId: string,
+    authenticatedAt: Date,
+  ): Promise<boolean> {
     const result = await this.query(
       'UPDATE admins SET last_authenticated_at = $2, updated_at = NOW() WHERE id = $1',
       [adminId, authenticatedAt],
@@ -161,15 +179,27 @@ export class PostgresAdminRepository
     try {
       const result = await this.query<SessionRow>(
         'INSERT INTO admin_sessions (id, admin_id, access_token_hash, refresh_token_hash, access_expires_at, expires_at) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, admin_id, access_token_hash, refresh_token_hash, access_expires_at, expires_at, revoked_at',
-        [input.id, input.adminId, input.accessTokenHash, input.refreshTokenHash, input.accessExpiresAt, input.expiresAt],
+        [
+          input.id,
+          input.adminId,
+          input.accessTokenHash,
+          input.refreshTokenHash,
+          input.accessExpiresAt,
+          input.expiresAt,
+        ],
       );
       return toSession(result.rows[0]!);
     } catch (error) {
-      throw mapPostgresPersistenceError(error, 'Unable to create authentication session.');
+      throw mapPostgresPersistenceError(
+        error,
+        'Unable to create authentication session.',
+      );
     }
   }
 
-  async findSessionByAccessTokenHash(hash: string): Promise<AdminSession | null> {
+  async findSessionByAccessTokenHash(
+    hash: string,
+  ): Promise<AdminSession | null> {
     const result = await this.query<SessionRow>(
       'SELECT id, admin_id, access_token_hash, refresh_token_hash, access_expires_at, expires_at, revoked_at FROM admin_sessions WHERE access_token_hash = $1',
       [hash],
@@ -177,7 +207,9 @@ export class PostgresAdminRepository
     return result.rows[0] === undefined ? null : toSession(result.rows[0]);
   }
 
-  async findSessionByRefreshTokenHash(hash: string): Promise<AdminSession | null> {
+  async findSessionByRefreshTokenHash(
+    hash: string,
+  ): Promise<AdminSession | null> {
     const result = await this.query<SessionRow>(
       'SELECT id, admin_id, access_token_hash, refresh_token_hash, access_expires_at, expires_at, revoked_at FROM admin_sessions WHERE refresh_token_hash = $1',
       [hash],
@@ -185,15 +217,24 @@ export class PostgresAdminRepository
     return result.rows[0] === undefined ? null : toSession(result.rows[0]);
   }
 
-  async rotateSession(sessionId: string, input: {
-    currentRefreshTokenHash: string;
+  async rotateSession(
+    sessionId: string,
+    input: {
+      currentRefreshTokenHash: string;
     accessTokenHash: string;
     refreshTokenHash: string;
     accessExpiresAt: Date;
-  }): Promise<AdminSession | null> {
+    },
+  ): Promise<AdminSession | null> {
     const result = await this.query<SessionRow>(
       'UPDATE admin_sessions SET access_token_hash = $3, refresh_token_hash = $4, access_expires_at = $5, updated_at = NOW() WHERE id = $1 AND refresh_token_hash = $2 AND revoked_at IS NULL AND expires_at > NOW() RETURNING id, admin_id, access_token_hash, refresh_token_hash, access_expires_at, expires_at, revoked_at',
-      [sessionId, input.currentRefreshTokenHash, input.accessTokenHash, input.refreshTokenHash, input.accessExpiresAt],
+      [
+        sessionId,
+        input.currentRefreshTokenHash,
+        input.accessTokenHash,
+        input.refreshTokenHash,
+        input.accessExpiresAt,
+      ],
     );
     return result.rows[0] === undefined ? null : toSession(result.rows[0]);
   }
