@@ -8,7 +8,7 @@ Parento consists of three separate repositories:
 - gaje9dra/parento-admin — administrator/controller Android application.
 - gaje9dra/parento-managed — managed Android application.
 
-Phase 2 backend work establishes the server-side persistence and HTTP foundation. Authentication, authorization, and realtime communication remain future integration boundaries and are not implemented.
+Phase 2 backend work establishes the server-side persistence and HTTP foundation. Administrator authentication is now implemented in the backend foundation. Administrator authorization beyond authenticated identity, managed-device operations, and realtime communication remain future integration boundaries.
 
 ## Current interface
 
@@ -56,7 +56,7 @@ Future API clients must map stable backend error codes to appropriate Android do
 
 parento-admin will eventually require authenticated backend APIs for administrator sessions, managed-device listing/details, policy operations, audit information, and realtime coordination.
 
-Authentication, authorization, tokens, and business endpoints are intentionally not implemented in Phase 2.
+Administrator credential authentication, opaque access/refresh sessions, and the authenticated-admin identity boundary are implemented in Phase 3.1. Authorization rules beyond authenticated-admin identity and business endpoints remain future work.
 
 ## Future Managed integration
 
