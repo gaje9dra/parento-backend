@@ -2,6 +2,7 @@ import { Router, type RequestHandler } from 'express';
 import type { AdminAuthenticationService } from '../../services/admin-authentication-service.js';
 import { createAdminAuthController } from '../../controllers/admin-auth.controller.js';
 import { requireAdminAuthentication } from '../../middleware/admin-auth.js';
+import { requireAdminAuthorization } from '../../middleware/admin-authorization.js';
 import { createAuthenticationRateLimiter } from '../../middleware/auth-rate-limit.js';
 import type { AppConfig } from '../../config/env.js';
 
@@ -41,11 +42,13 @@ export const createAdminAuthRouter = (
   router.get(
     '/auth/admin/me',
     requireAdminAuthentication(authentication),
+    requireAdminAuthorization,
     controller.me,
   );
   router.post(
     '/auth/admin/logout',
     requireAdminAuthentication(authentication),
+    requireAdminAuthorization,
     controller.logout,
   );
 
