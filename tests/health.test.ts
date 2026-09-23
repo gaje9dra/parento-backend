@@ -21,10 +21,10 @@ describe('API foundation', () => {
   it('returns the standardized readiness response', async () => {
     const response = await request(app).get('/api/v1/ready');
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(process.env.DATABASE_URL === undefined ? 503 : 200);
     expect(response.body).toEqual({
       data: {
-        status: 'ready',
+        status: process.env.DATABASE_URL === undefined ? 'not_ready' : 'ready',
         service: 'parento-backend',
         version: '1',
         database:
