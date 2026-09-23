@@ -19,7 +19,11 @@ const rawEnvSchema = z.object({
   DATABASE_URL: z.string().url().optional(),
   DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(50).default(10),
   DATABASE_IDLE_TIMEOUT_MS: z.coerce.number().int().positive().default(10000),
-  DATABASE_CONNECTION_TIMEOUT_MS: z.coerce.number().int().positive().default(5000),
+  DATABASE_CONNECTION_TIMEOUT_MS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(5000),
   DATABASE_SSL: booleanString.default(false),
   LOG_LEVEL: z
     .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace'])
@@ -68,7 +72,10 @@ const productionRequirements = (env: Record<string, unknown>) => {
         message: 'Required in production configuration.',
       });
     }
-    if (typeof env.JWT_AUDIENCE !== 'string' || env.JWT_AUDIENCE.length === 0) {
+    if (
+      typeof env.JWT_AUDIENCE !== 'string' ||
+      env.JWT_AUDIENCE.length === 0
+    ) {
       issues.push({
         path: ['JWT_AUDIENCE'],
         message: 'Required in production configuration.',
