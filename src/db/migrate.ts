@@ -45,7 +45,9 @@ const ensureMigrationTable = async (db: Database): Promise<void> => {
   );
 };
 
-export const migrationStatus = async (db: Database): Promise<ReadonlyArray<{ id: string; applied: boolean; name: string }>> => {
+export const migrationStatus = async (
+  db: Database,
+): Promise<ReadonlyArray<{ id: string; applied: boolean; name: string }>> => {
   await ensureMigrationTable(db);
   const applied = await db.query<{ id: string }>(
     'SELECT id FROM schema_migrations ORDER BY id',
@@ -108,7 +110,12 @@ const main = async (): Promise<void> => {
     if (command === 'status') {
       for (const migration of await migrationStatus(db)) {
         process.stdout.write(
-          migration.id + ' ' + (migration.applied ? 'applied' : 'pending') + ' ' + migration.name + '\n',
+          migration.id +
+            ' ' +
+            (migration.applied ? 'applied' : 'pending') +
+            ' ' +
+            migration.name +
+            '\n',
         );
       }
     } else if (command === 'up') await runMigrations(db);
