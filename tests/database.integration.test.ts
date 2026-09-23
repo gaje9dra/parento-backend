@@ -77,7 +77,7 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
     ]);
 
     const authColumns = await database.query<{ column_name: string }>(
-      "SELECT column_name FROM information_schema.columns " +
+      'SELECT column_name FROM information_schema.columns ' +
         "WHERE table_schema = 'public' AND table_name = 'admins' " +
         "AND column_name IN ('password_hash', 'last_authenticated_at') " +
         'ORDER BY column_name',
@@ -88,7 +88,7 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
     ]);
 
     const sessionTable = await database.query<{ table_name: string }>(
-      "SELECT table_name FROM information_schema.tables " +
+      'SELECT table_name FROM information_schema.tables ' +
         "WHERE table_schema = 'public' AND table_name = 'admin_sessions'",
     );
     expect(sessionTable.rows.map((row) => row.table_name)).toEqual([
