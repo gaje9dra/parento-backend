@@ -1,6 +1,16 @@
 import type { Enrollment, EnrollmentStatus } from '../domain/enrollment.js';
 import type { Repository } from './repository.js';
 
+export interface EnrollmentPageRequest {
+  readonly limit?: number;
+  readonly cursor?: string | null;
+}
+
+export interface EnrollmentPage {
+  readonly items: Enrollment[];
+  readonly nextCursor: string | null;
+}
+
 export interface EnrollmentRepository extends Repository {
   create(input: {
     id: string;
@@ -11,8 +21,14 @@ export interface EnrollmentRepository extends Repository {
   }): Promise<Enrollment>;
   findById(id: string): Promise<Enrollment | null>;
   findByIdentifier(identifier: string): Promise<Enrollment | null>;
-  listByAdminId(adminId: string): Promise<Enrollment[]>;
-  listByDeviceId(deviceId: string): Promise<Enrollment[]>;
+  listByAdminId(
+    adminId: string,
+    page?: EnrollmentPageRequest,
+  ): Promise<EnrollmentPage>;
+  listByDeviceId(
+    deviceId: string,
+    page?: EnrollmentPageRequest,
+  ): Promise<EnrollmentPage>;
   updateStatus(
     id: string,
     status: EnrollmentStatus,
