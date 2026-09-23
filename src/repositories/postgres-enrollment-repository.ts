@@ -20,6 +20,33 @@ interface EnrollmentRow {
 const columns =
   'id, enrollment_identifier, device_id, admin_id, status, created_at, updated_at, expires_at, completed_at';
 
+const encodeCursor = (row: EnrollmentRow): string =>
+  Buffer.from(
+    JSON.stringify({
+      createdAt: row.created_at.toISOString(),
+      id: row.id,
+    }),
+  ).toString('base64url');
+
+const decodeCursor = (cursor: string): { createdAt: Date; id: string } => {
+  try {
+    const parsed = JSON.parse(
+      Buffer.from(cursor, 'base64url').toString('utf8'),
+    ) as { createdAt?: unknown; id?: unknown };
+    if (typeof parsed.createdAt !== 'string' || typeof parsed.id !== 'string') {
+      throw new Error('Invalid cursor.');
+    }
+    const createdAt = new Date(parsed.createdAt);
+    if (Number.isNaN(createdAt.getTime())) throw new Error('Invalid cursor.');
+    return { createdAt, id: parsed.id };
+  } catch {
+    throw new PersistenceError(
+      'INVALID_STATE',
+      'The enrollment page cursor is invalid.',
+    );
+  }
+};
+
 const toEnrollment = (row: EnrollmentRow): Enrollment => ({
   id: row.id,
   enrollmentIdentifier: row.enrollment_identifier,
@@ -78,22 +105,48 @@ export class PostgresEnrollmentRepository
     return result.rows[0] === undefined ? null : toEnrollment(result.rows[0]);
   }
 
-  async listByAdminId(adminId: string): Promise<Enrollment[]> {
-    const result = await this.query<EnrollmentRow>(
-      'SELECT ' + columns +
-        ' FROM enrollments WHERE admin_id = $1 ORDER BY created_at DESC, id DESC',
-      [adminId],
-    );
-    return result.rows.map(toEnrollment);
+  async listByAdminId(
+    adminId: string,
+    page: { limit?: number; cursor?: string | null } = {},
+  ): Promise<import('./enrollment-repository.js').EnrollmentPage> {
+    return this.listPage('admin_id', adminId, page);
   }
 
-  async listByDeviceId(deviceId: string): Promise<Enrollment[]> {
-    const result = await this.query<EnrollmentRow>(
-      'SELECT ' + columns +
-        ' FROM enrollments WHERE device_id = $1 ORDER BY created_at DESC, id DESC',
-      [deviceId],
-    );
-    return result.rows.map(toEnrollment);
+  async listByDeviceId(
+    deviceId: string,
+    page: { limit?: number; cursor?: string | null } = {},
+  ): Promise<import('./enrollment-repository.js').EnrollmentPage> {
+    return this.listPage('device_id', deviceId, page);
+  }
+
+  private async listPage(
+    scopeColumn: 'admin_id' | 'device_id',
+    scopeValue: string,
+    page: { limit?: number; cursor?: string | null },
+  ): Promise<import('./enrollment-repository.js').EnrollmentPage> {
+    const limit = Math.min(Math.max(page.limit ?? 50, 1), 100);
+    const cursor = page.cursor == null ? null : decodeCursor(page.cursor);
+    const result = cursor === null
+      ? await this.query<EnrollmentRow>(
+          'SELECT ' + columns +
+            ' FROM enrollments WHERE ' + scopeColumn + ' = $1 ' +
+            'ORDER BY created_at DESC, id DESC LIMIT $2',
+          [scopeValue, limit + 1],
+        )
+      : await this.query<EnrollmentRow>(
+          'SELECT ' + columns +
+            ' FROM enrollments WHERE ' + scopeColumn + ' = $1 ' +
+            'AND (created_at, id) < ($2, $3) ' +
+            'ORDER BY created_at DESC, id DESC LIMIT $4',
+          [scopeValue, cursor.createdAt, cursor.id, limit + 1],
+        );
+
+    const hasMore = result.rows.length > limit;
+    const rows = hasMore ? result.rows.slice(0, limit) : result.rows;
+    return {
+      items: rows.map(toEnrollment),
+      nextCursor: hasMore ? encodeCursor(rows[rows.length - 1]!) : null,
+    };
   }
 
   async updateStatus(
