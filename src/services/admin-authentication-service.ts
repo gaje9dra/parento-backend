@@ -1,11 +1,8 @@
 import { randomUUID } from 'node:crypto';
-import type {
-  AdminAuthenticationRecord,
-  AdminSession,
-} from '../domain/admin-authentication.js';
+import type { AdminAuthenticationRecord } from '../domain/admin-authentication.js';
 import type { AdminAuthenticationRepository } from '../repositories/admin-authentication-repository.js';
-import { hashOpaqueToken, generateOpaqueToken } from '../auth/token.js';
 import { PasswordHasher } from '../auth/password.js';
+import { generateOpaqueToken, hashOpaqueToken } from '../auth/token.js';
 
 export class AuthenticationFailure extends Error {
   constructor() {
@@ -28,6 +25,8 @@ export interface AuthenticationTokens {
   readonly expiresAt: Date;
 }
 
+const DUMMY_PASSWORD = 'Parento authentication timing placeholder';
+
 export class AdminAuthenticationService {
   constructor(
     private readonly repository: AdminAuthenticationRepository,
@@ -45,16 +44,17 @@ export class AdminAuthenticationService {
       normalizedEmail,
     );
 
-    if (record === null) {
-      await this.passwordHasher.hash('Parento authentication timing placeholder');
-      throw new AuthenticationFailure();
+    let passwordValid = false;
+    if (record !== null && record.passwordHash !== null) {
+      passwordValid = await this.passwordHasher.verify(
+        password,
+        record.passwordHash,
+      );
+    } else {
+      await this.passwordHasher.hash(DUMMY_PASSWORD);
     }
 
-    const passwordValid =
-      record.passwordHash !== null &&
-      (await this.passwordHasher.verify(password, record.passwordHash));
-
-    if (!passwordValid || record.status !== 'ACTIVE') {
+    if (record === null || !passwordValid || record.status !== 'ACTIVE') {
       throw new AuthenticationFailure();
     }
 
@@ -62,9 +62,7 @@ export class AdminAuthenticationService {
     const accessExpiresAt = new Date(
       now.getTime() + this.accessTokenTtlSeconds * 1000,
     );
-    const expiresAt = new Date(
-      now.getTime() + this.sessionTtlSeconds * 1000,
-    );
+    const expiresAt = new Date(now.getTime() + this.sessionTtlSeconds * 1000);
     const accessToken = generateOpaqueToken();
     const refreshToken = generateOpaqueToken();
 
@@ -80,10 +78,7 @@ export class AdminAuthenticationService {
     await this.repository.updateLastAuthenticatedAt(record.id, now);
 
     return {
-      admin: {
-        ...record,
-        lastAuthenticatedAt: now,
-      },
+      admin: { ...record, lastAuthenticatedAt: now },
       tokens: {
         accessToken,
         refreshToken,
@@ -93,7 +88,9 @@ export class AdminAuthenticationService {
     };
   }
 
-  async authenticateAccessToken(token: string): Promise<AdminAuthenticationRecord> {
+  async authenticateAccessToken(
+    token: string,
+  ): Promise<AdminAuthenticationRecord> {
     const session = await this.repository.findSessionByAccessTokenHash(
       hashOpaqueToken(token),
     );
@@ -111,7 +108,11 @@ export class AdminAuthenticationService {
       session.adminId,
     );
 
-    if (admin === null || admin.status !== 'ACTIVE' || admin.passwordHash === null) {
+    if (
+      admin === null ||
+      admin.status !== 'ACTIVE' ||
+      admin.passwordHash === null
+    ) {
       throw new SessionFailure();
     }
 
@@ -119,9 +120,9 @@ export class AdminAuthenticationService {
   }
 
   async refresh(refreshToken: string): Promise<AuthenticationTokens> {
-    const session = await this.repository.findSessionByRefreshTokenHash(
-      hashOpaqueToken(refreshToken),
-    );
+    const refreshTokenHash = hashOpaqueToken(refreshToken);
+    const session =
+      await this.repository.findSessionByRefreshTokenHash(refreshTokenHash);
 
     if (
       session === null ||
@@ -141,8 +142,11 @@ export class AdminAuthenticationService {
 
     const accessToken = generateOpaqueToken();
     const nextRefreshToken = generateOpaqueToken();
-    const accessExpiresAt = new Date(Date.now() + this.accessTokenTtlSeconds * 1000);
+    const accessExpiresAt = new Date(
+      Date.now() + this.accessTokenTtlSeconds * 1000,
+    );
     const rotated = await this.repository.rotateSession(session.id, {
+      currentRefreshTokenHash: refreshTokenHash,
       accessTokenHash: hashOpaqueToken(accessToken),
       refreshTokenHash: hashOpaqueToken(nextRefreshToken),
       accessExpiresAt,
