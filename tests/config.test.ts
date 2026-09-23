@@ -29,6 +29,9 @@ describe('configuration', () => {
     expect(config.server.apiBasePath).toBe('/api/v1');
     expect(config.cors.origins).toEqual(['http://localhost:5173', 'http://localhost:3000']);
     expect(config.rateLimit.enabled).toBe(false);
+    expect(config.security.requestTimeoutMs).toBe(120000);
+    expect(config.security.headersTimeoutMs).toBe(15000);
+    expect(config.security.keepAliveTimeoutMs).toBe(5000);
   });
 
   it('rejects invalid configuration with variable names but no secret values', () => {
@@ -67,6 +70,52 @@ describe('configuration', () => {
         JWT_AUDIENCE: 'parento',
       }),
     ).toThrowError(/CORS_ORIGINS/);
+  });
+
+  it('rejects wildcard CORS when credentials are enabled', () => {
+    expect(() =>
+      loadConfig({
+        ...validEnvironment,
+        CORS_ORIGINS: '*',
+        CORS_CREDENTIALS: 'true',
+      }),
+    ).toThrowError(/CORS_CREDENTIALS/);
+  });
+
+  it('rejects malformed CORS origins', () => {
+    expect(() =>
+      loadConfig({
+        ...validEnvironment,
+        CORS_ORIGINS: 'https://allowed.invalid/path',
+      }),
+    ).toThrowError(/CORS_ORIGINS/);
+  });
+
+  it('rejects oversized request-body configuration', () => {
+    expect(() =>
+      loadConfig({
+        ...validEnvironment,
+        REQUEST_BODY_LIMIT: '20mb',
+      }),
+    ).toThrowError(/REQUEST_BODY_LIMIT/);
+  });
+
+  it('rejects malformed request-body limits', () => {
+    expect(() =>
+      loadConfig({
+        ...validEnvironment,
+        REQUEST_BODY_LIMIT: 'unlimited',
+      }),
+    ).toThrowError(/REQUEST_BODY_LIMIT/);
+  });
+
+  it('rejects invalid timeout configuration', () => {
+    expect(() =>
+      loadConfig({
+        ...validEnvironment,
+        REQUEST_TIMEOUT_MS: '0',
+      }),
+    ).toThrowError(/REQUEST_TIMEOUT_MS/);
   });
 
   it('rejects malformed external-service configuration', () => {
