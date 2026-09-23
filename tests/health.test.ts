@@ -27,6 +27,7 @@ describe('API foundation', () => {
         status: 'ready',
         service: 'parento-backend',
         version: '1',
+        database: 'not_configured',
       },
       requestId: response.headers['x-request-id'],
     });
