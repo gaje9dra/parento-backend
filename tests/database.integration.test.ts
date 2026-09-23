@@ -30,11 +30,8 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
 
     const status = await migrationStatus(database);
     expect(status).toEqual([
-      {
-        id: '0001',
-        applied: true,
-        name: 'phase_2_1_baseline',
-      },
+      { id: '0001', applied: true, name: 'phase_2_1_baseline' },
+      { id: '0002', applied: true, name: 'core_domain' },
     ]);
   });
 
