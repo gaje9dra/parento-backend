@@ -1,7 +1,7 @@
 export class AppError extends Error {
   public readonly statusCode: number;
   public readonly code: string;
-  public readonly metadata?: Record<string, unknown>;
+  public readonly metadata: Record<string, unknown> | undefined;
 
   constructor(
     statusCode: number,
