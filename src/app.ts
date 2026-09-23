@@ -9,9 +9,8 @@ import { loadConfig } from './config/env.js';
 import { AppError } from './types/errors.js';
 import { createDatabase } from './db/index.js';
 
-export const database = createDatabase(config);
-
 const config = loadConfig();
+export const database = createDatabase(config);
 
 const corsMiddleware: RequestHandler = (req, res, next) => {
   const requestOrigin = req.header('origin');
