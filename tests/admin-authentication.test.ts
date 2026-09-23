@@ -238,12 +238,10 @@ describe('Phase 3.1 admin authentication', () => {
 
   it('rotates refresh credentials and rejects refresh-token replay', async () => {
     const { app } = createFixture();
-    const login = await request(app)
-      .post('/api/v1/auth/admin/login')
-      .send({
-        email: 'admin@example.com',
-        password: 'correct horse battery staple',
-      });
+    const login = await request(app).post('/api/v1/auth/admin/login').send({
+      email: 'admin@example.com',
+      password: 'correct horse battery staple',
+    });
     const refreshToken = login.body.data.refreshToken as string;
 
     const refreshed = await request(app)
