@@ -17,6 +17,10 @@ const rawEnvSchema = z.object({
     .regex(/^\/api\/v\d+$/)
     .default('/api/v1'),
   DATABASE_URL: z.string().url().optional(),
+  DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(50).default(10),
+  DATABASE_IDLE_TIMEOUT_MS: z.coerce.number().int().positive().default(10000),
+  DATABASE_CONNECTION_TIMEOUT_MS: z.coerce.number().int().positive().default(5000),
+  DATABASE_SSL: booleanString.default(false),
   LOG_LEVEL: z
     .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace'])
     .default('info'),
@@ -98,7 +102,13 @@ export interface AppConfig {
     readonly port: number;
     readonly apiBasePath: string;
   };
-  readonly database: { readonly url?: string };
+  readonly database: {
+    readonly url?: string;
+    readonly poolMax: number;
+    readonly idleTimeoutMs: number;
+    readonly connectionTimeoutMs: number;
+    readonly ssl: boolean;
+  };
   readonly logging: {
     readonly level: 'fatal' | 'error' | 'warn' | 'info' | 'debug' | 'trace';
     readonly pretty: boolean;
@@ -339,10 +349,15 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       port: parsed.data.PORT,
       apiBasePath: parsed.data.API_BASE_PATH,
     },
-    database:
-      parsed.data.DATABASE_URL === undefined
+    database: {
+      ...(parsed.data.DATABASE_URL === undefined
         ? {}
-        : { url: parsed.data.DATABASE_URL },
+        : { url: parsed.data.DATABASE_URL }),
+      poolMax: parsed.data.DATABASE_POOL_MAX,
+      idleTimeoutMs: parsed.data.DATABASE_IDLE_TIMEOUT_MS,
+      connectionTimeoutMs: parsed.data.DATABASE_CONNECTION_TIMEOUT_MS,
+      ssl: parsed.data.DATABASE_SSL,
+    },
     logging: {
       level: parsed.data.LOG_LEVEL,
       pretty: parsed.data.LOG_PRETTY,
