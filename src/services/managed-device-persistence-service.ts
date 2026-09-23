@@ -1,5 +1,8 @@
 import { randomUUID } from 'node:crypto';
-import type { ManagedDevice, ManagedDeviceStatus } from '../domain/managed-device.js';
+import type {
+  ManagedDevice,
+  ManagedDeviceStatus,
+} from '../domain/managed-device.js';
 import type {
   DevicePageRequest,
   DevicePage,
@@ -39,7 +42,9 @@ export class ManagedDevicePersistenceService {
     return this.repository.findById(id);
   }
 
-  findByStableIdentifier(stableIdentifier: string): Promise<ManagedDevice | null> {
+  findByStableIdentifier(
+    stableIdentifier: string,
+  ): Promise<ManagedDevice | null> {
     return this.repository.findByStableIdentifier(stableIdentifier.trim());
   }
 
