@@ -248,3 +248,49 @@ npm run format:check
 ## Phase status
 
 Phase 1.2 establishes architecture and contracts only. It does not implement admin login, OAuth, enrollment, QR pairing, device credentials, location, streaming, application/website blocking, device locking, remote commands, or push notifications.
+
+
+## Phase 1.3 — Backend Configuration, Environment & Operational Baseline
+
+Phase 1.3 adds centralized typed environment configuration, startup validation, development/test/production separation, logging redaction, explicit CORS configuration, HTTP security headers, request-body limits, and health/readiness boundaries. Future authentication, enrollment, device control, policy enforcement, realtime control, and surveillance features remain deferred.
+
+### Local setup
+
+1. Run npm install.
+2. Copy .env.example to .env for local development.
+3. Set local environment values as needed.
+4. Run npm run dev.
+5. Run npm test, npm run typecheck, npm run lint, and npm run build.
+6. Use npm run format:check to verify formatting.
+
+### Configuration categories
+
+Configuration is centralized in src/config/env.ts and exposed as typed categories: app, server, database, logging, cors, security, rateLimit, realtime, and externalServices. Application code should consume this configuration instead of scattering process.env access.
+
+Startup flow is: load environment, validate environment, build application configuration, initialize application, then start the server. ConfigurationError reports variable names and safe validation messages without printing submitted secret values.
+
+### Environment variables
+
+Supported variables are NODE_ENV, APP_NAME, HOST, PORT, API_BASE_PATH, DATABASE_URL, LOG_LEVEL, LOG_PRETTY, CORS_ORIGINS, CORS_CREDENTIALS, JWT_ISSUER, JWT_AUDIENCE, JWT_ACCESS_TOKEN_TTL_SECONDS, SESSION_TTL_SECONDS, REQUEST_BODY_LIMIT, TRUST_PROXY, RATE_LIMIT_ENABLED, RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX_REQUESTS, REALTIME_ENABLED, and EXTERNAL_SERVICE_BASE_URLS.
+
+Production explicitly requires DATABASE_URL, CORS_ORIGINS, JWT_ISSUER, and JWT_AUDIENCE. These JWT values are configuration boundaries only; authentication and token issuance are not implemented in Phase 1.3.
+
+.env.example is the tracked local configuration template. .env and other environment-specific secret files remain ignored by Git.
+
+### Logging and HTTP baseline
+
+Centralized Pino logging redacts authorization headers, cookies, access/refresh tokens, passwords, private keys, API keys/secrets, and database URL fields.
+
+HTTP middleware establishes X-Content-Type-Options: nosniff, X-Frame-Options: DENY, Referrer-Policy: no-referrer, a restrictive Permissions-Policy, configured request-body limits, centralized CORS, and proxy trust controlled by configuration. Production CORS uses explicit configured origins rather than wildcard access.
+
+### Health and readiness
+
+GET /api/v1/health confirms the application process responds. GET /api/v1/ready provides a dependency-safe readiness response without exposing environment variables, secrets, database credentials, or infrastructure details. A live database readiness check is intentionally deferred because this phase does not create a database connection.
+
+### Testing
+
+Phase 1.3 adds configuration tests for valid configuration, invalid values, required production configuration, secret-value safety, and external-service URL validation. Existing API contract, error, and health tests remain in place.
+
+### Cross-repository requirements
+
+No code changes are required in parento-admin or parento-managed for Phase 1.3. Future phases will integrate those repositories with the documented /api/v1 backend contracts. Neither repository was modified.
