@@ -42,6 +42,8 @@ export class AdminAuthenticationService {
     readonly admin: AdminAuthenticationRecord;
     readonly tokens: AuthenticationTokens;
   }> {
+    await this.repository.cleanupSessions(new Date());
+
     const normalizedEmail = email.trim().toLowerCase();
     const record =
       await this.repository.findAuthenticationRecordByEmail(normalizedEmail);
@@ -122,6 +124,8 @@ export class AdminAuthenticationService {
   }
 
   async refresh(refreshToken: string): Promise<AuthenticationTokens> {
+    await this.repository.cleanupSessions(new Date());
+
     const refreshTokenHash = hashOpaqueToken(refreshToken);
     const session =
       await this.repository.findSessionByRefreshTokenHash(refreshTokenHash);
