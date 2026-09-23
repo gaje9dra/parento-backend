@@ -252,7 +252,7 @@ export class PostgresAdminRepository
   async cleanupSessions(now: Date): Promise<number> {
     try {
       const result = await this.query(
-        'DELETE FROM admin_sessions WHERE expires_at <= $1 OR (revoked_at IS NOT NULL AND revoked_at <= $1 - INTERVAL \'1 day\')',
+        "DELETE FROM admin_sessions WHERE expires_at <= $1 OR (revoked_at IS NOT NULL AND revoked_at <= $1 - INTERVAL '1 day')",
         [now],
       );
       return result.rowCount ?? 0;
