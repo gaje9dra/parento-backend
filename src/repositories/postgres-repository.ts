@@ -6,7 +6,7 @@ import type { Repository } from './repository.js';
 export abstract class PostgresRepository implements Repository {
   abstract readonly name: string;
 
-  protected constructor(protected readonly database: Database) {}
+  constructor(protected readonly database: Database) {}
 
   protected async query<T extends QueryResultRow = QueryResultRow>(
     text: string,
