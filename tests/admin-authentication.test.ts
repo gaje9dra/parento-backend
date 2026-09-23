@@ -154,7 +154,7 @@ const createFixture = (
 
   const app = express();
   app.use(express.json());
-  app.use((req, res, next) => {
+  app.use((_req, res, next) => {
     res.locals.requestId = 'test-request';
     next();
   });
