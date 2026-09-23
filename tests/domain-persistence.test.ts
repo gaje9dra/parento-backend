@@ -236,13 +236,13 @@ describe.skipIf(!hasDatabase)('Phase 2.3 domain persistence', () => {
       platform: 'android',
     });
 
-    await expect(
+    expect(() =>
       enrollmentService.create({
         enrollmentIdentifier: 'expired-at-create',
         deviceId: device.id,
         adminId: admin.id,
         expiresAt: new Date(Date.now() - 1000),
       }),
-    ).rejects.toThrow('Enrollment expiration must be in the future.');
+    ).toThrow('Enrollment expiration must be in the future.');
   });
 });
