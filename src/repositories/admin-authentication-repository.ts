@@ -19,6 +19,7 @@ export interface AdminAuthenticationRepository {
   findSessionByAccessTokenHash(hash: string): Promise<AdminSession | null>;
   findSessionByRefreshTokenHash(hash: string): Promise<AdminSession | null>;
   rotateSession(sessionId: string, input: {
+    currentRefreshTokenHash: string;
     accessTokenHash: string;
     refreshTokenHash: string;
     accessExpiresAt: Date;
