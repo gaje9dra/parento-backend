@@ -126,7 +126,9 @@ class FakeAdminAuthRepository implements AdminAuthenticationRepository {
   }
 }
 
-const createFixture = (rateLimit = { enabled: false, windowMs: 60_000, maxRequests: 10 }) => {
+const createFixture = (
+  rateLimit = { enabled: false, windowMs: 60_000, maxRequests: 10 },
+) => {
   const repository = new FakeAdminAuthRepository();
   repository.admins.set('admin-1', {
     id: 'admin-1',
@@ -189,7 +191,10 @@ describe('Phase 3.1 admin authentication', () => {
 
     const unknown = await request(app)
       .post('/api/v1/auth/admin/login')
-      .send({ email: 'missing@example.com', password: 'wrong administrator password' });
+      .send({
+        email: 'missing@example.com',
+        password: 'wrong administrator password',
+      });
 
     const wrong = await request(app)
       .post('/api/v1/auth/admin/login')
@@ -279,7 +284,6 @@ describe('Phase 3.1 admin authentication', () => {
     expect(malformed.status).toBe(401);
   });
 
-
   it('rejects unexpected authentication request fields', async () => {
     const { app } = createFixture();
 
@@ -361,12 +365,16 @@ describe('PasswordHasher', () => {
         first,
       ),
     ).toBe(true);
-    expect(await hasher.verify('wrong administrator password', first)).toBe(false);
+    expect(
+      await hasher.verify('wrong administrator password', first),
+    ).toBe(false);
   });
 
   it('rejects passwords outside the configured length policy', async () => {
     const hasher = new PasswordHasher();
     await expect(hasher.hash('short')).rejects.toThrow(/between 15 and 256/);
-    await expect(hasher.hash('x'.repeat(257))).rejects.toThrow(/between 15 and 256/);
+    await expect(hasher.hash('x'.repeat(257))).rejects.toThrow(
+      /between 15 and 256/,
+    );
   });
 });
