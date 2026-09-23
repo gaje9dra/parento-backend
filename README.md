@@ -466,7 +466,6 @@ Phase 2 now provides PostgreSQL persistence, migrations, Admin/ManagedDevice/Enr
 
 Authentication, enrollment/pairing workflows, realtime communication, monitoring, location, camera/microphone/audio/screen capture, device control, application/website blocking, policy enforcement, notifications, and complete audit functionality remain deferred to later phases.
 
-
 ## Phase 3.1 — Backend Admin Authentication Foundation
 
 Phase 3.1 adds the backend foundation for administrator authentication while preserving the Phase 1–2 architecture and repository boundaries.
