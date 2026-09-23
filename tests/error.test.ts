@@ -1,6 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import express from 'express';
 import request from 'supertest';
+import { describe, expect, it } from 'vitest';
 import { app } from '../src/app.js';
+import { errorHandler } from '../src/middleware/error-handler.js';
+import { requestContext } from '../src/api/request-context.js';
 
 describe('error contract', () => {
   it('returns a stable not-found error without internals', async () => {
@@ -14,32 +17,27 @@ describe('error contract', () => {
       },
       requestId: response.headers['x-request-id'],
     });
-
-it('sanitizes unexpected errors without exposing the original message or stack', async () => {
-  const testApp = express();
-  testApp.use((req, res, next) => {
-    res.locals.requestId = randomUUID();
-    requestContext(req, res, next);
+    expect(response.body).not.toHaveProperty('stack');
   });
-  testApp.get('/boom', () => {
-    throw new Error('database password should never reach the client');
-  });
-  testApp.use(errorHandler);
 
-  const response = await request(testApp).get('/boom');
+  it('sanitizes unexpected errors without exposing the original message or stack', async () => {
+    const testApp = express();
+    testApp.use(requestContext);
+    testApp.get('/boom', () => {
+      throw new Error('database password should never reach the client');
+    });
+    testApp.use(errorHandler);
 
-  expect(response.status).toBe(500);
-  expect(response.body).toEqual({
-    error: {
+    const response = await request(testApp).get('/boom');
+
+    expect(response.status).toBe(500);
+    expect(response.body.error).toEqual({
       code: 'INTERNAL_SERVER_ERROR',
       message: 'Internal server error.',
-    },
-    requestId: response.body.requestId,
-  });
-  expect(response.text).not.toContain('database password');
-  expect(response.text).not.toContain('Error:');
-  expect(response.text).not.toContain('at ');
-});
-    expect(response.body).not.toHaveProperty('stack');
+    });
+    expect(response.body.requestId).toBe(response.headers['x-request-id']);
+    expect(response.text).not.toContain('database password');
+    expect(response.text).not.toContain('Error:');
+    expect(response.text).not.toContain('at ');
   });
 });
