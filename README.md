@@ -78,7 +78,6 @@ Successful JSON API responses use:
 
 ~~~json
 {
-  "success": true,
   "data": {},
   "requestId": "..."
 }
@@ -88,7 +87,6 @@ Health and readiness use the same envelope:
 
 ~~~json
 {
-  "success": true,
   "data": {
     "status": "ok",
     "service": "parento-backend",
@@ -104,7 +102,6 @@ Client-facing errors use:
 
 ~~~json
 {
-  "success": false,
   "error": {
     "code": "NOT_FOUND",
     "message": "Route not found."
