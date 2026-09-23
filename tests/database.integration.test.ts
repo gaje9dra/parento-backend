@@ -32,6 +32,8 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
     expect(status).toEqual([
       { id: '0001', applied: true, name: 'phase_2_1_baseline' },
       { id: '0002', applied: true, name: 'core_domain' },
+      { id: '0003', applied: true, name: 'phase_2_3_integrity' },
+      { id: '0004', applied: true, name: 'phase_2_4_query_indexes' },
     ]);
   });
 
@@ -40,7 +42,7 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
     await runMigrations(database);
 
     const status = await migrationStatus(database);
-    expect(status.filter((migration) => migration.applied)).toHaveLength(1);
+    expect(status.filter((migration) => migration.applied)).toHaveLength(4);
   });
 
   it('supports transactional rollback', async () => {
