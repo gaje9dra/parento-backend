@@ -22,7 +22,7 @@ class FakeDevices implements ManagedDeviceRepository {
 }
 class FakeCommands implements CommandRepository {
  readonly name='fake-commands'; command:Command|null=null;
- async create(input: Parameters<CommandRepository['create']>[0]){this.command={id:input.id,managedDeviceId:input.managedDeviceId,adminId:input.adminId,type:'FUTURE_COMMAND',version:1,status:'CREATED',payload:input.payload,correlationId:input.correlationId,idempotencyKey:input.idempotencyKey,createdAt:new Date(),expiresAt:input.expiresAt,deliveryAt:null,acknowledgedAt:null,startedAt:null,completedAt:null,cancelledAt:null,failureCode:null,errorCategory:null,resultCode:null,resultMetadata:null};return {command:this.command,created:true};}
+ async create(input: Parameters<CommandRepository['create']>[0]){const command:Command={id:input.id,managedDeviceId:input.managedDeviceId,adminId:input.adminId,type:'FUTURE_COMMAND',version:1,status:'CREATED',payload:input.payload,correlationId:input.correlationId,idempotencyKey:input.idempotencyKey,createdAt:new Date(),expiresAt:input.expiresAt,deliveryAt:null,acknowledgedAt:null,startedAt:null,completedAt:null,cancelledAt:null,failureCode:null,errorCategory:null,resultCode:null,resultMetadata:null};this.command=command;return {command,created:true};}
  async findById(){return this.command;}
  async findOwned(){return this.command;}
  async cancelOwned(){throw new Error('unused');}
