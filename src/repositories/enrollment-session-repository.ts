@@ -26,5 +26,6 @@ export interface EnrollmentSessionRepository extends Repository {
     name: string;
     platform: string;
     now: Date;
+    maxAttempts?: number;
   }): Promise<EnrollmentSession>;
 }
