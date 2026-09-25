@@ -4,7 +4,6 @@ import { CommandService } from '../src/services/command-service.js';
 import type { ManagedDevice } from '../src/domain/managed-device.js';
 import type { ManagedDeviceRepository } from '../src/repositories/managed-device-repository.js';
 import type { Command } from '../src/domain/command.js';
-import type { DeviceConnectionSessionRepository } from '../src/repositories/device-connection-session-repository.js';
 import type { CommandRepository } from '../src/repositories/command-repository.js';
 
 const device=(adminId:string):ManagedDevice=>({
@@ -27,14 +26,6 @@ class FakeCommands implements CommandRepository {
  async findOwned(){return this.command;}
  async cancelOwned(){throw new Error('unused');}
  async transition(){throw new Error('unused');}
-}
-class FakeSessions implements DeviceConnectionSessionRepository {
- readonly name='fake-sessions';
- async create(){throw new Error('unused');}
- async findByTokenHash(){return null;}
- async touchConnected(){return null;}
- async disconnect(){return null;}
- async revokeForDevice(){return undefined;}
 }
 describe('Phase 6.1 command authorization',()=>{
  it('binds command creation to the authenticated administrator ownership',async()=>{
