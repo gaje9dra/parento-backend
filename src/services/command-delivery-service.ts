@@ -15,7 +15,7 @@ export class CommandDeliveryService {
 
   async deliverQueuedForDevice(managedDeviceId: string): Promise<void> {
     const session = this.registry.findByDeviceId(managedDeviceId)?.session ??
-      await this.sessions.findActiveByDeviceId(managedDeviceId);
+      await this.sessions.findActiveByDeviceId?.(managedDeviceId);
     if (session === null || session === undefined || session.state !== 'CONNECTED') return;
     await this.deliverPending(session);
   }
