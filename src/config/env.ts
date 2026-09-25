@@ -39,10 +39,29 @@ const rawEnvSchema = z.object({
     .positive()
     .default(900),
   SESSION_TTL_SECONDS: z.coerce.number().int().positive().default(86400),
-  ENROLLMENT_SESSION_TTL_SECONDS: z.coerce.number().int().min(60).max(86400).default(900),
-  ENROLLMENT_VERIFICATION_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(100).default(10),
-  ENROLLMENT_VERIFICATION_WINDOW_MS: z.coerce.number().int().positive().default(60000),
-  ENROLLMENT_VERIFICATION_MAX_REQUESTS: z.coerce.number().int().min(1).max(1000).default(10),
+  ENROLLMENT_SESSION_TTL_SECONDS: z.coerce
+    .number()
+    .int()
+    .min(60)
+    .max(86400)
+    .default(900),
+  ENROLLMENT_VERIFICATION_MAX_ATTEMPTS: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(100)
+    .default(10),
+  ENROLLMENT_VERIFICATION_WINDOW_MS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(60000),
+  ENROLLMENT_VERIFICATION_MAX_REQUESTS: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(1000)
+    .default(10),
   REQUEST_BODY_LIMIT: z.string().min(1).default('100kb'),
   REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(120000),
   HEADERS_TIMEOUT_MS: z.coerce.number().int().positive().default(15000),
