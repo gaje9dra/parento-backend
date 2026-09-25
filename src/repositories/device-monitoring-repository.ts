@@ -13,9 +13,9 @@ export interface MonitoringDeviceSummary {
 }
 
 export interface MonitoringDevicePageRequest {
-  readonly limit?: number;
-  readonly cursor?: string | null;
-  readonly enrollmentStatus?: ManagedDeviceStatus;
+  readonly limit?: number | undefined;
+  readonly cursor?: string | null | undefined;
+  readonly enrollmentStatus?: ManagedDeviceStatus | undefined;
   readonly communicationState?:
     'CONNECTING' | 'CONNECTED' | 'STALE' | 'DISCONNECTED' | 'EXPIRED';
   readonly managementMode?:
@@ -27,7 +27,7 @@ export interface MonitoringDevicePageRequest {
     | 'NEVER_REPORTED'
     | 'DISCONNECTED'
     | 'REVOKED';
-  readonly search?: string;
+  readonly search?: string | undefined;
 }
 
 export interface MonitoringDevicePage {
