@@ -246,6 +246,84 @@ describe('LocationService', () => {
     });
   });
 
+
+  it.each([
+    ['latitude minimum', -90, 75],
+    ['latitude maximum', 90, 75],
+    ['longitude minimum', 26, -180],
+    ['longitude maximum', 26, 180],
+  ])('accepts %s boundary coordinates', async (_label, latitude, longitude) => {
+    const locations = {
+      report: vi.fn(async (input: Parameters<LocationRepository['report']>[0]) => ({
+        applied: true,
+        location: { ...location, ...input },
+      })),
+      findLatest: vi.fn(),
+      findByReportId: vi.fn(),
+    } as unknown as LocationRepository;
+    const service = new LocationService(locations, deviceRepo);
+
+    await expect(
+      service.report(
+        { managedDeviceId: device.id },
+        {
+          reportId: location.reportId,
+          availability: 'AVAILABLE',
+          latitude,
+          longitude,
+          accuracyMeters: null,
+          observedAt: new Date(),
+        },
+      ),
+    ).resolves.toMatchObject({ applied: true });
+  });
+
+  it('rejects invalid accuracy values', async () => {
+    const locations = {
+      report: vi.fn(),
+      findLatest: vi.fn(),
+      findByReportId: vi.fn(),
+    } as unknown as LocationRepository;
+    const service = new LocationService(locations, deviceRepo);
+
+    await expect(
+      service.report(
+        { managedDeviceId: device.id },
+        {
+          reportId: location.reportId,
+          availability: 'AVAILABLE',
+          latitude: 26,
+          longitude: 75,
+          accuracyMeters: Number.POSITIVE_INFINITY,
+          observedAt: new Date(),
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: 'INVALID_LOCATION_ACCURACY',
+      statusCode: 400,
+    });
+  });
+
+  it('rejects retrieval for a revoked device', async () => {
+    const locations = {
+      report: vi.fn(),
+      findLatest: vi.fn(async () => location),
+      findByReportId: vi.fn(),
+    } as unknown as LocationRepository;
+    const revoked = { ...device, operationalStatus: 'REVOKED' as const };
+    const devices = {
+      findById: vi.fn(async () => revoked),
+    } as unknown as ManagedDeviceRepository;
+    const service = new LocationService(locations, devices);
+
+    await expect(
+      service.getForAdmin(device.adminId, device.id),
+    ).rejects.toMatchObject({
+      code: 'DEVICE_AUTHORIZATION_DENIED',
+      statusCode: 403,
+    });
+  });
+
   it('requires Admin ownership for retrieval', async () => {
     const locations = {
       report: vi.fn(),
