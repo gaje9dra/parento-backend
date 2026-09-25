@@ -616,7 +616,6 @@ See docs/phase-5.1-enrollment.md and openapi.yaml for the complete contract and 
 
 Phase 5.1 implementation verification is performed by the repository CI workflow before the phase is marked complete. The implementation has been formatter-normalized, migration expectations and IPv6 rate-limit handling were corrected, and the final CI verification pass is running, including the enrollment API boundary tests.
 
-
 ## Phase 5.4 — Enrollment Security Hardening & Phase 5 Backend Completion
 
 Phase 5.4 hardens the Phase 5.1 enrollment implementation without changing the established API architecture or modifying the Android repositories.
