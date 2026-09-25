@@ -4,7 +4,6 @@ import type { DeviceCommunicationService } from '../services/device-communicatio
 import type { CommandService } from '../services/command-service.js';
 import type { Command } from '../domain/command.js';
 import type { SseDeviceTransport } from '../realtime/sse-device-transport.js';
-import type { CommandDeliveryService } from '../services/command-delivery-service.js';
 
 const idSchema = z.object({ commandId: z.string().uuid() }).strict();
 const resultSchema = z
@@ -20,7 +19,7 @@ export const createDeviceCommunicationController = (
   communication: DeviceCommunicationService,
   commands: CommandService,
   transport?: SseDeviceTransport,
-  delivery?: CommandDeliveryService,
+  delivery?: import('../services/command-delivery-service.js').CommandDeliveryService,
 ) => ({
   connect: (async (req, res, next) => {
     try {
@@ -37,7 +36,6 @@ export const createDeviceCommunicationController = (
         return;
       }
       const result = await communication.connect(match[1]);
-      if (delivery !== undefined) await delivery.deliverPending(result.session);
       res.status(201).json({
         data: {
           session: toSession(result.session),
@@ -64,7 +62,11 @@ export const createDeviceCommunicationController = (
       const session = await communication.getSession(
         req.authenticatedDeviceSession.id,
       );
-      if (session === null || session.expiresAt.getTime() <= Date.now()) {
+      if (
+        session === null ||
+        session.expiresAt.getTime() <= Date.now() ||
+        !['CONNECTED', 'STALE'].includes(session.state)
+      ) {
         res.status(401).json({
           error: {
             code: 'DEVICE_SESSION_INVALID',
