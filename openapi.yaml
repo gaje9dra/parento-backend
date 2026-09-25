@@ -433,6 +433,51 @@ paths:
         '401': { $ref: '#/components/responses/ApiErrorResponse' }
         '403': { $ref: '#/components/responses/ApiErrorResponse' }
         '409': { $ref: '#/components/responses/ApiErrorResponse' }
+  /api/v1/device/stream:
+    get:
+      summary: Open an authenticated server-sent events device stream
+      operationId: streamDeviceCommands
+      security: [{ deviceSessionBearer: [] }]
+      responses:
+        '200':
+          description: Authenticated realtime stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '503': { $ref: '#/components/responses/ApiErrorResponse' }
+  /api/v1/device/monitoring:
+    post:
+      summary: Submit a validated operational monitoring snapshot
+      operationId: submitDeviceMonitoring
+      security: [{ deviceSessionBearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceMonitoringRequest'
+      responses:
+        '200': { description: Monitoring snapshot accepted or older snapshot retained }
+        '400': { $ref: '#/components/responses/ApiErrorResponse' }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '403': { $ref: '#/components/responses/ApiErrorResponse' }
+  /api/v1/devices/{deviceId}/status:
+    get:
+      summary: Get authorized device connection and latest monitoring status
+      operationId: getDeviceStatus
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Device status and monitoring freshness }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '403': { $ref: '#/components/responses/ApiErrorResponse' }
+        '404': { $ref: '#/components/responses/ApiErrorResponse' }
 components:
   securitySchemes:
     bearerAuth:
@@ -670,6 +715,33 @@ components:
                 enrollment: { $ref: '#/components/schemas/Enrollment' }
                 managedDeviceId: { type: string, format: uuid }
                 deviceCredential: { type: string, minLength: 43, maxLength: 43 }
+    DeviceMonitoringRequest:
+      type: object
+      additionalProperties: false
+      required:
+        [managedDeviceId, schemaVersion, deviceCollectedAtEpochMillis, androidVersion, apiLevel, appVersion, appVersionCode, managementMode, batteryPercentage, chargingState, batteryStatus, networkState, storageTotalBytes, storageAvailableBytes, storageUsedBytes, memoryTotalBytes, memoryAvailableBytes, memoryLow, lastSuccessfulInitializationEpochMillis, lastSuccessfulCommunicationEpochMillis, lastMonitoringUpdateEpochMillis]
+      properties:
+        managedDeviceId: { type: string, format: uuid }
+        schemaVersion: { type: integer, enum: [1] }
+        deviceCollectedAtEpochMillis: { type: integer, format: int64 }
+        androidVersion: { type: string, maxLength: 64 }
+        apiLevel: { type: integer, minimum: 1 }
+        appVersion: { type: string, maxLength: 64 }
+        appVersionCode: { type: integer, minimum: 0 }
+        managementMode: { type: string, enum: [NOT_MANAGED, PROFILE_OWNER, DEVICE_OWNER, UNKNOWN] }
+        batteryPercentage: { type: integer, minimum: 0, maximum: 100, nullable: true }
+        chargingState: { type: string, enum: [CHARGING, DISCHARGING, FULL, NOT_CHARGING, UNKNOWN] }
+        batteryStatus: { type: string, enum: [NORMAL, LOW, CRITICAL, FULL, UNKNOWN] }
+        networkState: { type: string, enum: [UNKNOWN, OFFLINE, WIFI, CELLULAR, OTHER] }
+        storageTotalBytes: { type: integer, format: int64, minimum: 0, nullable: true }
+        storageAvailableBytes: { type: integer, format: int64, minimum: 0, nullable: true }
+        storageUsedBytes: { type: integer, format: int64, minimum: 0, nullable: true }
+        memoryTotalBytes: { type: integer, format: int64, minimum: 0, nullable: true }
+        memoryAvailableBytes: { type: integer, format: int64, minimum: 0, nullable: true }
+        memoryLow: { type: boolean, nullable: true }
+        lastSuccessfulInitializationEpochMillis: { type: integer, format: int64, nullable: true }
+        lastSuccessfulCommunicationEpochMillis: { type: integer, format: int64, nullable: true }
+        lastMonitoringUpdateEpochMillis: { type: integer, format: int64 }
     ApiError:
       type: object
       required: [error, requestId]
@@ -710,6 +782,9 @@ components:
                 - COMMAND_IDEMPOTENCY_CONFLICT
                 - COMMAND_PAYLOAD_TOO_LARGE
                 - UNSUPPORTED_COMMAND_TYPE
+                - UNSUPPORTED_MONITORING_SCHEMA
+                - INVALID_MONITORING_PAYLOAD
+                - REALTIME_UNAVAILABLE
             message:
               type: string
             metadata:
