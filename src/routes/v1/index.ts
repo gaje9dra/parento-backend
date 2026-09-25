@@ -16,6 +16,12 @@ import { createCommandRouter } from './command.routes.js';
 import { createDeviceCommunicationRouter } from './device-communication.routes.js';
 import { DeviceCommunicationService } from '../../services/device-communication-service.js';
 import { CommandService } from '../../services/command-service.js';
+import { PostgresDeviceMonitoringRepository } from '../../repositories/postgres-device-monitoring-repository.js';
+import { DeviceMonitoringService } from '../../services/device-monitoring-service.js';
+import { createDeviceMonitoringRouter } from './device-monitoring.routes.js';
+import { InMemoryDeviceConnectionRegistry } from '../../realtime/device-connection-registry.js';
+import { SseDeviceTransport } from '../../realtime/sse-device-transport.js';
+import { CommandDeliveryService } from '../../services/command-delivery-service.js';
 
 export const createV1Router = (
   database: Database,
@@ -58,10 +64,28 @@ export const createV1Router = (
     managedDevices,
     { sessionTtlSeconds: security.deviceSessionTtlSeconds },
   );
-  const commandService = new CommandService(commands, managedDevices, {
-    ttlSeconds: security.commandTtlSeconds,
-    maxPayloadBytes: security.commandMaxPayloadBytes,
-  });
+  const registry = new InMemoryDeviceConnectionRegistry();
+  const transport = new SseDeviceTransport(registry);
+  const delivery = new CommandDeliveryService(
+    commands,
+    transport,
+    deviceSessions,
+    registry,
+  );
+  const commandService = new CommandService(
+    commands,
+    managedDevices,
+    {
+      ttlSeconds: security.commandTtlSeconds,
+      maxPayloadBytes: security.commandMaxPayloadBytes,
+    },
+    delivery,
+  );
+  const monitoringRepository = new PostgresDeviceMonitoringRepository(database);
+  const monitoring = new DeviceMonitoringService(
+    monitoringRepository,
+    managedDevices,
+  );
 
   router.use(createCommandRouter(authentication, commandService));
   router.use(
@@ -70,6 +94,17 @@ export const createV1Router = (
       commandService,
       deviceCredentials,
       deviceSessions,
+      rateLimit,
+      transport,
+      delivery,
+    ),
+  );
+  router.use(
+    createDeviceMonitoringRouter(
+      monitoring,
+      managedDevices,
+      deviceSessions,
+      authentication,
       rateLimit,
     ),
   );
