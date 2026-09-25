@@ -6,6 +6,7 @@ info:
     API foundation for Parento. This document includes administrator authentication,
     Phase 5 enrollment, and the Phase 6.1 secure device communication/command foundation.
     Phase 6.1 exposes only the neutral FUTURE_COMMAND envelope; no device-control capability is implemented.
+    Phase 7.1 adds authoritative device monitoring freshness and bounded Admin device summaries.
 servers:
   - url: /
 paths:
@@ -466,6 +467,42 @@ paths:
         '400': { $ref: '#/components/responses/ApiErrorResponse' }
         '401': { $ref: '#/components/responses/ApiErrorResponse' }
         '403': { $ref: '#/components/responses/ApiErrorResponse' }
+  /api/v1/devices:
+    get:
+      summary: List authorized device monitoring summaries
+      operationId: listDevices
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+        - name: cursor
+          in: query
+          schema: { type: string, maxLength: 512 }
+        - name: enrollmentStatus
+          in: query
+          schema: { type: string, enum: [PENDING, ACTIVE, REVOKED] }
+        - name: communicationState
+          in: query
+          schema: { type: string, enum: [CONNECTING, CONNECTED, STALE, DISCONNECTED, EXPIRED] }
+        - name: managementMode
+          in: query
+          schema: { type: string, enum: [NOT_MANAGED, PROFILE_OWNER, DEVICE_OWNER, UNKNOWN] }
+        - name: freshness
+          in: query
+          schema: { type: string, enum: [FRESH, STALE, VERY_STALE, NEVER_REPORTED, DISCONNECTED, REVOKED] }
+        - name: search
+          in: query
+          schema: { type: string, minLength: 1, maxLength: 100 }
+      responses:
+        '200':
+          description: Bounded authorized monitoring summaries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceMonitoringListResponse'
+        '400': { $ref: '#/components/responses/ApiErrorResponse' }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
   /api/v1/devices/{deviceId}/status:
     get:
       summary: Get authorized device connection and latest monitoring status
@@ -477,7 +514,12 @@ paths:
           required: true
           schema: { type: string, format: uuid }
       responses:
-        '200': { description: Device status and monitoring freshness }
+        '200':
+          description: Authorized current device state and monitoring freshness
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceMonitoringStatusResponse'
         '401': { $ref: '#/components/responses/ApiErrorResponse' }
         '403': { $ref: '#/components/responses/ApiErrorResponse' }
         '404': { $ref: '#/components/responses/ApiErrorResponse' }
@@ -718,6 +760,86 @@ components:
                 enrollment: { $ref: '#/components/schemas/Enrollment' }
                 managedDeviceId: { type: string, format: uuid }
                 deviceCredential: { type: string, minLength: 43, maxLength: 43 }
+    DeviceMonitoringListResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccess'
+        - type: object
+          properties:
+            data:
+              type: object
+              required: [items, nextCursor]
+              properties:
+                items:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/DeviceMonitoringSummary'
+                nextCursor:
+                  type: string
+                  nullable: true
+    DeviceMonitoringSummary:
+      type: object
+      required: [device, connection, monitoring]
+      properties:
+        device:
+          type: object
+          required: [id, name, stableIdentifier, platform, enrollmentStatus, operationalStatus, firstEnrolledAt, lastSeenAt]
+          properties:
+            id: { type: string, format: uuid }
+            name: { type: string }
+            stableIdentifier: { type: string }
+            platform: { type: string }
+            enrollmentStatus: { type: string, enum: [PENDING, ACTIVE, REVOKED] }
+            operationalStatus: { type: string, enum: [PENDING, ACTIVE, REVOKED] }
+            firstEnrolledAt: { type: string, format: date-time }
+            lastSeenAt: { type: string, format: date-time, nullable: true }
+        connection:
+          type: object
+          required: [state, lastSeenAt, expiresAt]
+          properties:
+            state: { type: string, enum: [CONNECTING, CONNECTED, STALE, DISCONNECTED, EXPIRED] }
+            lastSeenAt: { type: string, format: date-time, nullable: true }
+            expiresAt: { type: string, format: date-time, nullable: true }
+        monitoring:
+          type: object
+          required: [freshness, ageMs, managementMode, androidVersion, apiLevel, appVersion, batteryPercentage, chargingState, networkState, storageAvailableBytes, memoryAvailableBytes, lastTelemetryAt]
+          properties:
+            freshness: { type: string, enum: [FRESH, STALE, VERY_STALE, NEVER_REPORTED, DISCONNECTED, REVOKED] }
+            ageMs: { type: integer, minimum: 0, nullable: true }
+            managementMode: { type: string, enum: [NOT_MANAGED, PROFILE_OWNER, DEVICE_OWNER, UNKNOWN] }
+            androidVersion: { type: string, nullable: true }
+            apiLevel: { type: integer, nullable: true }
+            appVersion: { type: string, nullable: true }
+            batteryPercentage: { type: integer, minimum: 0, maximum: 100, nullable: true }
+            chargingState: { type: string, nullable: true }
+            networkState: { type: string, nullable: true }
+            storageAvailableBytes: { type: integer, format: int64, nullable: true }
+            memoryAvailableBytes: { type: integer, format: int64, nullable: true }
+            lastTelemetryAt: { type: string, format: date-time, nullable: true }
+    DeviceMonitoringStatusResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccess'
+        - type: object
+          properties:
+            data:
+              type: object
+              required: [device, connection, monitoring]
+              properties:
+                device:
+                  $ref: '#/components/schemas/DeviceMonitoringSummary/properties/device'
+                connection:
+                  type: object
+                  required: [state, session, lastConnectedAt]
+                  properties:
+                    state: { type: string }
+                    session: { type: object, nullable: true }
+                    lastConnectedAt: { type: string, format: date-time, nullable: true }
+                monitoring:
+                  type: object
+                  required: [freshness, ageMs, snapshot]
+                  properties:
+                    freshness: { type: string }
+                    ageMs: { type: integer, minimum: 0, nullable: true }
+                    snapshot: { type: object, nullable: true }
     DeviceMonitoringRequest:
       type: object
       additionalProperties: false
