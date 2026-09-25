@@ -66,13 +66,21 @@ export const createDeviceMonitoringController = (
     try {
       const parsed = monitoringSchema.safeParse(req.body);
       const session = req.authenticatedDeviceSession;
-      if (!parsed.success || session === undefined) {
+      if (session === undefined) {
+        res.status(401).json({
+          error: {
+            code: 'DEVICE_SESSION_INVALID',
+            message: 'Managed-device session is required.',
+          },
+          requestId: res.locals.requestId,
+        });
+        return;
+      }
+      if (!parsed.success) {
         res.status(400).json({
           error: {
-            code: parsed.success ? 'DEVICE_SESSION_INVALID' : 'INVALID_MONITORING_PAYLOAD',
-            message: parsed.success
-              ? 'Managed-device session is required.'
-              : 'Invalid monitoring payload.',
+            code: 'INVALID_MONITORING_PAYLOAD',
+            message: 'Invalid monitoring payload.',
           },
           requestId: res.locals.requestId,
         });
