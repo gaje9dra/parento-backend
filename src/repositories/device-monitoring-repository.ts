@@ -7,7 +7,7 @@ export interface MonitoringDevicePageRequest {
 }
 
 export interface MonitoringDevicePageItem {
-  readonly state: DeviceMonitoringState;
+  readonly state: DeviceMonitoringState | null;
   readonly enrollmentStatus: string;
   readonly operationalStatus: string;
   readonly communicationState: string | null;
