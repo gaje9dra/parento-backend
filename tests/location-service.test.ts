@@ -252,12 +252,16 @@ describe('LocationService', () => {
     ['latitude maximum', 90, 75],
     ['longitude minimum', 26, -180],
     ['longitude maximum', 26, 180],
-  ])('accepts %s boundary coordinates', async (_label, latitude, longitude) => {
+  ])(
+    'accepts %s boundary coordinates',
+    async (_label, latitude, longitude) => {
     const locations = {
-      report: vi.fn(async (input: Parameters<LocationRepository['report']>[0]) => ({
-        applied: true,
-        location: { ...location, ...input },
-      })),
+      report: vi.fn(
+        async (input: Parameters<LocationRepository['report']>[0]) => ({
+          applied: true,
+          location: { ...location, ...input },
+        }),
+      ),
       findLatest: vi.fn(),
       findByReportId: vi.fn(),
     } as unknown as LocationRepository;
@@ -275,8 +279,9 @@ describe('LocationService', () => {
           observedAt: new Date(),
         },
       ),
-    ).resolves.toMatchObject({ applied: true });
-  });
+      ).resolves.toMatchObject({ applied: true });
+    },
+  );
 
   it('rejects invalid accuracy values', async () => {
     const locations = {
