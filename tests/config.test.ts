@@ -209,6 +209,30 @@ describe('configuration', () => {
     ).toThrowError(/REQUEST_TIMEOUT_MS/);
   });
 
+  it('loads centralized monitoring freshness configuration', () => {
+    const config = loadConfig({
+      ...validEnvironment,
+      MONITORING_FRESHNESS_FRESH_MS: '120000',
+      MONITORING_FRESHNESS_STALE_MS: '600000',
+      MONITORING_MAX_PAYLOAD_BYTES: '65536',
+    });
+    expect(config.monitoring).toEqual({
+      freshnessFreshMs: 120000,
+      freshnessStaleMs: 600000,
+      maxPayloadBytes: 65536,
+    });
+  });
+
+  it('rejects monitoring freshness thresholds with invalid ordering', () => {
+    expect(() =>
+      loadConfig({
+        ...validEnvironment,
+        MONITORING_FRESHNESS_FRESH_MS: '600000',
+        MONITORING_FRESHNESS_STALE_MS: '300000',
+      }),
+    ).toThrowError(/MONITORING_FRESHNESS_STALE_MS/);
+  });
+
   it('rejects malformed external-service configuration', () => {
     expect(() =>
       loadConfig({
