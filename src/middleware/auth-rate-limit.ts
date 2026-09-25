@@ -1,4 +1,4 @@
-import { rateLimit } from 'express-rate-limit';
+import { ipKeyGenerator, rateLimit } from 'express-rate-limit';
 import type { RequestHandler } from 'express';
 import type { AppConfig } from '../config/env.js';
 
@@ -13,7 +13,8 @@ export const createAuthenticationRateLimiter = (
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     identifier: 'admin-authentication',
-    keyGenerator: (req) => req.socket.remoteAddress ?? 'unknown-client',
+    keyGenerator: (req) =>
+      ipKeyGenerator(req.ip ?? req.socket.remoteAddress ?? 'unknown-client'),
     handler: (_req, res) => {
       res.status(429).json({
         error: {
