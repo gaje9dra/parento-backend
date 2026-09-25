@@ -42,14 +42,26 @@ class FakeEnrollmentRepository implements EnrollmentSessionRepository {
   }
 
   async listByAdminId(adminId: string): Promise<EnrollmentSession[]> {
-    return [...this.sessions.values()].filter((item) => item.adminId === adminId);
+    return [...this.sessions.values()].filter(
+      (item) => item.adminId === adminId,
+    );
   }
 
-  async cancelOwned(id: string, adminId: string, now: Date): Promise<EnrollmentSession | null> {
+  async cancelOwned(
+    id: string,
+    adminId: string,
+    now: Date,
+  ): Promise<EnrollmentSession | null> {
     const current = this.sessions.get(id);
     if (current === undefined || current.adminId !== adminId) return null;
     if (current.status !== 'PENDING') return current;
-    const next = { ...current, status: 'CANCELLED' as const, cancelledAt: now, updatedAt: now };
+
+    const next = {
+      ...current,
+      status: 'CANCELLED' as const,
+      cancelledAt: now,
+      updatedAt: now,
+    };
     this.sessions.set(id, next);
     return next;
   }
@@ -62,12 +74,21 @@ class FakeEnrollmentRepository implements EnrollmentSessionRepository {
     name: string;
     platform: string;
     now: Date;
+    maxAttempts?: number;
   }): Promise<EnrollmentSession> {
     const current = this.sessions.get(input.id);
-    if (current === undefined) throw new Error('Enrollment session not found.');
-    if (current.expiresAt <= input.now) throw new Error('Enrollment session expired.');
-    if (current.secretHash !== input.secretHash) throw new Error('Enrollment verification failed.');
-    if (current.status !== 'PENDING') throw new Error('Enrollment verification is no longer available.');
+    if (current === undefined) {
+      throw new Error('Enrollment session not found.');
+    }
+    if (current.expiresAt <= input.now) {
+      throw new Error('Enrollment session expired.');
+    }
+    if (current.secretHash !== input.secretHash) {
+      throw new Error('Enrollment verification failed.');
+    }
+    if (current.status !== 'PENDING') {
+      throw new Error('Enrollment verification is no longer available.');
+    }
 
     const next: EnrollmentSession = {
       ...current,
@@ -106,12 +127,16 @@ describe('EnrollmentSessionService', () => {
     });
     const result = await service.create(randomUUID());
 
-    await expect(service.getOwned(result.enrollment.id, randomUUID())).rejects.toMatchObject({
+    await expect(
+      service.getOwned(result.enrollment.id, randomUUID()),
+    ).rejects.toMatchObject({
       statusCode: 404,
       code: 'ENROLLMENT_NOT_FOUND',
     });
 
-    await expect(service.cancel(result.enrollment.id, randomUUID())).rejects.toMatchObject({
+    await expect(
+      service.cancel(result.enrollment.id, randomUUID()),
+    ).rejects.toMatchObject({
       statusCode: 404,
       code: 'ENROLLMENT_NOT_FOUND',
     });
@@ -137,7 +162,9 @@ describe('EnrollmentSessionService', () => {
     });
 
     expect(completed.status).toBe('COMPLETED');
-    await expect(service.cancel(result.enrollment.id, adminId)).rejects.toMatchObject({
+    await expect(
+      service.cancel(result.enrollment.id, adminId),
+    ).rejects.toMatchObject({
       statusCode: 409,
       code: 'ENROLLMENT_ALREADY_CONSUMED',
     });
@@ -158,7 +185,10 @@ describe('EnrollmentSessionService', () => {
         name: 'Child',
         platform: 'android',
       }),
-    ).rejects.toMatchObject({ statusCode: 400, code: 'INVALID_REQUEST' });
+    ).rejects.toMatchObject({
+      statusCode: 400,
+      code: 'INVALID_REQUEST',
+    });
   });
 
   it('supports only the managed Android platform contract', async () => {
@@ -176,7 +206,10 @@ describe('EnrollmentSessionService', () => {
         name: 'Child',
         platform: 'ios',
       }),
-    ).rejects.toMatchObject({ statusCode: 400, code: 'INVALID_REQUEST' });
+    ).rejects.toMatchObject({
+      statusCode: 400,
+      code: 'INVALID_REQUEST',
+    });
   });
 
   it('validates the documented enrollment state transition graph', async () => {
@@ -191,11 +224,19 @@ describe('EnrollmentSessionService', () => {
       ['PENDING', 'CANCELLED'],
       ['PENDING', 'REVOKED'],
     ];
+
     for (const [from, to] of valid) {
       expect(isValidEnrollmentSessionTransition(from, to)).toBe(true);
     }
-    expect(isValidEnrollmentSessionTransition('COMPLETED', 'PENDING')).toBe(false);
-    expect(isValidEnrollmentSessionTransition('CANCELLED', 'PENDING')).toBe(false);
-    expect(isValidEnrollmentSessionTransition('REVOKED', 'COMPLETED')).toBe(false);
+
+    expect(
+      isValidEnrollmentSessionTransition('COMPLETED', 'PENDING'),
+    ).toBe(false);
+    expect(
+      isValidEnrollmentSessionTransition('CANCELLED', 'PENDING'),
+    ).toBe(false);
+    expect(
+      isValidEnrollmentSessionTransition('REVOKED', 'COMPLETED'),
+    ).toBe(false);
   });
 });
