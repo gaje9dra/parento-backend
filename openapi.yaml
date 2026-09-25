@@ -444,7 +444,12 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/DeviceMonitoringRequest' }
       responses:
-        '200': { description: Monitoring snapshot accepted or ignored as older than current state }
+        '200':
+          description: Monitoring snapshot accepted or ignored as older than current state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MonitoringIngestResponse'
         '400': { $ref: '#/components/responses/ApiErrorResponse' }
         '401': { $ref: '#/components/responses/ApiErrorResponse' }
         '403': { $ref: '#/components/responses/ApiErrorResponse' }
@@ -458,7 +463,12 @@ paths:
         - { name: limit, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 100 } }
         - { name: cursor, in: query, required: false, schema: { type: string } }
       responses:
-        '200': { description: Authorized device monitoring page }
+        '200':
+          description: Authorized device monitoring page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MonitoringListResponse'
         '401': { $ref: '#/components/responses/ApiErrorResponse' }
         '403': { $ref: '#/components/responses/ApiErrorResponse' }
   /admin/devices/{deviceId}:
@@ -469,7 +479,12 @@ paths:
       parameters:
         - { name: deviceId, in: path, required: true, schema: { type: string, format: uuid } }
       responses:
-        '200': { description: Authorized device monitoring detail }
+        '200':
+          description: Authorized device monitoring detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MonitoringDetailResponse'
         '400': { $ref: '#/components/responses/ApiErrorResponse' }
         '401': { $ref: '#/components/responses/ApiErrorResponse' }
         '403': { $ref: '#/components/responses/ApiErrorResponse' }
@@ -485,6 +500,78 @@ components:
       scheme: bearer
       bearerFormat: opaque
   schemas:
+    MonitoringIngestResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccess'
+        - type: object
+          properties:
+            data:
+              type: object
+              required: [accepted, stateChanged]
+              properties:
+                accepted: { type: boolean }
+                stateChanged: { type: boolean }
+    MonitoringState:
+      type: object
+      required: [managedDeviceId, schemaVersion, observedAt, receivedAt, freshness, lastSeenAt]
+      properties:
+        managedDeviceId: { type: string, format: uuid }
+        schemaVersion: { type: integer }
+        observedAt: { type: string, format: date-time }
+        receivedAt: { type: string, format: date-time }
+        androidVersion: { type: string, nullable: true }
+        apiLevel: { type: integer, nullable: true }
+        appVersion: { type: string, nullable: true }
+        appVersionCode: { type: integer, nullable: true }
+        batteryPercentage: { type: integer, nullable: true }
+        batteryChargingState: { type: string, nullable: true }
+        batteryStatus: { type: string, nullable: true }
+        networkState: { type: string, nullable: true }
+        storageTotalBytes: { type: integer, nullable: true }
+        storageAvailableBytes: { type: integer, nullable: true }
+        storageUsedBytes: { type: integer, nullable: true }
+        memoryTotalBytes: { type: integer, nullable: true }
+        memoryAvailableBytes: { type: integer, nullable: true }
+        memoryLow: { type: boolean, nullable: true }
+        managementMode: { type: string, nullable: true }
+        lastSuccessfulInitializationAt: { type: string, format: date-time, nullable: true }
+        lastSuccessfulCommunicationAt: { type: string, format: date-time, nullable: true }
+        lastSeenAt: { type: string, format: date-time, nullable: true }
+        freshness:
+          type: string
+          enum: [FRESH, STALE, VERY_STALE, NEVER_REPORTED, OFFLINE, REVOKED, UNKNOWN]
+    MonitoringDevice:
+      type: object
+      required: [monitoring, enrollmentStatus, operationalStatus, communicationState, freshness]
+      properties:
+        monitoring: { $ref: '#/components/schemas/MonitoringState' }
+        enrollmentStatus: { type: string, enum: [PENDING, ACTIVE, REVOKED] }
+        operationalStatus: { type: string, enum: [PENDING, ACTIVE, REVOKED] }
+        communicationState: { type: string, nullable: true }
+        freshness: { type: string, enum: [FRESH, STALE, VERY_STALE, NEVER_REPORTED, OFFLINE, REVOKED, UNKNOWN] }
+    MonitoringListResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccess'
+        - type: object
+          properties:
+            data:
+              type: object
+              required: [devices, nextCursor]
+              properties:
+                devices:
+                  type: array
+                  items: { $ref: '#/components/schemas/MonitoringDevice' }
+                nextCursor: { type: string, nullable: true }
+    MonitoringDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccess'
+        - type: object
+          properties:
+            data:
+              type: object
+              required: [device]
+              properties:
+                device: { $ref: '#/components/schemas/MonitoringDevice' }
     DeviceMonitoringRequest:
       type: object
       additionalProperties: false
