@@ -3,7 +3,9 @@ import type {
   EnrollmentSession,
   EnrollmentSessionStatus,
 } from '../domain/enrollment-session.js';
-import { isValidEnrollmentSessionTransition } from '../domain/enrollment-session.js';
+import {
+  isValidEnrollmentSessionTransition,
+} from '../domain/enrollment-session.js';
 import { PersistenceError } from '../domain/persistence-errors.js';
 import { mapPostgresPersistenceError } from '../db/errors.js';
 import type { EnrollmentSessionRepository } from './enrollment-session-repository.js';
@@ -168,12 +170,18 @@ export class PostgresEnrollmentSessionRepository
           );
         }
 
-        if (current.status === 'PENDING' && current.expires_at.getTime() <= input.now.getTime()) {
+        if (
+          current.status === 'PENDING' &&
+          current.expires_at.getTime() <= input.now.getTime()
+        ) {
           await client.query(
             "UPDATE enrollment_sessions SET status = 'EXPIRED', updated_at = $2 WHERE id = $1",
             [input.id, input.now],
           );
-          throw new PersistenceError('INVALID_STATE', 'Enrollment session expired.');
+          throw new PersistenceError(
+            'INVALID_STATE',
+            'Enrollment session expired.',
+          );
         }
 
         if (current.status !== 'PENDING') {
@@ -183,7 +191,10 @@ export class PostgresEnrollmentSessionRepository
           );
         }
 
-        const secretValid = secureHashMatches(current.secret_hash, input.secretHash);
+        const secretValid = secureHashMatches(
+          current.secret_hash,
+          input.secretHash,
+        );
         if (!secretValid) {
           const attempts = current.verification_attempts + 1;
           const nextStatus: EnrollmentSessionStatus =
@@ -200,10 +211,9 @@ export class PostgresEnrollmentSessionRepository
           );
         }
 
-        const adminResult = await client.query<{ status: 'ACTIVE' | 'DISABLED' }>(
-          'SELECT status FROM admins WHERE id = $1',
-          [current.admin_id],
-        );
+        const adminResult = await client.query<{
+          status: 'ACTIVE' | 'DISABLED';
+        }>('SELECT status FROM admins WHERE id = $1', [current.admin_id]);
         if (adminResult.rows[0]?.status !== 'ACTIVE') {
           throw new PersistenceError(
             'INVALID_STATE',
@@ -223,7 +233,7 @@ export class PostgresEnrollmentSessionRepository
         }
 
         const device = await client.query(
-          'INSERT INTO managed_devices (id, admin_id, stable_identifier, name, platform, enrollment_status, operational_status) VALUES ($1, $2, $3, $4, $5, \'ACTIVE\', \'ACTIVE\')',
+          "INSERT INTO managed_devices (id, admin_id, stable_identifier, name, platform, enrollment_status, operational_status) VALUES ($1, $2, $3, $4, $5, 'ACTIVE', 'ACTIVE')",
           [
             input.managedDeviceId,
             current.admin_id,
