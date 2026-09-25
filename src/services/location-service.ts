@@ -1,3 +1,4 @@
+import { PersistenceError } from '../domain/persistence-errors.js';
 import type { ManagedDeviceLocation } from '../domain/location.js';
 import {
   getLocationFreshness,
@@ -123,11 +124,23 @@ export class LocationService {
     }
 
     const receivedAt = new Date();
-    const result = await this.locations.report({
-      ...input,
-      managedDeviceId: session.managedDeviceId,
-      receivedAt,
-    });
+    let result;
+    try {
+      result = await this.locations.report({
+        ...input,
+        managedDeviceId: session.managedDeviceId,
+        receivedAt,
+      });
+    } catch (error) {
+      if (error instanceof PersistenceError && error.code === 'CONFLICT') {
+        throw new AppError(
+          409,
+          'LOCATION_REPORT_ID_CONFLICT',
+          'The location report identifier conflicts with an existing report.',
+        );
+      }
+      throw error;
+    }
     return {
       ...result,
       freshness: getLocationFreshness(result.location, receivedAt),
