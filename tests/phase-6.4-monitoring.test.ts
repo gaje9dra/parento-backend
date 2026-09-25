@@ -138,10 +138,7 @@ describe('Phase 6.4 monitoring', () => {
   });
 
   it('rejects invalid battery values', async () => {
-    const service = new DeviceMonitoringService(
-      new FakeMonitoring(),
-      new FakeDevices(),
-    );
+    const service = createService(new FakeMonitoring());
     await expect(
       service.ingest(deviceId, input({ batteryPercentage: 101 })),
     ).rejects.toMatchObject({
@@ -152,7 +149,7 @@ describe('Phase 6.4 monitoring', () => {
 
   it('does not allow an older snapshot to replace newer state', async () => {
     const repository = new FakeMonitoring();
-    const service = new DeviceMonitoringService(repository, new FakeDevices());
+    const service = createService(repository);
     await service.ingest(deviceId, input());
     const older = Date.now() - 60_000;
     const result = await service.ingest(
