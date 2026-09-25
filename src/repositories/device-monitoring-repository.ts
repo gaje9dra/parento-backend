@@ -17,16 +17,17 @@ export interface MonitoringDevicePageRequest {
   readonly cursor?: string | null | undefined;
   readonly enrollmentStatus?: ManagedDeviceStatus | undefined;
   readonly communicationState?:
-    'CONNECTING' | 'CONNECTED' | 'STALE' | 'DISCONNECTED' | 'EXPIRED';
+    'CONNECTING' | 'CONNECTED' | 'STALE' | 'DISCONNECTED' | 'EXPIRED' | undefined;
   readonly managementMode?:
-    'NOT_MANAGED' | 'PROFILE_OWNER' | 'DEVICE_OWNER' | 'UNKNOWN';
+    'NOT_MANAGED' | 'PROFILE_OWNER' | 'DEVICE_OWNER' | 'UNKNOWN' | undefined;
   readonly freshness?:
     | 'FRESH'
     | 'STALE'
     | 'VERY_STALE'
     | 'NEVER_REPORTED'
     | 'DISCONNECTED'
-    | 'REVOKED';
+    | 'REVOKED'
+    | undefined;
   readonly search?: string | undefined;
 }
 
