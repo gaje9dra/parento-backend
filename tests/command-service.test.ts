@@ -3,9 +3,9 @@ import { describe, expect, it } from 'vitest';
 import { CommandService } from '../src/services/command-service.js';
 import type { ManagedDevice } from '../src/domain/managed-device.js';
 import type { ManagedDeviceRepository } from '../src/repositories/managed-device-repository.js';
-import type { CommandRepository } from '../src/repositories/command-repository.js';
 import type { Command } from '../src/domain/command.js';
 import type { DeviceConnectionSessionRepository } from '../src/repositories/device-connection-session-repository.js';
+import type { CommandRepository } from '../src/repositories/command-repository.js';
 
 const device=(adminId:string):ManagedDevice=>({
  id:randomUUID(),adminId,stableIdentifier:'managed-installation-test',name:'Test Device',platform:'android',
@@ -22,7 +22,7 @@ class FakeDevices implements ManagedDeviceRepository {
 }
 class FakeCommands implements CommandRepository {
  readonly name='fake-commands'; command:Command|null=null;
- async create(input: any){this.command={id:input.id,managedDeviceId:input.managedDeviceId,adminId:input.adminId,type:'FUTURE_COMMAND',version:1,status:'CREATED',payload:input.payload,correlationId:input.correlationId,idempotencyKey:input.idempotencyKey,createdAt:new Date(),expiresAt:input.expiresAt,deliveryAt:null,acknowledgedAt:null,startedAt:null,completedAt:null,cancelledAt:null,failureCode:null,errorCategory:null,resultCode:null,resultMetadata:null};return {command:this.command,created:true};}
+ async create(input: Parameters<CommandRepository['create']>[0]){this.command={id:input.id,managedDeviceId:input.managedDeviceId,adminId:input.adminId,type:'FUTURE_COMMAND',version:1,status:'CREATED',payload:input.payload,correlationId:input.correlationId,idempotencyKey:input.idempotencyKey,createdAt:new Date(),expiresAt:input.expiresAt,deliveryAt:null,acknowledgedAt:null,startedAt:null,completedAt:null,cancelledAt:null,failureCode:null,errorCategory:null,resultCode:null,resultMetadata:null};return {command:this.command,created:true};}
  async findById(){return this.command;}
  async findOwned(){return this.command;}
  async cancelOwned(){throw new Error('unused');}
