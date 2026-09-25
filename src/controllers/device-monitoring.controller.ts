@@ -132,7 +132,7 @@ export const createDeviceMonitoringController = (
       ]);
 
       const now = Date.now();
-      const sessionExpired = session === null || session.expiresAt.getTime() <= now;
+      const sessionExpired = session !== null && session.expiresAt.getTime() <= now;
       const lastSeenAgeMs = session === null ? null : Math.max(0, now - session.lastSeenAt.getTime());
       const connectionState =
         sessionExpired
