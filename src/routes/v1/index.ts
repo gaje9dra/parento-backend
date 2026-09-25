@@ -28,6 +28,7 @@ export const createV1Router = (
   security: AppConfig['security'],
   rateLimit: AppConfig['rateLimit'],
   realtime: AppConfig['realtime'] = { enabled: false },
+  monitoringConfig: AppConfig['monitoring'],
 ): Router => {
   const router = Router();
   const adminRepository = new PostgresAdminRepository(database);
@@ -93,8 +94,8 @@ export const createV1Router = (
     managedDevices,
     deviceSessions,
     {
-      freshnessFreshMs: security.monitoringFreshnessFreshMs,
-      freshnessStaleMs: security.monitoringFreshnessStaleMs,
+      freshnessFreshMs: monitoringConfig.freshnessFreshMs,
+      freshnessStaleMs: monitoringConfig.freshnessStaleMs,
     },
   );
 
