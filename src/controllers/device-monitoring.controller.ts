@@ -148,7 +148,10 @@ export const createDeviceMonitoringController = (
         });
         return;
       }
-      const result = await monitoring.ingest(session.managedDeviceId, parsed.data);
+      const result = await monitoring.ingest(session.managedDeviceId, parsed.data, {
+        id: session.id,
+        expiresAt: session.expiresAt,
+      });
       res.status(200).json({
         data: {
           updated: result.updated,
