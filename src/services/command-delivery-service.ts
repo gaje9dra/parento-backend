@@ -21,10 +21,11 @@ export class CommandDeliveryService {
   }
 
   async deliverPending(session: DeviceConnectionSession): Promise<void> {
-    const pending = await this.commands.findPendingForDevice(
+    const pending = await this.commands.findPendingForDevice?.(
       session.managedDeviceId,
       50,
     );
+    if (pending === undefined) return;
 
     for (const command of pending) {
       if (command.expiresAt.getTime() <= Date.now()) {
