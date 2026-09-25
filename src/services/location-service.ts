@@ -124,7 +124,7 @@ export class LocationService {
     }
 
     const receivedAt = new Date();
-    let result;
+    let result: Awaited<ReturnType<LocationRepository['report']>>;
     try {
       result = await this.locations.report({
         ...input,
