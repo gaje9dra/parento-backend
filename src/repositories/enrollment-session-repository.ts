@@ -1,6 +1,4 @@
-import type {
-  EnrollmentSession,
-} from '../domain/enrollment-session.js';
+import type { EnrollmentSession } from '../domain/enrollment-session.js';
 import type { Repository } from './repository.js';
 
 export interface EnrollmentSessionRepository extends Repository {
