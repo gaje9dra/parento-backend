@@ -433,7 +433,7 @@ paths:
         '401': { $ref: '#/components/responses/ApiErrorResponse' }
         '403': { $ref: '#/components/responses/ApiErrorResponse' }
         '409': { $ref: '#/components/responses/ApiErrorResponse' }
-  /devices/monitoring:
+  /device/monitoring:
     post:
       tags: [Device Monitoring]
       summary: Submit the current operational monitoring snapshot
