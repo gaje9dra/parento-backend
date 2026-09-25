@@ -659,10 +659,11 @@ components:
           properties:
             data:
               type: object
-              required: [enrollment, managedDeviceId]
+              required: [enrollment, managedDeviceId, deviceCredential]
               properties:
                 enrollment: { $ref: '#/components/schemas/Enrollment' }
                 managedDeviceId: { type: string, format: uuid }
+                deviceCredential: { type: string, minLength: 43, maxLength: 43 }
     ApiError:
       type: object
       required: [error, requestId]
