@@ -346,7 +346,9 @@ export class DeviceMonitoringService {
     const device = await this.authorizeDevice(adminId, deviceId);
     const [snapshot, session] = await Promise.all([
       this.repository.findByDeviceId(deviceId),
-      this.sessions.findActiveByDeviceId?.(deviceId) ?? Promise.resolve(null),
+      this.sessions.findLatestByDeviceId?.(deviceId) ??
+        this.sessions.findActiveByDeviceId?.(deviceId) ??
+        Promise.resolve(null),
     ]);
     const communicationState =
       session === null
