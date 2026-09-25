@@ -566,3 +566,51 @@ is not yet part of the roadmap. No RBAC system or managed-device functionality
 is introduced.
 
 See `docs/phase-3.3-admin-session-lifecycle.md`.
+
+
+## Phase 5.1 — Secure Device Enrollment & Pairing Foundation
+
+Phase 5.1 adds the backend foundation for intentional administrator-authorized managed-device enrollment.
+
+Implemented:
+
+- temporary enrollment sessions separate from the legacy Phase 2 enrollment persistence model
+- explicit enrollment-session state machine
+- configurable expiration with a 15-minute default and 24-hour maximum
+- cryptographically random 256-bit one-time authorization secrets
+- SHA-256 secret verification storage; raw secrets are never persisted
+- authenticated administrator ownership checks
+- disabled-administrator rejection during enrollment completion
+- transactional one-time consumption with PostgreSQL row locking
+- atomic managed-device association
+- stable installation-identity uniqueness enforcement
+- bounded verification attempts and dedicated verification rate limiting
+- replay and concurrent-consumption protection
+- cancellation and ownership-scoped status endpoints
+- security-focused logging without enrollment secrets
+- Phase 5.1 API/OpenAPI contracts
+- unit and PostgreSQL integration tests for lifecycle, ownership, replay, identity conflicts, and concurrency
+
+### Phase 5.1 endpoints
+
+- POST /api/v1/devices/enrollments
+- GET /api/v1/devices/enrollments
+- GET /api/v1/devices/enrollments/{enrollmentId}
+- POST /api/v1/devices/enrollments/{enrollmentId}/cancel
+- POST /api/v1/devices/enrollments/{enrollmentId}/consume
+
+The consume endpoint is intentionally protected by one-time authorization material rather than administrator credentials because the future Managed Android client will perform the device-side enrollment operation.
+
+### Phase 5.1 database
+
+Migration: migrations/0007_phase_5_1_enrollment_sessions.sql
+
+The migration preserves existing Phase 2 enrollment data and adds the temporary enrollment-session security boundary.
+
+### Cross-repository boundary
+
+Only gaje9dra/parento-backend is modified.
+
+The future gaje9dra/parento-managed integration contract is documented in docs/phase-5.1-enrollment.md; no Android code is changed in this phase.
+
+See docs/phase-5.1-enrollment.md and openapi.yaml for the complete contract and security model.
