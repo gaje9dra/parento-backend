@@ -4,6 +4,7 @@ import type { DeviceMonitoringService } from '../services/device-monitoring-serv
 import type { ManagedDeviceRepository } from '../repositories/managed-device-repository.js';
 import type { DeviceConnectionSessionRepository } from '../repositories/device-connection-session-repository.js';
 import { AppError } from '../types/errors.js';
+import type { DeviceMonitoringSnapshot } from '../domain/device-monitoring.js';
 
 const monitoringSchema = z.object({
   managedDeviceId: z.string().uuid(),
@@ -29,7 +30,7 @@ const monitoringSchema = z.object({
   lastMonitoringUpdateEpochMillis: z.number().int().positive(),
 }).strict();
 
-const toSnapshot = (snapshot: NonNullable<Awaited<ReturnType<DeviceMonitoringService['getForAdmin']>>>) =>
+const toSnapshot = (snapshot: DeviceMonitoringSnapshot | null) =>
   snapshot === null
     ? null
     : {
