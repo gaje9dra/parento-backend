@@ -48,6 +48,7 @@ describe.skipIf(!hasDatabase)(
         name: 'Concurrent Device',
         platform: 'android',
         now: new Date(),
+        deviceCredentialHash: hashOpaqueToken(generateOpaqueToken()),
       };
 
       const second = {
@@ -101,6 +102,7 @@ describe.skipIf(!hasDatabase)(
         name: 'Replay Device',
         platform: 'android',
         now: new Date(),
+        deviceCredentialHash: hashOpaqueToken(generateOpaqueToken()),
       });
 
       await expect(
@@ -112,6 +114,7 @@ describe.skipIf(!hasDatabase)(
           name: 'Replay Device 2',
           platform: 'android',
           now: new Date(),
+          deviceCredentialHash: hashOpaqueToken(generateOpaqueToken()),
         }),
       ).rejects.toMatchObject({ code: 'INVALID_STATE' });
     });
@@ -145,6 +148,7 @@ describe.skipIf(!hasDatabase)(
           name: 'Duplicate',
           platform: 'android',
           now: new Date(),
+          deviceCredentialHash: hashOpaqueToken(generateOpaqueToken()),
         }),
       ).rejects.toMatchObject({ code: 'CONFLICT' });
     });

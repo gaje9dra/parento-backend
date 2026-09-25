@@ -133,7 +133,10 @@ export class EnrollmentSessionService {
     localInstallationIdentity: string;
     name: string;
     platform: string;
-  }): Promise<EnrollmentSession> {
+  }): Promise<{
+    readonly enrollment: EnrollmentSession;
+    readonly deviceCredential: string;
+  }> {
     this.assertUuid(input.enrollmentId);
 
     if (!IDENTIFIER_SCHEMA.test(input.localInstallationIdentity)) {
@@ -169,8 +172,10 @@ export class EnrollmentSessionService {
       );
     }
 
+    const deviceCredential = generateOpaqueToken();
+
     try {
-      return await this.repository.consume({
+      const enrollment = await this.repository.consume({
         id: input.enrollmentId,
         secretHash: hashOpaqueToken(input.authorizationSecret),
         managedDeviceId: randomUUID(),
@@ -179,7 +184,9 @@ export class EnrollmentSessionService {
         platform: 'android',
         now: new Date(),
         maxAttempts: this.options.maxVerificationAttempts,
+        deviceCredentialHash: hashOpaqueToken(deviceCredential),
       });
+      return { enrollment, deviceCredential };
     } catch (error) {
       if (error instanceof PersistenceError) {
         switch (error.code) {

@@ -3,8 +3,9 @@ info:
   title: Parento Backend API
   version: 1.0.0
   description: |
-    API foundation for Parento. This document describes implemented operational
-    and Phase 3.1–3.3 administrator authentication endpoints and shared contracts.
+    API foundation for Parento. This document includes administrator authentication,
+    Phase 5 enrollment, and the Phase 6.1 secure device communication/command foundation.
+    Phase 6.1 exposes only the neutral FUTURE_COMMAND envelope; no device-control capability is implemented.
 servers:
   - url: /
 paths:
@@ -274,9 +275,171 @@ paths:
           $ref: '#/components/responses/ApiErrorResponse'
         '429':
           $ref: '#/components/responses/ApiErrorResponse'
+  /api/v1/devices/{deviceId}/commands:
+    post:
+      summary: Create an allowlisted command envelope for an owned device
+      operationId: createDeviceCommand
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [type, version, payload]
+              properties:
+                type: { type: string, enum: [FUTURE_COMMAND] }
+                version: { type: integer, enum: [1] }
+                payload:
+                  {
+                    type: object,
+                    additionalProperties: false,
+                    maxProperties: 0,
+                  }
+                idempotencyKey: { type: string, maxLength: 128, nullable: true }
+                correlationId: { type: string, maxLength: 128, nullable: true }
+      responses:
+        '201': { description: Command created }
+        '200':
+          { description: Existing command returned for an idempotent retry }
+        '400': { $ref: '#/components/responses/ApiErrorResponse' }
+        '403': { $ref: '#/components/responses/ApiErrorResponse' }
+        '404': { $ref: '#/components/responses/ApiErrorResponse' }
+        '409': { $ref: '#/components/responses/ApiErrorResponse' }
+  /api/v1/devices/{deviceId}/commands/{commandId}:
+    get:
+      summary: Get an owned command
+      operationId: getDeviceCommand
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: commandId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Command status }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '403': { $ref: '#/components/responses/ApiErrorResponse' }
+        '404': { $ref: '#/components/responses/ApiErrorResponse' }
+  /api/v1/devices/{deviceId}/commands/{commandId}/cancel:
+    post:
+      summary: Cancel a non-terminal command
+      operationId: cancelDeviceCommand
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: commandId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Cancelled command }
+        '409': { $ref: '#/components/responses/ApiErrorResponse' }
+  /api/v1/device/sessions:
+    post:
+      summary: Establish a managed-device communication session
+      operationId: createDeviceSession
+      security: []
+      responses:
+        '201':
+          description: Device session and short-lived session token
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '403': { $ref: '#/components/responses/ApiErrorResponse' }
+  /api/v1/device/sessions/heartbeat:
+    post:
+      summary: Refresh an authenticated device session
+      operationId: heartbeatDeviceSession
+      security: [{ deviceSessionBearer: [] }]
+      responses:
+        '200': { description: Refreshed device session }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+  /api/v1/device/sessions/disconnect:
+    post:
+      summary: Disconnect an authenticated device session
+      operationId: disconnectDeviceSession
+      security: [{ deviceSessionBearer: [] }]
+      responses:
+        '200': { description: Disconnected device session }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+  /api/v1/device/commands/{commandId}/ack:
+    post:
+      summary: Acknowledge command delivery
+      operationId: acknowledgeDeviceCommand
+      security: [{ deviceSessionBearer: [] }]
+      parameters:
+        - name: commandId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Acknowledged command }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '403': { $ref: '#/components/responses/ApiErrorResponse' }
+        '409': { $ref: '#/components/responses/ApiErrorResponse' }
+  /api/v1/device/commands/{commandId}/start:
+    post:
+      summary: Mark an acknowledged command as running
+      operationId: startDeviceCommand
+      security: [{ deviceSessionBearer: [] }]
+      parameters:
+        - name: commandId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Running command }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '403': { $ref: '#/components/responses/ApiErrorResponse' }
+        '409': { $ref: '#/components/responses/ApiErrorResponse' }
+  /api/v1/device/commands/{commandId}/result:
+    post:
+      summary: Report a structured command result
+      operationId: reportDeviceCommandResult
+      security: [{ deviceSessionBearer: [] }]
+      parameters:
+        - name: commandId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [status]
+              properties:
+                status: { type: string, enum: [SUCCEEDED, FAILED] }
+                resultCode: { type: string, maxLength: 100, nullable: true }
+                errorCategory: { type: string, maxLength: 100, nullable: true }
+                resultMetadata: { type: object, nullable: true }
+      responses:
+        '200': { description: Command result recorded }
+        '400': { $ref: '#/components/responses/ApiErrorResponse' }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '403': { $ref: '#/components/responses/ApiErrorResponse' }
+        '409': { $ref: '#/components/responses/ApiErrorResponse' }
 components:
   securitySchemes:
     bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque
+    deviceSessionBearer:
       type: http
       scheme: bearer
       bearerFormat: opaque
@@ -502,10 +665,11 @@ components:
           properties:
             data:
               type: object
-              required: [enrollment, managedDeviceId]
+              required: [enrollment, managedDeviceId, deviceCredential]
               properties:
                 enrollment: { $ref: '#/components/schemas/Enrollment' }
                 managedDeviceId: { type: string, format: uuid }
+                deviceCredential: { type: string, minLength: 43, maxLength: 43 }
     ApiError:
       type: object
       required: [error, requestId]
@@ -536,6 +700,16 @@ components:
                 - ENROLLMENT_STATE_CONFLICT
                 - INVALID_ENROLLMENT_VERIFICATION
                 - DEVICE_IDENTITY_CONFLICT
+                - DEVICE_AUTHENTICATION_REQUIRED
+                - DEVICE_AUTHORIZATION_DENIED
+                - DEVICE_SESSION_INVALID
+                - DEVICE_NOT_READY
+                - DEVICE_NOT_FOUND
+                - COMMAND_NOT_FOUND
+                - COMMAND_STATE_CONFLICT
+                - COMMAND_IDEMPOTENCY_CONFLICT
+                - COMMAND_PAYLOAD_TOO_LARGE
+                - UNSUPPORTED_COMMAND_TYPE
             message:
               type: string
             metadata:

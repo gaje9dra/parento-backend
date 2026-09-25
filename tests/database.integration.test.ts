@@ -39,6 +39,7 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
       { id: '0005', applied: true, name: 'phase_3_1_admin_authentication' },
       { id: '0006', applied: true, name: 'phase_3_3_session_lifecycle' },
       { id: '0007', applied: true, name: 'phase_5_1_enrollment_sessions' },
+      { id: '0008', applied: true, name: 'phase_6_1_device_communication' },
     ]);
   });
 
@@ -47,7 +48,7 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
     await runMigrations(database);
 
     const status = await migrationStatus(database);
-    expect(status.filter((migration) => migration.applied)).toHaveLength(7);
+    expect(status.filter((migration) => migration.applied)).toHaveLength(8);
   });
 
   it('verifies the final schema has the Phase 2 integrity constraints and query indexes', async () => {
@@ -90,6 +91,16 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
       'password_hash',
     ]);
 
+    const communicationTables = await database.query<{ table_name: string }>(
+      "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('device_credentials','device_connection_sessions','commands','command_events') ORDER BY table_name",
+    );
+    expect(communicationTables.rows.map((row) => row.table_name)).toEqual([
+      'command_events',
+      'commands',
+      'device_connection_sessions',
+      'device_credentials',
+    ]);
+
     const sessionTable = await database.query<{ table_name: string }>(
       'SELECT table_name FROM information_schema.tables ' +
         "WHERE table_schema = 'public' AND table_name = 'admin_sessions'",
@@ -125,9 +136,9 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
     await runMigrations(database);
     const status = await migrationStatus(database);
     expect(status.at(-1)).toEqual({
-      id: '0007',
+      id: '0008',
       applied: true,
-      name: 'phase_5_1_enrollment_sessions',
+      name: 'phase_6_1_device_communication',
     });
   });
 

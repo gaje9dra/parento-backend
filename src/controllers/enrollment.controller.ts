@@ -190,7 +190,7 @@ export const createEnrollmentController = (
     }
 
     try {
-      const enrollment = await service.consume({
+      const result = await service.consume({
         enrollmentId: parsedParams.data.enrollmentId,
         ...parsedBody.data,
       });
@@ -199,17 +199,18 @@ export const createEnrollmentController = (
         {
           event: 'enrollment_completed',
           requestId: res.locals.requestId,
-          enrollmentId: enrollment.id,
-          adminId: enrollment.adminId,
-          managedDeviceId: enrollment.managedDeviceId,
+          enrollmentId: result.enrollment.id,
+          adminId: result.enrollment.adminId,
+          managedDeviceId: result.enrollment.managedDeviceId,
         },
         'Enrollment session completed',
       );
 
       res.status(200).json({
         data: {
-          enrollment: toResponse(enrollment),
-          managedDeviceId: enrollment.managedDeviceId,
+          enrollment: toResponse(result.enrollment),
+          managedDeviceId: result.enrollment.managedDeviceId,
+          deviceCredential: result.deviceCredential,
         },
         requestId: res.locals.requestId,
       });

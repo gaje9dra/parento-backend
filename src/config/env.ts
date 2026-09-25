@@ -62,6 +62,19 @@ const rawEnvSchema = z.object({
     .min(1)
     .max(1000)
     .default(10),
+  DEVICE_SESSION_TTL_SECONDS: z.coerce
+    .number()
+    .int()
+    .min(60)
+    .max(86400)
+    .default(300),
+  COMMAND_TTL_SECONDS: z.coerce.number().int().min(30).max(86400).default(300),
+  COMMAND_MAX_PAYLOAD_BYTES: z.coerce
+    .number()
+    .int()
+    .min(2)
+    .max(65536)
+    .default(4096),
   REQUEST_BODY_LIMIT: z.string().min(1).default('100kb'),
   REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(120000),
   HEADERS_TIMEOUT_MS: z.coerce.number().int().positive().default(15000),
@@ -146,6 +159,9 @@ export interface AppConfig {
     readonly jwtIssuer?: string;
     readonly enrollmentSessionTtlSeconds: number;
     readonly enrollmentVerificationMaxAttempts: number;
+    readonly deviceSessionTtlSeconds: number;
+    readonly commandTtlSeconds: number;
+    readonly commandMaxPayloadBytes: number;
     readonly jwtAudience?: string;
     readonly accessTokenTtlSeconds: number;
     readonly sessionTtlSeconds: number;
@@ -433,6 +449,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       enrollmentSessionTtlSeconds: parsed.data.ENROLLMENT_SESSION_TTL_SECONDS,
       enrollmentVerificationMaxAttempts:
         parsed.data.ENROLLMENT_VERIFICATION_MAX_ATTEMPTS,
+      deviceSessionTtlSeconds: parsed.data.DEVICE_SESSION_TTL_SECONDS,
+      commandTtlSeconds: parsed.data.COMMAND_TTL_SECONDS,
+      commandMaxPayloadBytes: parsed.data.COMMAND_MAX_PAYLOAD_BYTES,
       requestBodyLimit: parsed.data.REQUEST_BODY_LIMIT,
       requestTimeoutMs: parsed.data.REQUEST_TIMEOUT_MS,
       headersTimeoutMs: parsed.data.HEADERS_TIMEOUT_MS,
