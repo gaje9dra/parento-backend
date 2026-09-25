@@ -274,6 +274,91 @@ paths:
           $ref: '#/components/responses/ApiErrorResponse'
         '429':
           $ref: '#/components/responses/ApiErrorResponse'
+  /api/v1/devices/sessions:
+    post:
+      summary: Establish a managed-device communication session
+      operationId: createDeviceSession
+      parameters:
+        - in: header
+          name: X-Device-Credential
+          required: true
+          schema: { type: string, minLength: 43, maxLength: 43 }
+      responses:
+        '201': { description: Communication session established }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '403': { $ref: '#/components/responses/ApiErrorResponse' }
+  /api/v1/devices/sessions/{sessionId}/disconnect:
+    post:
+      summary: Disconnect a managed-device communication session
+      operationId: disconnectDeviceSession
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema: { type: string, format: uuid }
+        - in: header
+          name: X-Device-Credential
+          required: true
+          schema: { type: string, minLength: 43, maxLength: 43 }
+      responses:
+        '200': { description: Communication session disconnected }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '403': { $ref: '#/components/responses/ApiErrorResponse' }
+        '404': { $ref: '#/components/responses/ApiErrorResponse' }
+  /api/v1/devices/commands:
+    post:
+      summary: Create an authorized neutral Phase 6.1 command
+      operationId: createDeviceCommand
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: false
+          schema: { type: string, minLength: 8, maxLength: 128 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommandCreateRequest'
+      responses:
+        '201': { description: Command created }
+        '200': { description: Existing idempotent command returned }
+        '400': { $ref: '#/components/responses/ApiErrorResponse' }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '403': { $ref: '#/components/responses/ApiErrorResponse' }
+        '404': { $ref: '#/components/responses/ApiErrorResponse' }
+        '409': { $ref: '#/components/responses/ApiErrorResponse' }
+        '413': { $ref: '#/components/responses/ApiErrorResponse' }
+  /api/v1/devices/commands/{commandId}:
+    get:
+      summary: Get an owned command
+      operationId: getDeviceCommand
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: commandId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Command status }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '404': { $ref: '#/components/responses/ApiErrorResponse' }
+  /api/v1/devices/commands/{commandId}/cancel:
+    post:
+      summary: Cancel a queued command
+      operationId: cancelDeviceCommand
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: commandId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Command cancelled }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '404': { $ref: '#/components/responses/ApiErrorResponse' }
+        '409': { $ref: '#/components/responses/ApiErrorResponse' }
 components:
   securitySchemes:
     bearerAuth:
@@ -281,6 +366,16 @@ components:
       scheme: bearer
       bearerFormat: opaque
   schemas:
+    CommandCreateRequest:
+      type: object
+      additionalProperties: false
+      required: [managedDeviceId, type, version, payload]
+      properties:
+        managedDeviceId: { type: string, format: uuid }
+        type: { type: string, enum: [FUTURE_COMMAND] }
+        version: { type: integer, enum: [1] }
+        payload: { type: object, maxProperties: 128 }
+        expiresAt: { type: string, format: date-time }
     ApiSuccessHealth:
       allOf:
         - $ref: '#/components/schemas/ApiSuccess'
