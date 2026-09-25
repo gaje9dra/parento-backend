@@ -188,6 +188,13 @@ export class PostgresManagedDeviceRepository
     };
   }
 
+  async touchLastSeen(id: string, now: Date): Promise<void> {
+    await this.query(
+      'UPDATE managed_devices SET last_seen_at=$2, updated_at=GREATEST(updated_at,$2) WHERE id=$1',
+      [id, now],
+    );
+  }
+
   async updateStatus(
     id: string,
     status: ManagedDeviceStatus,
