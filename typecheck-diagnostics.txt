@@ -1,0 +1,7 @@
+
+> parento-backend@0.1.0 typecheck
+> tsc --noEmit -p tsconfig.json
+
+src/services/device-communication-service.ts(74,5): error TS2322: Type 'Promise<DeviceConnectionSession | null> | null' is not assignable to type 'Promise<DeviceConnectionSession | null>'.
+  Type 'null' is not assignable to type 'Promise<DeviceConnectionSession | null>'.
+TYPECHECK_EXIT_CODE=2
