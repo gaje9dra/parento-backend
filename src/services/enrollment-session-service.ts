@@ -26,14 +26,29 @@ export class EnrollmentSessionService {
   }> {
     const now = new Date();
     const authorizationSecret = generateOpaqueToken();
-    const enrollment = await this.repository.create({
-      id: randomUUID(),
-      adminId,
-      secretHash: hashOpaqueToken(authorizationSecret),
-      expiresAt: new Date(now.getTime() + this.options.ttlSeconds * 1000),
-    });
+    try {
+      const enrollment = await this.repository.create({
+        id: randomUUID(),
+        adminId,
+        secretHash: hashOpaqueToken(authorizationSecret),
+        expiresAt: new Date(now.getTime() + this.options.ttlSeconds * 1000),
+      });
 
-    return { enrollment, authorizationSecret };
+      return { enrollment, authorizationSecret };
+    } catch (error) {
+      if (
+        error instanceof PersistenceError &&
+        error.code === 'INVALID_STATE' &&
+        error.message === 'Administrator is not active.'
+      ) {
+        throw new AppError(
+          403,
+          'AUTHORIZATION_DENIED',
+          'Administrator authorization is required.',
+        );
+      }
+      throw error;
+    }
   }
 
   async getOwned(
