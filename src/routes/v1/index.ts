@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import type { AppConfig } from '../../config/env.js';
+import { DEFAULT_MONITORING_CONFIG, type AppConfig } from '../../config/env.js';
 import type { Database } from '../../db/index.js';
 import { PostgresAdminRepository } from '../../repositories/postgres-admin-repository.js';
 import { PostgresDeviceCredentialRepository } from '../../repositories/postgres-device-credential-repository.js';
@@ -28,11 +28,7 @@ export const createV1Router = (
   security: AppConfig['security'],
   rateLimit: AppConfig['rateLimit'],
   realtime: AppConfig['realtime'] = { enabled: false },
-  monitoringConfig: AppConfig['monitoring'] = {
-    freshnessFreshMs: 300000,
-    freshnessStaleMs: 1800000,
-    maxPayloadBytes: 32768,
-  },
+  monitoringConfig: AppConfig['monitoring'] = DEFAULT_MONITORING_CONFIG,
 ): Router => {
   const router = Router();
   const adminRepository = new PostgresAdminRepository(database);
