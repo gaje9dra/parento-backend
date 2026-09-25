@@ -388,15 +388,10 @@ export class DeviceMonitoringService {
     page: import('../repositories/device-monitoring-repository.js').MonitoringDevicePageRequest,
     now = new Date(),
   ) {
-    const result = await this.repository.listForAdmin(
-      adminId,
-      page,
-      now,
-      {
-        freshMs: this.options.freshnessFreshMs,
-        staleMs: this.options.freshnessStaleMs,
-      },
-    );
+    const result = await this.repository.listForAdmin(adminId, page, now, {
+      freshMs: this.options.freshnessFreshMs,
+      staleMs: this.options.freshnessStaleMs,
+    });
     return {
       ...result,
       items: result.items.map((item) => ({

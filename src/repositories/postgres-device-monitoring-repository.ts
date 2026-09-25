@@ -18,7 +18,7 @@ import type {
   DeviceMonitoringRepository,
   MonitoringDevicePage,
   MonitoringDevicePageRequest,
- } from './device-monitoring-repository.js';
+} from './device-monitoring-repository.js';
 import { PostgresRepository } from './postgres-repository.js';
 
 interface Row {
