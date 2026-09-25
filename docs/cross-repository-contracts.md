@@ -92,8 +92,6 @@ Enrollment, device identity provisioning, commands, and policy enforcement are i
 
 No fake authentication endpoints, fake device endpoints, QR pairing endpoints, command endpoints, WebSocket endpoints, or surveillance mechanisms are introduced merely to document future integration.
 
-
-
 ## Phase 8 location contract
 
 ### Managed Android reporting
