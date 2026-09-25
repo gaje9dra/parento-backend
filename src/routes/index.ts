@@ -9,7 +9,11 @@ export const createApiRouter = (
   security: AppConfig['security'],
   rateLimit: AppConfig['rateLimit'],
   realtime: AppConfig['realtime'] = { enabled: false },
-  monitoring: AppConfig['monitoring'],
+  monitoring: AppConfig['monitoring'] = {
+    freshnessFreshMs: 300000,
+    freshnessStaleMs: 1800000,
+    maxPayloadBytes: 32768,
+  },
 ): Router => {
   const router = Router();
   router.use(
