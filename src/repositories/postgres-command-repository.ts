@@ -95,10 +95,10 @@ export class PostgresCommandRepository extends PostgresRepository implements Com
    return command;
   });
  }
- private async recordEvent(commandId:string,fromStatus:CommandStatus|null,toStatus:CommandStatus,actorType:CommandActorType,actorId:string|null,correlationId:string|null):Promise<void>{
-  await this.query('INSERT INTO command_events (id,command_id,from_status,to_status,actor_type,actor_id,correlation_id) VALUES ($1,$2,$3,$4,$5,$6,$7)',[randomUUID(),commandId,fromStatus,toStatus,actorType,actorId,correlationId]);
- }
- private async insertEvent(client: PoolClient),commandId:string,fromStatus:CommandStatus|null,toStatus:CommandStatus,actorType:CommandActorType,actorId:string|null,correlationId:string|null,occurredAt:Date):Promise<void>{
-  await client.query('INSERT INTO command_events (id,command_id,from_status,to_status,actor_type,actor_id,correlation_id,occurred_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)',[randomUUID(),commandId,fromStatus,toStatus,actorType,actorId,correlationId,occurredAt]);
+ private async insertEvent(client: PoolClient, commandId:string, fromStatus:CommandStatus|null, toStatus:CommandStatus, actorType:CommandActorType, actorId:string|null, correlationId:string|null, occurredAt:Date):Promise<void>{
+  await client.query(
+   'INSERT INTO command_events (id,command_id,from_status,to_status,actor_type,actor_id,correlation_id,occurred_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)',
+   [randomUUID(),commandId,fromStatus,toStatus,actorType,actorId,correlationId,occurredAt],
+  );
  }
 }
