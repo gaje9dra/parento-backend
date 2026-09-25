@@ -128,7 +128,7 @@ export const createDeviceMonitoringController = (
 
       const [snapshot, session] = await Promise.all([
         monitoring.getForAdmin(req.authenticatedAdmin.id, device.id),
-        sessions.findActiveByDeviceId(device.id),
+        sessions.findActiveByDeviceId?.(device.id) ?? null,
       ]);
 
       const now = Date.now();
