@@ -67,7 +67,7 @@ export const createV1Router = (
   );
   const registry = new InMemoryDeviceConnectionRegistry();
   const transport = realtime.enabled ? new SseDeviceTransport(registry) : undefined;
-  const delivery = realtime.enabled
+  const delivery = realtime.enabled && transport !== undefined
     ? new CommandDeliveryService(
         commands,
         transport,
