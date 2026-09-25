@@ -16,15 +16,13 @@ export const createDeviceCommunicationRateLimiter = (input: {
     keyGenerator: (req) =>
       ipKeyGenerator(req.ip ?? req.socket.remoteAddress ?? 'unknown-client'),
     handler: (_req, res) =>
-      res
-        .status(429)
-        .json({
-          error: {
-            code: 'RATE_LIMITED',
-            message:
-              'Too many device communication requests. Please try again later.',
-          },
-          requestId: res.locals.requestId,
-        }),
+      res.status(429).json({
+        error: {
+          code: 'RATE_LIMITED',
+          message:
+            'Too many device communication requests. Please try again later.',
+        },
+        requestId: res.locals.requestId,
+      }),
   });
 };

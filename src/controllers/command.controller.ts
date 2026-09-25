@@ -29,28 +29,24 @@ export const createCommandController = (service: CommandService) => ({
   create: (async (req, res, next) => {
     try {
       if (!req.authenticatedAdmin) {
-        res
-          .status(401)
-          .json({
-            error: {
-              code: 'AUTHENTICATION_REQUIRED',
-              message: 'Administrator authentication is required.',
-            },
-            requestId: res.locals.requestId,
-          });
+        res.status(401).json({
+          error: {
+            code: 'AUTHENTICATION_REQUIRED',
+            message: 'Administrator authentication is required.',
+          },
+          requestId: res.locals.requestId,
+        });
         return;
       }
       const b = createSchema.safeParse(req.body);
       if (!b.success) {
-        res
-          .status(400)
-          .json({
-            error: {
-              code: 'INVALID_REQUEST',
-              message: 'Invalid command request.',
-            },
-            requestId: res.locals.requestId,
-          });
+        res.status(400).json({
+          error: {
+            code: 'INVALID_REQUEST',
+            message: 'Invalid command request.',
+          },
+          requestId: res.locals.requestId,
+        });
         return;
       }
       const r = await service.create(req.authenticatedAdmin.id, {
@@ -61,12 +57,10 @@ export const createCommandController = (service: CommandService) => ({
         idempotencyKey: b.data.idempotencyKey ?? null,
         correlationId: b.data.correlationId ?? null,
       });
-      res
-        .status(r.created ? 201 : 200)
-        .json({
-          data: { command: toCommand(r.command), created: r.created },
-          requestId: res.locals.requestId,
-        });
+      res.status(r.created ? 201 : 200).json({
+        data: { command: toCommand(r.command), created: r.created },
+        requestId: res.locals.requestId,
+      });
     } catch (e) {
       next(e);
     }
@@ -75,27 +69,23 @@ export const createCommandController = (service: CommandService) => ({
     try {
       const p = idSchema.safeParse(req.params);
       if (!p.success) {
-        res
-          .status(400)
-          .json({
-            error: {
-              code: 'INVALID_REQUEST',
-              message: 'Invalid command identifier.',
-            },
-            requestId: res.locals.requestId,
-          });
+        res.status(400).json({
+          error: {
+            code: 'INVALID_REQUEST',
+            message: 'Invalid command identifier.',
+          },
+          requestId: res.locals.requestId,
+        });
         return;
       }
       if (!req.authenticatedAdmin) {
-        res
-          .status(401)
-          .json({
-            error: {
-              code: 'AUTHENTICATION_REQUIRED',
-              message: 'Administrator authentication is required.',
-            },
-            requestId: res.locals.requestId,
-          });
+        res.status(401).json({
+          error: {
+            code: 'AUTHENTICATION_REQUIRED',
+            message: 'Administrator authentication is required.',
+          },
+          requestId: res.locals.requestId,
+        });
         return;
       }
       const c = await service.getOwnedForDevice(
@@ -103,12 +93,10 @@ export const createCommandController = (service: CommandService) => ({
         req.authenticatedAdmin.id,
         p.data.deviceId,
       );
-      res
-        .status(200)
-        .json({
-          data: { command: toCommand(c) },
-          requestId: res.locals.requestId,
-        });
+      res.status(200).json({
+        data: { command: toCommand(c) },
+        requestId: res.locals.requestId,
+      });
     } catch (e) {
       next(e);
     }
@@ -117,17 +105,15 @@ export const createCommandController = (service: CommandService) => ({
     try {
       const p = idSchema.safeParse(req.params);
       if (!p.success || !req.authenticatedAdmin) {
-        res
-          .status(p.success ? 401 : 400)
-          .json({
-            error: {
-              code: p.success ? 'AUTHENTICATION_REQUIRED' : 'INVALID_REQUEST',
-              message: p.success
-                ? 'Administrator authentication is required.'
-                : 'Invalid command identifier.',
-            },
-            requestId: res.locals.requestId,
-          });
+        res.status(p.success ? 401 : 400).json({
+          error: {
+            code: p.success ? 'AUTHENTICATION_REQUIRED' : 'INVALID_REQUEST',
+            message: p.success
+              ? 'Administrator authentication is required.'
+              : 'Invalid command identifier.',
+          },
+          requestId: res.locals.requestId,
+        });
         return;
       }
       const c = await service.cancel(
@@ -135,12 +121,10 @@ export const createCommandController = (service: CommandService) => ({
         req.authenticatedAdmin.id,
         p.data.deviceId,
       );
-      res
-        .status(200)
-        .json({
-          data: { command: toCommand(c) },
-          requestId: res.locals.requestId,
-        });
+      res.status(200).json({
+        data: { command: toCommand(c) },
+        requestId: res.locals.requestId,
+      });
     } catch (e) {
       next(e);
     }

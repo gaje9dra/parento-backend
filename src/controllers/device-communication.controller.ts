@@ -23,27 +23,23 @@ export const createDeviceCommunicationController = (
       const header = req.header('authorization');
       const match = header?.match(/^Bearer ([A-Za-z0-9_-]{43})$/);
       if (!match?.[1]) {
-        res
-          .status(401)
-          .json({
-            error: {
-              code: 'DEVICE_AUTHENTICATION_REQUIRED',
-              message: 'Managed-device authentication is required.',
-            },
-            requestId: res.locals.requestId,
-          });
-        return;
-      }
-      const result = await communication.connect(match[1]);
-      res
-        .status(201)
-        .json({
-          data: {
-            session: toSession(result.session),
-            sessionToken: result.sessionToken,
+        res.status(401).json({
+          error: {
+            code: 'DEVICE_AUTHENTICATION_REQUIRED',
+            message: 'Managed-device authentication is required.',
           },
           requestId: res.locals.requestId,
         });
+        return;
+      }
+      const result = await communication.connect(match[1]);
+      res.status(201).json({
+        data: {
+          session: toSession(result.session),
+          sessionToken: result.sessionToken,
+        },
+        requestId: res.locals.requestId,
+      });
     } catch (e) {
       next(e);
     }
@@ -51,15 +47,13 @@ export const createDeviceCommunicationController = (
   heartbeat: (async (req, res, next) => {
     try {
       if (!req.authenticatedDeviceSession) {
-        res
-          .status(401)
-          .json({
-            error: {
-              code: 'DEVICE_SESSION_INVALID',
-              message: 'Managed-device session is required.',
-            },
-            requestId: res.locals.requestId,
-          });
+        res.status(401).json({
+          error: {
+            code: 'DEVICE_SESSION_INVALID',
+            message: 'Managed-device session is required.',
+          },
+          requestId: res.locals.requestId,
+        });
         return;
       }
       const result = await communication.heartbeat({
@@ -72,12 +66,10 @@ export const createDeviceCommunicationController = (
         disconnectedAt: null,
         expiresAt: req.authenticatedDeviceSession.expiresAt,
       });
-      res
-        .status(200)
-        .json({
-          data: { session: toSession(result) },
-          requestId: res.locals.requestId,
-        });
+      res.status(200).json({
+        data: { session: toSession(result) },
+        requestId: res.locals.requestId,
+      });
     } catch (e) {
       next(e);
     }
@@ -85,15 +77,13 @@ export const createDeviceCommunicationController = (
   disconnect: (async (req, res, next) => {
     try {
       if (!req.authenticatedDeviceSession) {
-        res
-          .status(401)
-          .json({
-            error: {
-              code: 'DEVICE_SESSION_INVALID',
-              message: 'Managed-device session is required.',
-            },
-            requestId: res.locals.requestId,
-          });
+        res.status(401).json({
+          error: {
+            code: 'DEVICE_SESSION_INVALID',
+            message: 'Managed-device session is required.',
+          },
+          requestId: res.locals.requestId,
+        });
         return;
       }
       const result = await communication.disconnect({
@@ -106,12 +96,10 @@ export const createDeviceCommunicationController = (
         disconnectedAt: null,
         expiresAt: req.authenticatedDeviceSession.expiresAt,
       });
-      res
-        .status(200)
-        .json({
-          data: { session: toSession(result) },
-          requestId: res.locals.requestId,
-        });
+      res.status(200).json({
+        data: { session: toSession(result) },
+        requestId: res.locals.requestId,
+      });
     } catch (e) {
       next(e);
     }
@@ -120,37 +108,31 @@ export const createDeviceCommunicationController = (
     try {
       const p = idSchema.safeParse(req.params);
       if (!p.success) {
-        res
-          .status(400)
-          .json({
-            error: {
-              code: 'INVALID_REQUEST',
-              message: 'Invalid command identifier.',
-            },
-            requestId: res.locals.requestId,
-          });
+        res.status(400).json({
+          error: {
+            code: 'INVALID_REQUEST',
+            message: 'Invalid command identifier.',
+          },
+          requestId: res.locals.requestId,
+        });
         return;
       }
       const s = req.authenticatedDeviceSession;
       if (!s) {
-        res
-          .status(401)
-          .json({
-            error: {
-              code: 'DEVICE_SESSION_INVALID',
-              message: 'Managed-device session is required.',
-            },
-            requestId: res.locals.requestId,
-          });
+        res.status(401).json({
+          error: {
+            code: 'DEVICE_SESSION_INVALID',
+            message: 'Managed-device session is required.',
+          },
+          requestId: res.locals.requestId,
+        });
         return;
       }
       const c = await commands.acknowledge(p.data.commandId, s);
-      res
-        .status(200)
-        .json({
-          data: { command: toCommand(c) },
-          requestId: res.locals.requestId,
-        });
+      res.status(200).json({
+        data: { command: toCommand(c) },
+        requestId: res.locals.requestId,
+      });
     } catch (e) {
       next(e);
     }
@@ -159,37 +141,31 @@ export const createDeviceCommunicationController = (
     try {
       const p = idSchema.safeParse(req.params);
       if (!p.success) {
-        res
-          .status(400)
-          .json({
-            error: {
-              code: 'INVALID_REQUEST',
-              message: 'Invalid command identifier.',
-            },
-            requestId: res.locals.requestId,
-          });
+        res.status(400).json({
+          error: {
+            code: 'INVALID_REQUEST',
+            message: 'Invalid command identifier.',
+          },
+          requestId: res.locals.requestId,
+        });
         return;
       }
       const s = req.authenticatedDeviceSession;
       if (!s) {
-        res
-          .status(401)
-          .json({
-            error: {
-              code: 'DEVICE_SESSION_INVALID',
-              message: 'Managed-device session is required.',
-            },
-            requestId: res.locals.requestId,
-          });
+        res.status(401).json({
+          error: {
+            code: 'DEVICE_SESSION_INVALID',
+            message: 'Managed-device session is required.',
+          },
+          requestId: res.locals.requestId,
+        });
         return;
       }
       const c = await commands.start(p.data.commandId, s);
-      res
-        .status(200)
-        .json({
-          data: { command: toCommand(c) },
-          requestId: res.locals.requestId,
-        });
+      res.status(200).json({
+        data: { command: toCommand(c) },
+        requestId: res.locals.requestId,
+      });
     } catch (e) {
       next(e);
     }
@@ -199,28 +175,24 @@ export const createDeviceCommunicationController = (
       const p = idSchema.safeParse(req.params);
       const b = resultSchema.safeParse(req.body);
       if (!p.success || !b.success) {
-        res
-          .status(400)
-          .json({
-            error: {
-              code: 'INVALID_REQUEST',
-              message: 'Invalid command result.',
-            },
-            requestId: res.locals.requestId,
-          });
+        res.status(400).json({
+          error: {
+            code: 'INVALID_REQUEST',
+            message: 'Invalid command result.',
+          },
+          requestId: res.locals.requestId,
+        });
         return;
       }
       const s = req.authenticatedDeviceSession;
       if (!s) {
-        res
-          .status(401)
-          .json({
-            error: {
-              code: 'DEVICE_SESSION_INVALID',
-              message: 'Managed-device session is required.',
-            },
-            requestId: res.locals.requestId,
-          });
+        res.status(401).json({
+          error: {
+            code: 'DEVICE_SESSION_INVALID',
+            message: 'Managed-device session is required.',
+          },
+          requestId: res.locals.requestId,
+        });
         return;
       }
       const c = await commands.result(
@@ -231,12 +203,10 @@ export const createDeviceCommunicationController = (
         b.data.errorCategory,
         b.data.resultMetadata,
       );
-      res
-        .status(200)
-        .json({
-          data: { command: toCommand(c) },
-          requestId: res.locals.requestId,
-        });
+      res.status(200).json({
+        data: { command: toCommand(c) },
+        requestId: res.locals.requestId,
+      });
     } catch (e) {
       next(e);
     }

@@ -17,15 +17,13 @@ export const requireDeviceCredential =
     const header = req.header('authorization');
     const match = header?.match(/^Bearer ([A-Za-z0-9_-]{43})$/);
     if (!match?.[1]) {
-      res
-        .status(401)
-        .json({
-          error: {
-            code: 'DEVICE_AUTHENTICATION_REQUIRED',
-            message: 'Managed-device authentication is required.',
-          },
-          requestId: res.locals.requestId,
-        });
+      res.status(401).json({
+        error: {
+          code: 'DEVICE_AUTHENTICATION_REQUIRED',
+          message: 'Managed-device authentication is required.',
+        },
+        requestId: res.locals.requestId,
+      });
       return;
     }
     try {
@@ -33,15 +31,13 @@ export const requireDeviceCredential =
         hashOpaqueToken(match[1]),
       );
       if (!credential) {
-        res
-          .status(401)
-          .json({
-            error: {
-              code: 'DEVICE_AUTHENTICATION_REQUIRED',
-              message: 'Managed-device authentication is required.',
-            },
-            requestId: res.locals.requestId,
-          });
+        res.status(401).json({
+          error: {
+            code: 'DEVICE_AUTHENTICATION_REQUIRED',
+            message: 'Managed-device authentication is required.',
+          },
+          requestId: res.locals.requestId,
+        });
         return;
       }
       req.authenticatedDevice = {
@@ -57,14 +53,12 @@ export const requireDeviceCredential =
         },
         'Managed-device authentication failed',
       );
-      res
-        .status(401)
-        .json({
-          error: {
-            code: 'DEVICE_AUTHENTICATION_REQUIRED',
-            message: 'Managed-device authentication is required.',
-          },
-          requestId: res.locals.requestId,
-        });
+      res.status(401).json({
+        error: {
+          code: 'DEVICE_AUTHENTICATION_REQUIRED',
+          message: 'Managed-device authentication is required.',
+        },
+        requestId: res.locals.requestId,
+      });
     }
   };
