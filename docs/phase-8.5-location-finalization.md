@@ -25,8 +25,8 @@ Example request using synthetic coordinates:
 {
   "reportId": "33333333-3333-4333-8333-333333333333",
   "availability": "AVAILABLE",
-  "latitude": 26.9000,
-  "longitude": 75.8000,
+  "latitude": 26.9,
+  "longitude": 75.8,
   "accuracyMeters": 12,
   "observedAt": "2026-09-25T10:00:00.000Z"
 }
@@ -54,8 +54,8 @@ Accepted current-state update:
     "location": {
       "managedDeviceId": "11111111-1111-4111-8111-111111111111",
       "availability": "AVAILABLE",
-      "latitude": 26.9000,
-      "longitude": 75.8000,
+      "latitude": 26.9,
+      "longitude": 75.8,
       "accuracyMeters": 12,
       "observedAt": "2026-09-25T10:00:00.000Z",
       "receivedAt": "2026-09-25T10:00:01.000Z",
@@ -92,8 +92,8 @@ Example response:
     "location": {
       "managedDeviceId": "11111111-1111-4111-8111-111111111111",
       "availability": "AVAILABLE",
-      "latitude": 26.9000,
-      "longitude": 75.8000,
+      "latitude": 26.9,
+      "longitude": 75.8,
       "accuracyMeters": 12,
       "observedAt": "2026-09-25T10:00:00.000Z",
       "receivedAt": "2026-09-25T10:00:01.000Z",
