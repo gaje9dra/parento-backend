@@ -157,8 +157,8 @@ export interface AppConfig {
   };
   readonly rateLimit: {
     readonly enabled: boolean;
-    readonly enrollmentVerificationWindowMs: number;
-    readonly enrollmentVerificationMaxRequests: number;
+    readonly enrollmentVerificationWindowMs?: number;
+    readonly enrollmentVerificationMaxRequests?: number;
     readonly windowMs: number;
     readonly maxRequests: number;
   };
