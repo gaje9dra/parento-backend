@@ -27,16 +27,38 @@ export class PostgresCommandRepository extends PostgresRepository implements Com
  readonly name='command';
 
  async create(input: {id:string;managedDeviceId:string;adminId:string;type:'FUTURE_COMMAND';version:number;payload:Record<string,unknown>;correlationId:string|null;idempotencyKey:string|null;expiresAt:Date}):Promise<{command:Command;created:boolean}>{
-  try{
-   if(input.idempotencyKey!==null){
-    const existing=await this.query<Row>('SELECT '+columns+' FROM commands WHERE admin_id=$1 AND managed_device_id=$2 AND idempotency_key=$3',[input.adminId,input.managedDeviceId,input.idempotencyKey]);
-    if(existing.rows[0]) return {command:map(existing.rows[0]),created:false};
+  try {
+   const created = await this.transaction(async client => {
+    if (input.idempotencyKey !== null) {
+     const existing = await client.query<Row>(
+      'SELECT '+columns+' FROM commands WHERE admin_id=$1 AND managed_device_id=$2 AND idempotency_key=$3 FOR UPDATE',
+      [input.adminId,input.managedDeviceId,input.idempotencyKey],
+     );
+     if (existing.rows[0]) return {command:map(existing.rows[0]),created:false};
+    }
+    const result = await client.query<Row>(
+     'INSERT INTO commands (id,managed_device_id,admin_id,type,version,payload,correlation_id,idempotency_key,expires_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING '+columns,
+     [input.id,input.managedDeviceId,input.adminId,input.type,input.version,JSON.stringify(input.payload),input.correlationId,input.idempotencyKey,input.expiresAt],
+    );
+    const command=map(result.rows[0]!);
+    await client.query(
+     'INSERT INTO command_events (id,command_id,from_status,to_status,actor_type,actor_id,correlation_id) VALUES ($1,$2,$3,$4,$5,$6,$7)',
+     [randomUUID(),command.id,null,'CREATED','ADMIN',input.adminId,input.correlationId],
+    );
+    return {command,created:true};
+   });
+   return created;
+  } catch (error) {
+   if (input.idempotencyKey !== null) {
+    const existing = await this.findByIdempotency(input.adminId,input.managedDeviceId,input.idempotencyKey);
+    if (existing !== null) return {command:existing,created:false};
    }
-   const result=await this.query<Row>('INSERT INTO commands (id,managed_device_id,admin_id,type,version,payload,correlation_id,idempotency_key,expires_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING '+columns,[input.id,input.managedDeviceId,input.adminId,input.type,input.version,JSON.stringify(input.payload),input.correlationId,input.idempotencyKey,input.expiresAt]);
-   const command=map(result.rows[0]!);
-   await this.recordEvent(command.id,null,'CREATED','ADMIN',input.adminId,input.correlationId);
-   return {command,created:true};
-  }catch(error){throw mapPostgresPersistenceError(error,'Unable to create command.');}
+   throw mapPostgresPersistenceError(error,'Unable to create command.');
+  }
+ }
+ private async findByIdempotency(adminId:string,managedDeviceId:string,idempotencyKey:string):Promise<Command|null>{
+  const result=await this.query<Row>('SELECT '+columns+' FROM commands WHERE admin_id=$1 AND managed_device_id=$2 AND idempotency_key=$3',[adminId,managedDeviceId,idempotencyKey]);
+  return result.rows[0]===undefined?null:map(result.rows[0]);
  }
  async findById(id:string):Promise<Command|null>{const r=await this.query<Row>('SELECT '+columns+' FROM commands WHERE id=$1',[id]);return r.rows[0]?map(r.rows[0]):null;}
  async findOwned(id:string,adminId:string):Promise<Command|null>{const r=await this.query<Row>('SELECT '+columns+' FROM commands WHERE id=$1 AND admin_id=$2',[id,adminId]);return r.rows[0]?map(r.rows[0]):null;}
