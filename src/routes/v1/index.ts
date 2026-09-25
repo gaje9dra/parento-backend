@@ -91,6 +91,11 @@ export const createV1Router = (
   const monitoring = new DeviceMonitoringService(
     monitoringRepository,
     managedDevices,
+    deviceSessions,
+    {
+      freshnessFreshMs: security.monitoringFreshnessFreshMs,
+      freshnessStaleMs: security.monitoringFreshnessStaleMs,
+    },
   );
 
   router.use(createCommandRouter(authentication, commandService));
