@@ -108,7 +108,11 @@ export class CommandService {
         idempotencyKey: input.idempotencyKey,
         expiresAt: new Date(now.getTime() + this.options.ttlSeconds * 1000),
       });
-      if (!created.created) return created;
+      if (!created.created) {
+        if (this.delivery !== undefined) await this.delivery.deliverQueuedForDevice(device.id);
+        const existing = await this.commands.findById(created.command.id);
+        return { command: existing ?? created.command, created: false };
+      }
       const queued = await this.commands.transition({
         id: created.command.id,
         from: 'CREATED',
