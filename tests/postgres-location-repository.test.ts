@@ -1,15 +1,26 @@
 import { describe, expect, it } from 'vitest';
 import { PostgresLocationRepository } from '../src/repositories/postgres-location-repository.js';
 
-const currentLocation = {
-  managedDeviceId: '11111111-1111-4111-8111-111111111111',
+const currentLocationRow = {
+  managed_device_id: '11111111-1111-4111-8111-111111111111',
   availability: 'AVAILABLE' as const,
   latitude: 26.9,
   longitude: 75.8,
-  accuracyMeters: 12,
-  observedAt: new Date('2026-09-25T10:00:00.000Z'),
-  receivedAt: new Date('2026-09-25T10:00:01.000Z'),
-  reportId: '33333333-3333-4333-8333-333333333333',
+  accuracy_meters: 12,
+  observed_at: new Date('2026-09-25T10:00:00.000Z'),
+  received_at: new Date('2026-09-25T10:00:01.000Z'),
+  report_id: '33333333-3333-4333-8333-333333333333',
+};
+
+const currentLocation = {
+  managedDeviceId: currentLocationRow.managed_device_id,
+  availability: currentLocationRow.availability,
+  latitude: currentLocationRow.latitude,
+  longitude: currentLocationRow.longitude,
+  accuracyMeters: currentLocationRow.accuracy_meters,
+  observedAt: currentLocationRow.observed_at,
+  receivedAt: currentLocationRow.received_at,
+  reportId: currentLocationRow.report_id,
 };
 
 const input = {
@@ -31,7 +42,7 @@ describe('PostgresLocationRepository', () => {
           throw { code: '23505' };
         }
         return {
-          rows: [currentLocation],
+          rows: [currentLocationRow],
           rowCount: 1,
         } as unknown as { rows: T[]; rowCount: number };
       },
