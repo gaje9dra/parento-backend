@@ -85,19 +85,17 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
     expect(constraints.rows.map((row) => row.constraint_name)).toEqual([
       'enrollment_sessions_cancelled_timestamp_check',
       'enrollment_sessions_cancelled_timestamp_state_check',
-      'enrollment_sessions_cancelled_timestamp_check',
-      'enrollment_sessions_completed_timestamp_state_check',
       'enrollment_sessions_completed_timestamp_check',
-      'enrollment_sessions_managed_device_state_check',
+      'enrollment_sessions_completed_timestamp_state_check',
       'enrollment_sessions_managed_device_check',
+      'enrollment_sessions_managed_device_state_check',
       'enrollment_sessions_secret_hash_format_check',
-      'enrollment_sessions_verified_timestamp_state_check',
       'enrollment_sessions_verified_timestamp_check',
+      'enrollment_sessions_verified_timestamp_state_check',
       'enrollments_completed_timestamp_check',
       'enrollments_device_admin_fk',
       'managed_devices_stable_identifier_check',
       'managed_devices_stable_identifier_unique',
-    ]);
 
     const authColumns = await database.query<{ column_name: string }>(
       'SELECT column_name FROM information_schema.columns ' +
