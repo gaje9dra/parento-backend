@@ -72,34 +72,6 @@ const sessionColumns =
 const numberOrNull = (value: string | number | null): number | null =>
   value === null ? null : Number(value);
 
-const mapSnapshot = (r: Row): DeviceMonitoringSnapshot | null =>
-  r.managed_device_id === undefined
-    ? null
-    : {
-        managedDeviceId: r.managed_device_id,
-        schemaVersion: r.schema_version,
-        deviceCollectedAt: r.device_collected_at,
-        serverReceivedAt: r.server_received_at,
-        androidVersion: r.android_version,
-        apiLevel: r.api_level,
-        appVersion: r.app_version,
-        appVersionCode: Number(r.app_version_code),
-        managementMode: r.management_mode,
-        batteryPercentage: r.battery_percentage,
-        chargingState: r.charging_state,
-        batteryStatus: r.battery_status,
-        networkState: r.network_state,
-        storageTotalBytes: numberOrNull(r.storage_total_bytes),
-        storageAvailableBytes: numberOrNull(r.storage_available_bytes),
-        storageUsedBytes: numberOrNull(r.storage_used_bytes),
-        memoryTotalBytes: numberOrNull(r.memory_total_bytes),
-        memoryAvailableBytes: numberOrNull(r.memory_available_bytes),
-        memoryLow: r.memory_low,
-        lastSuccessfulInitializationAt: r.last_successful_initialization_at,
-        lastSuccessfulCommunicationAt: r.last_successful_communication_at,
-        lastMonitoringUpdateAt: r.last_monitoring_update_at,
-      };
-
 const mapDevice = (r: Row): ManagedDevice => ({
   id: r.device_id,
   adminId: r.admin_id,
