@@ -36,7 +36,6 @@ jobs:
             src/controllers/location.controller.ts \
             src/routes/v1/location.routes.ts \
             tests/location-service.test.ts \
-            migrations/0009_phase_8_1_location_foundation.sql \
             docs/phase-8.1-location-foundation.md \
             openapi.yaml \
             src/routes/v1/index.ts
