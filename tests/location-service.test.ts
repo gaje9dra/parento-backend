@@ -35,70 +35,117 @@ const deviceRepo = {
 describe('LocationService', () => {
   it('accepts a valid report and assigns backend receipt time', async () => {
     const locations = {
-      report: vi.fn(async (input) => ({ applied: true, location: { ...location, ...input, receivedAt: new Date() } })),
+      report: vi.fn(async (input) => ({
+        applied: true,
+        location: { ...location, ...input, receivedAt: new Date() },
+      })),
       findLatest: vi.fn(),
     } as unknown as LocationRepository;
     const service = new LocationService(locations, deviceRepo);
-    const result = await service.report({ managedDeviceId: device.id }, {
-      reportId: location.reportId,
-      availability: 'AVAILABLE',
-      latitude: 26.9124,
-      longitude: 75.7873,
-      accuracyMeters: 12,
-      observedAt: new Date(),
-    });
+    const result = await service.report(
+      { managedDeviceId: device.id },
+      {
+        reportId: location.reportId,
+        availability: 'AVAILABLE',
+        latitude: 26.9124,
+        longitude: 75.7873,
+        accuracyMeters: 12,
+        observedAt: new Date(),
+      },
+    );
     expect(result.applied).toBe(true);
-    expect(locations.report).toHaveBeenCalledWith(expect.objectContaining({
-      managedDeviceId: device.id,
-      receivedAt: expect.any(Date),
-    }));
+    expect(locations.report).toHaveBeenCalledWith(
+      expect.objectContaining({
+        managedDeviceId: device.id,
+        receivedAt: expect.any(Date),
+      }),
+    );
   });
 
   it('rejects invalid geographic ranges', async () => {
-    const locations = { report: vi.fn(), findLatest: vi.fn() } as unknown as LocationRepository;
+    const locations = {
+      report: vi.fn(),
+      findLatest: vi.fn(),
+    } as unknown as LocationRepository;
     const service = new LocationService(locations, deviceRepo);
-    await expect(service.report({ managedDeviceId: device.id }, {
-      reportId: location.reportId,
-      availability: 'AVAILABLE',
-      latitude: 91,
-      longitude: 75,
-      accuracyMeters: null,
-      observedAt: new Date(),
-    })).rejects.toMatchObject({ code: 'INVALID_LOCATION_COORDINATES', statusCode: 400 });
+    await expect(
+      service.report(
+        { managedDeviceId: device.id },
+        {
+          reportId: location.reportId,
+          availability: 'AVAILABLE',
+          latitude: 91,
+          longitude: 75,
+          accuracyMeters: null,
+          observedAt: new Date(),
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: 'INVALID_LOCATION_COORDINATES',
+      statusCode: 400,
+    });
   });
 
   it('rejects future timestamps beyond the allowed clock-skew window', async () => {
-    const locations = { report: vi.fn(), findLatest: vi.fn() } as unknown as LocationRepository;
+    const locations = {
+      report: vi.fn(),
+      findLatest: vi.fn(),
+    } as unknown as LocationRepository;
     const service = new LocationService(locations, deviceRepo);
-    await expect(service.report({ managedDeviceId: device.id }, {
-      reportId: location.reportId,
-      availability: 'AVAILABLE',
-      latitude: 26,
-      longitude: 75,
-      accuracyMeters: null,
-      observedAt: new Date(Date.now() + 6 * 60 * 1000),
-    })).rejects.toMatchObject({ code: 'INVALID_LOCATION_TIMESTAMP', statusCode: 400 });
+    await expect(
+      service.report(
+        { managedDeviceId: device.id },
+        {
+          reportId: location.reportId,
+          availability: 'AVAILABLE',
+          latitude: 26,
+          longitude: 75,
+          accuracyMeters: null,
+          observedAt: new Date(Date.now() + 6 * 60 * 1000),
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: 'INVALID_LOCATION_TIMESTAMP',
+      statusCode: 400,
+    });
   });
 
   it('rejects location reporting from a revoked device', async () => {
-    const locations = { report: vi.fn(), findLatest: vi.fn() } as unknown as LocationRepository;
+    const locations = {
+      report: vi.fn(),
+      findLatest: vi.fn(),
+    } as unknown as LocationRepository;
     const revoked = { ...device, enrollmentStatus: 'REVOKED' as const };
-    const devices = { findById: vi.fn(async () => revoked) } as unknown as ManagedDeviceRepository;
+    const devices = {
+      findById: vi.fn(async () => revoked),
+    } as unknown as ManagedDeviceRepository;
     const service = new LocationService(locations, devices);
-    await expect(service.report({ managedDeviceId: device.id }, {
-      reportId: location.reportId,
-      availability: 'AVAILABLE',
-      latitude: 26,
-      longitude: 75,
-      accuracyMeters: null,
-      observedAt: new Date(),
-    })).rejects.toMatchObject({ code: 'DEVICE_AUTHORIZATION_DENIED', statusCode: 403 });
+    await expect(
+      service.report(
+        { managedDeviceId: device.id },
+        {
+          reportId: location.reportId,
+          availability: 'AVAILABLE',
+          latitude: 26,
+          longitude: 75,
+          accuracyMeters: null,
+          observedAt: new Date(),
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: 'DEVICE_AUTHORIZATION_DENIED',
+      statusCode: 403,
+    });
   });
 
   it('requires Admin ownership for retrieval', async () => {
-    const locations = { report: vi.fn(), findLatest: vi.fn(async () => location) } as unknown as LocationRepository;
+    const locations = {
+      report: vi.fn(),
+      findLatest: vi.fn(async () => location),
+    } as unknown as LocationRepository;
     const service = new LocationService(locations, deviceRepo);
-    await expect(service.getForAdmin('99999999-9999-4999-8999-999999999999', device.id))
-      .rejects.toMatchObject({ code: 'AUTHORIZATION_DENIED', statusCode: 403 });
+    await expect(
+      service.getForAdmin('99999999-9999-4999-8999-999999999999', device.id),
+    ).rejects.toMatchObject({ code: 'AUTHORIZATION_DENIED', statusCode: 403 });
   });
 });

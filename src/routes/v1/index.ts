@@ -79,7 +79,14 @@ export const createV1Router = (
 
   const locations = new PostgresLocationRepository(database);
   const locationService = new LocationService(locations, managedDevices);
-  router.use(createLocationRouter(authentication, locationService, deviceSessions, rateLimit));
+  router.use(
+    createLocationRouter(
+      authentication,
+      locationService,
+      deviceSessions,
+      rateLimit,
+    ),
+  );
 
   return router;
 };

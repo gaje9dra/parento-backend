@@ -1,5 +1,6 @@
 export type LocationAvailability = 'AVAILABLE' | 'UNAVAILABLE';
-export type LocationFreshness = 'FRESH' | 'STALE' | 'VERY_STALE' | 'UNKNOWN' | 'NEVER_REPORTED';
+export type LocationFreshness =
+  'FRESH' | 'STALE' | 'VERY_STALE' | 'UNKNOWN' | 'NEVER_REPORTED';
 
 export interface ManagedDeviceLocation {
   readonly managedDeviceId: string;

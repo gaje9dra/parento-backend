@@ -9,10 +9,20 @@ import { requireDeviceSession } from '../../middleware/device-session-auth.js';
 import { createDeviceCommunicationRateLimiter } from '../../middleware/device-communication-rate-limit.js';
 import { createLocationController } from '../../controllers/location.controller.js';
 
-const methodNotAllowed = (allow: string): RequestHandler => (_req, res) => {
-  res.setHeader('Allow', allow);
-  res.status(405).json({ error: { code: 'METHOD_NOT_ALLOWED', message: 'HTTP method is not allowed for this endpoint.' }, requestId: res.locals.requestId });
-};
+const methodNotAllowed =
+  (allow: string): RequestHandler =>
+  (_req, res) => {
+    res.setHeader('Allow', allow);
+    res
+      .status(405)
+      .json({
+        error: {
+          code: 'METHOD_NOT_ALLOWED',
+          message: 'HTTP method is not allowed for this endpoint.',
+        },
+        requestId: res.locals.requestId,
+      });
+  };
 
 export const createLocationRouter = (
   authentication: AdminAuthenticationService,
@@ -30,8 +40,18 @@ export const createLocationRouter = (
   });
   const limited = limiter === undefined ? [] : [limiter];
 
-  router.post('/device/location', ...limited, requireDeviceSession(sessions), controller.report);
-  router.get('/devices/:deviceId/location', auth, requireAdminAuthorization, controller.get);
+  router.post(
+    '/device/location',
+    ...limited,
+    requireDeviceSession(sessions),
+    controller.report,
+  );
+  router.get(
+    '/devices/:deviceId/location',
+    auth,
+    requireAdminAuthorization,
+    controller.get,
+  );
   router.all('/device/location', methodNotAllowed('POST, OPTIONS'));
   router.all('/devices/:deviceId/location', methodNotAllowed('GET, OPTIONS'));
   return router;

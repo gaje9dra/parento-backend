@@ -731,11 +731,22 @@ components:
         availability: { type: string, enum: [AVAILABLE, UNAVAILABLE] }
         latitude: { type: number, minimum: -90, maximum: 90, nullable: true }
         longitude: { type: number, minimum: -180, maximum: 180, nullable: true }
-        accuracyMeters: { type: number, minimum: 0, maximum: 100000, nullable: true }
+        accuracyMeters:
+          { type: number, minimum: 0, maximum: 100000, nullable: true }
         observedAt: { type: string, format: date-time }
     LocationState:
       type: object
-      required: [managedDeviceId, availability, latitude, longitude, accuracyMeters, observedAt, receivedAt, reportId]
+      required:
+        [
+          managedDeviceId,
+          availability,
+          latitude,
+          longitude,
+          accuracyMeters,
+          observedAt,
+          receivedAt,
+          reportId,
+        ]
       properties:
         managedDeviceId: { type: string, format: uuid }
         availability: { type: string, enum: [AVAILABLE, UNAVAILABLE] }
