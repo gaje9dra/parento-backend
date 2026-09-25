@@ -14,12 +14,14 @@ export const createEnrollmentVerificationRateLimiter = (input: {
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     identifier: 'enrollment-verification',
-    keyGenerator: (req) => req.ip ?? req.socket.remoteAddress ?? 'unknown-client',
+    keyGenerator: (req) =>
+      req.ip ?? req.socket.remoteAddress ?? 'unknown-client',
     handler: (_req, res) => {
       res.status(429).json({
         error: {
           code: 'RATE_LIMITED',
-          message: 'Too many enrollment verification attempts. Please try again later.',
+          message:
+            'Too many enrollment verification attempts. Please try again later.',
         },
         requestId: res.locals.requestId,
       });
