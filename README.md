@@ -613,3 +613,5 @@ Only gaje9dra/parento-backend is modified.
 The future gaje9dra/parento-managed integration contract is documented in docs/phase-5.1-enrollment.md; no Android code is changed in this phase.
 
 See docs/phase-5.1-enrollment.md and openapi.yaml for the complete contract and security model.
+
+Phase 5.1 implementation verification is performed by the repository CI workflow before the phase is marked complete.
