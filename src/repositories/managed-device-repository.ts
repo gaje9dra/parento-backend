@@ -28,6 +28,7 @@ export interface ManagedDeviceRepository extends Repository {
   ): Promise<ManagedDevice | null>;
   list(page?: DevicePageRequest): Promise<DevicePage>;
   listByAdminId(adminId: string, page?: DevicePageRequest): Promise<DevicePage>;
+  touchLastSeen(id: string, now: Date): Promise<void>;
   updateStatus(
     id: string,
     status: ManagedDeviceStatus,
