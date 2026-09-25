@@ -76,7 +76,8 @@ class FakeCommands implements CommandRepository {
     return this.command;
   }
   async cancelOwned() {
-    throw new Error('unused');
+    if (!this.command) throw new Error('unused');
+    return this.command;
   }
   async transition(input: Parameters<CommandRepository['transition']>[0]) {
     if (!this.command) throw new Error('unused');
@@ -112,7 +113,6 @@ describe('Phase 6.1 command authorization', () => {
     const service = new CommandService(
       new FakeCommands(),
       devices,
-      new FakeSessions(),
       { ttlSeconds: 300, maxPayloadBytes: 4096 },
     );
     await expect(
