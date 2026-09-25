@@ -103,7 +103,7 @@ Three timestamps are kept conceptually distinct:
 - serverReceivedAt;
 - lastSeenAt from communication activity.
 
-The admin status API reports FRESH, STALE, or UNKNOWN monitoring freshness. No unlimited monitoring history is created.
+The admin status API reports FRESH, STALE, or UNKNOWN monitoring freshness. Connection status derives STALE when an otherwise connected session has not been seen for more than two minutes. No unlimited monitoring history is created.
 
 ## APIs
 
