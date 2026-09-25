@@ -59,7 +59,6 @@ export const createV1Router = (
   const commandService = new CommandService(
     commands,
     managedDevices,
-    deviceSessions,
     { ttlSeconds: security.commandTtlSeconds, maxPayloadBytes: security.commandMaxPayloadBytes },
   );
 
