@@ -4,8 +4,12 @@ import { loadConfig } from '../src/config/env.js';
 import { createDatabase } from '../src/db/index.js';
 import { resetMigrations, runMigrations } from '../src/db/migrate.js';
 import { PostgresAdminRepository } from '../src/repositories/postgres-admin-repository.js';
-import { PostgresManagedDeviceRepository } from '../src/repositories/postgres-managed-device-repository.js';
-import { PostgresEnrollmentRepository } from '../src/repositories/postgres-enrollment-repository.js';
+import {
+  PostgresManagedDeviceRepository,
+} from '../src/repositories/postgres-managed-device-repository.js';
+import {
+  PostgresEnrollmentRepository,
+} from '../src/repositories/postgres-enrollment-repository.js';
 import { EnrollmentPersistenceService } from '../src/services/enrollment-persistence-service.js';
 import { AdminPersistenceService } from '../src/services/admin-persistence-service.js';
 
