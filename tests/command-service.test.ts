@@ -110,11 +110,10 @@ describe('Phase 6.1 command authorization', () => {
     const owner = randomUUID(),
       devices = new FakeDevices();
     devices.item = device(owner);
-    const service = new CommandService(
-      new FakeCommands(),
-      devices,
-      { ttlSeconds: 300, maxPayloadBytes: 4096 },
-    );
+    const service = new CommandService(new FakeCommands(), devices, {
+      ttlSeconds: 300,
+      maxPayloadBytes: 4096,
+    });
     await expect(
       service.create(owner, {
         deviceId: devices.item.id,

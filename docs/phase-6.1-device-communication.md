@@ -68,7 +68,6 @@ parento-admin will later need to create commands through the administrator-authe
 
 No changes were made to either repository in Phase 6.1.
 
-
 ## Verification status
 
 Repository verification is performed by the existing GitHub verification workflow; the branch must pass formatting, lint, type checking, migrations, tests, build, and dependency audit before merge.

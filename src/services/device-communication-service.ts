@@ -113,7 +113,10 @@ export class DeviceCommunicationService {
   }
 
   private assertLive(
-    session: Pick<DeviceConnectionSession, 'id' | 'managedDeviceId' | 'state' | 'expiresAt'>,
+    session: Pick<
+      DeviceConnectionSession,
+      'id' | 'managedDeviceId' | 'state' | 'expiresAt'
+    >,
   ): void {
     if (
       session.expiresAt.getTime() <= Date.now() ||
