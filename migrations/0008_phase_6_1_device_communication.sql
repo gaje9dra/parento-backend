@@ -84,3 +84,25 @@ CREATE TABLE command_events (
   CONSTRAINT command_events_metadata_check CHECK (jsonb_typeof(metadata) = 'object')
 );
 CREATE INDEX command_events_command_time_idx ON command_events (command_id, occurred_at ASC, id ASC);
+
+CREATE OR REPLACE FUNCTION revoke_device_communication_state()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.enrollment_status = 'REVOKED' OR NEW.operational_status = 'REVOKED' THEN
+    UPDATE device_credentials
+      SET status = 'REVOKED', revoked_at = COALESCE(revoked_at, NOW())
+      WHERE managed_device_id = NEW.id AND status = 'ACTIVE';
+    UPDATE device_connection_sessions
+      SET state = 'EXPIRED', disconnected_at = COALESCE(disconnected_at, NOW()), last_activity_at = NOW()
+      WHERE managed_device_id = NEW.id
+        AND state IN ('CONNECTING', 'CONNECTED', 'STALE');
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER managed_device_communication_revocation
+AFTER UPDATE OF enrollment_status, operational_status ON managed_devices
+FOR EACH ROW
+WHEN (NEW.enrollment_status = 'REVOKED' OR NEW.operational_status = 'REVOKED')
+EXECUTE FUNCTION revoke_device_communication_state();
