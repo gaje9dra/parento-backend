@@ -10,7 +10,7 @@ import { PostgresEnrollmentSessionRepository } from '../src/repositories/postgre
 const hasDatabase = Boolean(process.env.DATABASE_URL);
 
 describe.skipIf(!hasDatabase)(
-  'Phase 5.1 enrollment security integration',
+  'Phase 5 enrollment security integration',
   () => {
     const database = createDatabase(loadConfig());
     const admins = new PostgresAdminRepository(database);
