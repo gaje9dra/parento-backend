@@ -49,6 +49,7 @@ export class PostgresDeviceConnectionSessionRepository
   }): Promise<DeviceConnectionSession> {
     try {
       return await this.transaction(async (client) => {
+        await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [input.managedDeviceId]);
         await client.query(
           "SELECT id FROM device_connection_sessions WHERE managed_device_id=$1 AND state IN ('CONNECTING','CONNECTED','STALE') FOR UPDATE",
           [input.managedDeviceId],
