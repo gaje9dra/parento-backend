@@ -2,12 +2,23 @@ import type { Command } from '../domain/command.js';
 import type { DeviceConnectionSession } from '../domain/device-connection-session.js';
 import type { CommandRepository } from '../repositories/command-repository.js';
 import type { CommandDeliveryPort } from '../realtime/command-delivery-port.js';
+import type { DeviceConnectionSessionRepository } from '../repositories/device-connection-session-repository.js';
+import type { DeviceConnectionRegistry } from '../realtime/device-connection-registry.js';
 
 export class CommandDeliveryService {
   constructor(
     private readonly commands: CommandRepository,
     private readonly transport: CommandDeliveryPort,
+    private readonly sessions: DeviceConnectionSessionRepository,
+    private readonly registry: DeviceConnectionRegistry,
   ) {}
+
+  async deliverQueuedForDevice(managedDeviceId: string): Promise<void> {
+    const session = this.registry.findByDeviceId(managedDeviceId)?.session ??
+      await this.sessions.findActiveByDeviceId(managedDeviceId);
+    if (session === null || session === undefined || session.state !== 'CONNECTED') return;
+    await this.deliverPending(session);
+  }
 
   async deliverPending(session: DeviceConnectionSession): Promise<void> {
     const pending = await this.commands.findPendingForDevice(
