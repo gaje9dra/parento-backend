@@ -36,7 +36,7 @@ export class SseDeviceTransport implements CommandDeliveryPort {
     const keepAlive = setInterval(() => {
       if (response.writableEnded || response.destroyed) return;
       try {
-        response.write(': keepalive\\n\\n');
+        response.write(': keepalive\n\n');
       } catch {
         // close/error handlers perform cleanup
       }
