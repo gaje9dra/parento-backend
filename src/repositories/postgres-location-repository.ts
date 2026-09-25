@@ -50,6 +50,14 @@ export class PostgresLocationRepository
     return result.rows[0] === undefined ? null : toLocation(result.rows[0]);
   }
 
+  async findByReportId(reportId: string): Promise<ManagedDeviceLocation | null> {
+    const result = await this.query<LocationRow>(
+      'SELECT ' + columns + ' FROM managed_device_locations WHERE report_id = $1',
+      [reportId],
+    );
+    return result.rows[0] === undefined ? null : toLocation(result.rows[0]);
+  }
+
   async report(input: LocationReportInput): Promise<LocationReportResult> {
     try {
       const result = await this.query<LocationRow>(
@@ -84,6 +92,26 @@ export class PostgresLocationRepository
         );
       return { applied: false, location: current };
     } catch (error) {
+      if (error instanceof PersistenceError && error.code === 'CONFLICT') {
+        const existing = await this.findByReportId(input.reportId);
+        if (existing !== null) {
+          if (
+            existing.managedDeviceId === input.managedDeviceId &&
+            existing.availability === input.availability &&
+            existing.latitude === input.latitude &&
+            existing.longitude === input.longitude &&
+            existing.accuracyMeters === input.accuracyMeters &&
+            existing.observedAt.getTime() === input.observedAt.getTime()
+          ) {
+            return { applied: false, location: existing };
+          }
+          throw new PersistenceError(
+            'CONFLICT',
+            'The location report identifier is already in use.',
+            error,
+          );
+        }
+      }
       if (error instanceof PersistenceError) throw error;
       throw new PersistenceError(
         'CONFLICT',
