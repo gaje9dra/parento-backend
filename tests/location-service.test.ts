@@ -86,6 +86,78 @@ describe('LocationService', () => {
     });
   });
 
+  it('rejects non-finite coordinates', async () => {
+    const locations = {
+      report: vi.fn(),
+      findLatest: vi.fn(),
+    } as unknown as LocationRepository;
+    const service = new LocationService(locations, deviceRepo);
+    await expect(
+      service.report(
+        { managedDeviceId: device.id },
+        {
+          reportId: location.reportId,
+          availability: 'AVAILABLE',
+          latitude: Number.NaN,
+          longitude: 75,
+          accuracyMeters: null,
+          observedAt: new Date(),
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: 'INVALID_LOCATION_COORDINATES',
+      statusCode: 400,
+    });
+  });
+
+  it('rejects excessive coordinate precision', async () => {
+    const locations = {
+      report: vi.fn(),
+      findLatest: vi.fn(),
+    } as unknown as LocationRepository;
+    const service = new LocationService(locations, deviceRepo);
+    await expect(
+      service.report(
+        { managedDeviceId: device.id },
+        {
+          reportId: location.reportId,
+          availability: 'AVAILABLE',
+          latitude: 26.91240001,
+          longitude: 75.7873,
+          accuracyMeters: null,
+          observedAt: new Date(),
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: 'INVALID_LOCATION_COORDINATES',
+      statusCode: 400,
+    });
+  });
+
+  it('rejects unavailable reports that contain coordinates', async () => {
+    const locations = {
+      report: vi.fn(),
+      findLatest: vi.fn(),
+    } as unknown as LocationRepository;
+    const service = new LocationService(locations, deviceRepo);
+    await expect(
+      service.report(
+        { managedDeviceId: device.id },
+        {
+          reportId: location.reportId,
+          availability: 'UNAVAILABLE',
+          latitude: 26,
+          longitude: 75,
+          accuracyMeters: null,
+          observedAt: new Date(),
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: 'INVALID_LOCATION_COORDINATES',
+      statusCode: 400,
+    });
+  });
+
   it('rejects future timestamps beyond the allowed clock-skew window', async () => {
     const locations = {
       report: vi.fn(),
