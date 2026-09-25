@@ -19,7 +19,10 @@ export class InMemoryDeviceConnectionRegistry implements DeviceConnectionRegistr
 
   register(connection: ActiveDeviceConnection): void {
     const existing = this.connections.get(connection.session.managedDeviceId);
-    if (existing !== undefined && existing.session.id !== connection.session.id) {
+    if (
+      existing !== undefined &&
+      existing.session.id !== connection.session.id
+    ) {
       existing.close();
     }
     this.connections.set(connection.session.managedDeviceId, connection);

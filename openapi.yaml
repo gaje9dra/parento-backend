@@ -459,7 +459,10 @@ paths:
             schema:
               $ref: '#/components/schemas/DeviceMonitoringRequest'
       responses:
-        '200': { description: Monitoring snapshot accepted or older snapshot retained }
+        '200':
+          {
+            description: Monitoring snapshot accepted or older snapshot retained,
+          }
         '400': { $ref: '#/components/responses/ApiErrorResponse' }
         '401': { $ref: '#/components/responses/ApiErrorResponse' }
         '403': { $ref: '#/components/responses/ApiErrorResponse' }
@@ -719,7 +722,29 @@ components:
       type: object
       additionalProperties: false
       required:
-        [managedDeviceId, schemaVersion, deviceCollectedAtEpochMillis, androidVersion, apiLevel, appVersion, appVersionCode, managementMode, batteryPercentage, chargingState, batteryStatus, networkState, storageTotalBytes, storageAvailableBytes, storageUsedBytes, memoryTotalBytes, memoryAvailableBytes, memoryLow, lastSuccessfulInitializationEpochMillis, lastSuccessfulCommunicationEpochMillis, lastMonitoringUpdateEpochMillis]
+        [
+          managedDeviceId,
+          schemaVersion,
+          deviceCollectedAtEpochMillis,
+          androidVersion,
+          apiLevel,
+          appVersion,
+          appVersionCode,
+          managementMode,
+          batteryPercentage,
+          chargingState,
+          batteryStatus,
+          networkState,
+          storageTotalBytes,
+          storageAvailableBytes,
+          storageUsedBytes,
+          memoryTotalBytes,
+          memoryAvailableBytes,
+          memoryLow,
+          lastSuccessfulInitializationEpochMillis,
+          lastSuccessfulCommunicationEpochMillis,
+          lastMonitoringUpdateEpochMillis,
+        ]
       properties:
         managedDeviceId: { type: string, format: uuid }
         schemaVersion: { type: integer, enum: [1] }
@@ -728,19 +753,37 @@ components:
         apiLevel: { type: integer, minimum: 1 }
         appVersion: { type: string, maxLength: 64 }
         appVersionCode: { type: integer, minimum: 0 }
-        managementMode: { type: string, enum: [NOT_MANAGED, PROFILE_OWNER, DEVICE_OWNER, UNKNOWN] }
-        batteryPercentage: { type: integer, minimum: 0, maximum: 100, nullable: true }
-        chargingState: { type: string, enum: [CHARGING, DISCHARGING, FULL, NOT_CHARGING, UNKNOWN] }
-        batteryStatus: { type: string, enum: [NORMAL, LOW, CRITICAL, FULL, UNKNOWN] }
-        networkState: { type: string, enum: [UNKNOWN, OFFLINE, WIFI, CELLULAR, OTHER] }
-        storageTotalBytes: { type: integer, format: int64, minimum: 0, nullable: true }
-        storageAvailableBytes: { type: integer, format: int64, minimum: 0, nullable: true }
-        storageUsedBytes: { type: integer, format: int64, minimum: 0, nullable: true }
-        memoryTotalBytes: { type: integer, format: int64, minimum: 0, nullable: true }
-        memoryAvailableBytes: { type: integer, format: int64, minimum: 0, nullable: true }
+        managementMode:
+          {
+            type: string,
+            enum: [NOT_MANAGED, PROFILE_OWNER, DEVICE_OWNER, UNKNOWN],
+          }
+        batteryPercentage:
+          { type: integer, minimum: 0, maximum: 100, nullable: true }
+        chargingState:
+          {
+            type: string,
+            enum: [CHARGING, DISCHARGING, FULL, NOT_CHARGING, UNKNOWN],
+          }
+        batteryStatus:
+          { type: string, enum: [NORMAL, LOW, CRITICAL, FULL, UNKNOWN] }
+        networkState:
+          { type: string, enum: [UNKNOWN, OFFLINE, WIFI, CELLULAR, OTHER] }
+        storageTotalBytes:
+          { type: integer, format: int64, minimum: 0, nullable: true }
+        storageAvailableBytes:
+          { type: integer, format: int64, minimum: 0, nullable: true }
+        storageUsedBytes:
+          { type: integer, format: int64, minimum: 0, nullable: true }
+        memoryTotalBytes:
+          { type: integer, format: int64, minimum: 0, nullable: true }
+        memoryAvailableBytes:
+          { type: integer, format: int64, minimum: 0, nullable: true }
         memoryLow: { type: boolean, nullable: true }
-        lastSuccessfulInitializationEpochMillis: { type: integer, format: int64, nullable: true }
-        lastSuccessfulCommunicationEpochMillis: { type: integer, format: int64, nullable: true }
+        lastSuccessfulInitializationEpochMillis:
+          { type: integer, format: int64, nullable: true }
+        lastSuccessfulCommunicationEpochMillis:
+          { type: integer, format: int64, nullable: true }
         lastMonitoringUpdateEpochMillis: { type: integer, format: int64 }
     ApiError:
       type: object

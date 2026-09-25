@@ -32,7 +32,9 @@ export const requireDeviceSession =
     }
     const session = await sessions.findByTokenHash(hashOpaqueToken(match[1]));
     if (session && session.expiresAt.getTime() <= Date.now()) {
-      await sessions.disconnect(session.id, new Date(), 'EXPIRED').catch(() => undefined);
+      await sessions
+        .disconnect(session.id, new Date(), 'EXPIRED')
+        .catch(() => undefined);
     }
     if (
       !session ||

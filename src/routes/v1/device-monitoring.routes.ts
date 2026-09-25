@@ -43,7 +43,12 @@ export const createDeviceMonitoringRouter = (
   });
   const limited = limiter === undefined ? [] : [limiter];
 
-  router.post('/device/monitoring', ...limited, requireDeviceSession(sessions), controller.ingest);
+  router.post(
+    '/device/monitoring',
+    ...limited,
+    requireDeviceSession(sessions),
+    controller.ingest,
+  );
   router.get(
     '/devices/:deviceId/status',
     ...limited,

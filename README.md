@@ -622,7 +622,6 @@ The backend now contains a secure device-session and command-lifecycle foundatio
 
 See `docs/phase-6.1-device-communication.md` and `openapi.yaml` for the backend contract.
 
-
 ## Phase 6.4 — Device Communication, Monitoring & Realtime Integration
 
 Phase 6.4 builds on the Phase 6.1 device-session and command foundation. It adds authenticated SSE command delivery, single-active-session enforcement, session last-seen/revocation metadata, validated Phase 6.3 monitoring ingestion, latest-state monitoring persistence, and an admin-authorized device status endpoint.

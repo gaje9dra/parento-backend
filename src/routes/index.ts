@@ -11,6 +11,9 @@ export const createApiRouter = (
   realtime: AppConfig['realtime'] = { enabled: false },
 ): Router => {
   const router = Router();
-  router.use(apiBasePath, createV1Router(database, security, rateLimit, realtime));
+  router.use(
+    apiBasePath,
+    createV1Router(database, security, rateLimit, realtime),
+  );
   return router;
 };

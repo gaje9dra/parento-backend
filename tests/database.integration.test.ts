@@ -40,7 +40,11 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
       { id: '0006', applied: true, name: 'phase_3_3_session_lifecycle' },
       { id: '0007', applied: true, name: 'phase_5_1_enrollment_sessions' },
       { id: '0008', applied: true, name: 'phase_6_1_device_communication' },
-      { id: '0009', applied: true, name: 'phase_6_4_device_communication_monitoring' },
+      {
+        id: '0009',
+        applied: true,
+        name: 'phase_6_4_device_communication_monitoring',
+      },
     ]);
   });
 

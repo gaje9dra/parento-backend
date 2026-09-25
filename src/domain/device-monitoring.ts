@@ -1,7 +1,11 @@
-export type MonitoringManagementMode = 'NOT_MANAGED' | 'PROFILE_OWNER' | 'DEVICE_OWNER' | 'UNKNOWN';
-export type MonitoringChargingState = 'CHARGING' | 'DISCHARGING' | 'FULL' | 'NOT_CHARGING' | 'UNKNOWN';
-export type MonitoringBatteryStatus = 'NORMAL' | 'LOW' | 'CRITICAL' | 'FULL' | 'UNKNOWN';
-export type MonitoringNetworkState = 'UNKNOWN' | 'OFFLINE' | 'WIFI' | 'CELLULAR' | 'OTHER';
+export type MonitoringManagementMode =
+  'NOT_MANAGED' | 'PROFILE_OWNER' | 'DEVICE_OWNER' | 'UNKNOWN';
+export type MonitoringChargingState =
+  'CHARGING' | 'DISCHARGING' | 'FULL' | 'NOT_CHARGING' | 'UNKNOWN';
+export type MonitoringBatteryStatus =
+  'NORMAL' | 'LOW' | 'CRITICAL' | 'FULL' | 'UNKNOWN';
+export type MonitoringNetworkState =
+  'UNKNOWN' | 'OFFLINE' | 'WIFI' | 'CELLULAR' | 'OTHER';
 
 export interface DeviceMonitoringSnapshot {
   readonly managedDeviceId: string;

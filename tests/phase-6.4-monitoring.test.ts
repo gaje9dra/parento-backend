@@ -24,19 +24,34 @@ const device: ManagedDevice = {
 
 class FakeDevices implements ManagedDeviceRepository {
   readonly name = 'fake-devices';
-  async create(): Promise<ManagedDevice> { return device; }
-  async findById(): Promise<ManagedDevice | null> { return device; }
-  async findByStableIdentifier(): Promise<ManagedDevice | null> { return device; }
-  async list() { return { items: [device], nextCursor: null }; }
-  async listByAdminId() { return { items: [device], nextCursor: null }; }
-  async updateStatus(): Promise<ManagedDevice | null> { return device; }
+  async create(): Promise<ManagedDevice> {
+    return device;
+  }
+  async findById(): Promise<ManagedDevice | null> {
+    return device;
+  }
+  async findByStableIdentifier(): Promise<ManagedDevice | null> {
+    return device;
+  }
+  async list() {
+    return { items: [device], nextCursor: null };
+  }
+  async listByAdminId() {
+    return { items: [device], nextCursor: null };
+  }
+  async updateStatus(): Promise<ManagedDevice | null> {
+    return device;
+  }
 }
 
 class FakeMonitoring implements DeviceMonitoringRepository {
   readonly name = 'fake-monitoring';
   snapshot: DeviceMonitoringSnapshot | null = null;
   async upsert(snapshot: DeviceMonitoringSnapshot) {
-    if (this.snapshot !== null && this.snapshot.deviceCollectedAt > snapshot.deviceCollectedAt) {
+    if (
+      this.snapshot !== null &&
+      this.snapshot.deviceCollectedAt > snapshot.deviceCollectedAt
+    ) {
       return { snapshot: this.snapshot, updated: false };
     }
     this.snapshot = snapshot;
@@ -83,17 +98,26 @@ describe('Phase 6.4 monitoring', () => {
   });
 
   it('rejects a device identity mismatch', async () => {
-    const service = new DeviceMonitoringService(new FakeMonitoring(), new FakeDevices());
+    const service = new DeviceMonitoringService(
+      new FakeMonitoring(),
+      new FakeDevices(),
+    );
     await expect(
       service.ingest(deviceId, input({ managedDeviceId: randomUUID() })),
     ).rejects.toMatchObject({ statusCode: 403, code: 'AUTHORIZATION_DENIED' });
   });
 
   it('rejects invalid battery values', async () => {
-    const service = new DeviceMonitoringService(new FakeMonitoring(), new FakeDevices());
+    const service = new DeviceMonitoringService(
+      new FakeMonitoring(),
+      new FakeDevices(),
+    );
     await expect(
       service.ingest(deviceId, input({ batteryPercentage: 101 })),
-    ).rejects.toMatchObject({ statusCode: 400, code: 'INVALID_MONITORING_PAYLOAD' });
+    ).rejects.toMatchObject({
+      statusCode: 400,
+      code: 'INVALID_MONITORING_PAYLOAD',
+    });
   });
 
   it('does not allow an older snapshot to replace newer state', async () => {

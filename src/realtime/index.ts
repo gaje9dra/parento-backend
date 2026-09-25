@@ -5,6 +5,9 @@
  * registry. Business services depend on CommandDeliveryPort rather than SSE.
  */
 export { InMemoryDeviceConnectionRegistry } from './device-connection-registry.js';
-export type { DeviceConnectionRegistry, ActiveDeviceConnection } from './device-connection-registry.js';
+export type {
+  DeviceConnectionRegistry,
+  ActiveDeviceConnection,
+} from './device-connection-registry.js';
 export { SseDeviceTransport } from './sse-device-transport.js';
 export type { CommandDeliveryPort } from './command-delivery-port.js';

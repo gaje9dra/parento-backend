@@ -6,29 +6,50 @@ import type { DeviceConnectionSessionRepository } from '../repositories/device-c
 import { AppError } from '../types/errors.js';
 import type { DeviceMonitoringSnapshot } from '../domain/device-monitoring.js';
 
-const monitoringSchema = z.object({
-  managedDeviceId: z.string().uuid(),
-  schemaVersion: z.number().int(),
-  deviceCollectedAtEpochMillis: z.number().int(),
-  androidVersion: z.string().min(1).max(64),
-  apiLevel: z.number().int(),
-  appVersion: z.string().min(1).max(64),
-  appVersionCode: z.number().int().nonnegative(),
-  managementMode: z.enum(['NOT_MANAGED','PROFILE_OWNER','DEVICE_OWNER','UNKNOWN']),
-  batteryPercentage: z.number().int().min(0).max(100).nullable(),
-  chargingState: z.enum(['CHARGING','DISCHARGING','FULL','NOT_CHARGING','UNKNOWN']),
-  batteryStatus: z.enum(['NORMAL','LOW','CRITICAL','FULL','UNKNOWN']),
-  networkState: z.enum(['UNKNOWN','OFFLINE','WIFI','CELLULAR','OTHER']),
-  storageTotalBytes: z.number().int().nonnegative().nullable(),
-  storageAvailableBytes: z.number().int().nonnegative().nullable(),
-  storageUsedBytes: z.number().int().nonnegative().nullable(),
-  memoryTotalBytes: z.number().int().nonnegative().nullable(),
-  memoryAvailableBytes: z.number().int().nonnegative().nullable(),
-  memoryLow: z.boolean().nullable(),
-  lastSuccessfulInitializationEpochMillis: z.number().int().positive().nullable(),
-  lastSuccessfulCommunicationEpochMillis: z.number().int().positive().nullable(),
-  lastMonitoringUpdateEpochMillis: z.number().int().positive(),
-}).strict();
+const monitoringSchema = z
+  .object({
+    managedDeviceId: z.string().uuid(),
+    schemaVersion: z.number().int(),
+    deviceCollectedAtEpochMillis: z.number().int(),
+    androidVersion: z.string().min(1).max(64),
+    apiLevel: z.number().int(),
+    appVersion: z.string().min(1).max(64),
+    appVersionCode: z.number().int().nonnegative(),
+    managementMode: z.enum([
+      'NOT_MANAGED',
+      'PROFILE_OWNER',
+      'DEVICE_OWNER',
+      'UNKNOWN',
+    ]),
+    batteryPercentage: z.number().int().min(0).max(100).nullable(),
+    chargingState: z.enum([
+      'CHARGING',
+      'DISCHARGING',
+      'FULL',
+      'NOT_CHARGING',
+      'UNKNOWN',
+    ]),
+    batteryStatus: z.enum(['NORMAL', 'LOW', 'CRITICAL', 'FULL', 'UNKNOWN']),
+    networkState: z.enum(['UNKNOWN', 'OFFLINE', 'WIFI', 'CELLULAR', 'OTHER']),
+    storageTotalBytes: z.number().int().nonnegative().nullable(),
+    storageAvailableBytes: z.number().int().nonnegative().nullable(),
+    storageUsedBytes: z.number().int().nonnegative().nullable(),
+    memoryTotalBytes: z.number().int().nonnegative().nullable(),
+    memoryAvailableBytes: z.number().int().nonnegative().nullable(),
+    memoryLow: z.boolean().nullable(),
+    lastSuccessfulInitializationEpochMillis: z
+      .number()
+      .int()
+      .positive()
+      .nullable(),
+    lastSuccessfulCommunicationEpochMillis: z
+      .number()
+      .int()
+      .positive()
+      .nullable(),
+    lastMonitoringUpdateEpochMillis: z.number().int().positive(),
+  })
+  .strict();
 
 const toSnapshot = (snapshot: DeviceMonitoringSnapshot | null) =>
   snapshot === null
@@ -53,8 +74,10 @@ const toSnapshot = (snapshot: DeviceMonitoringSnapshot | null) =>
         memoryTotalBytes: snapshot.memoryTotalBytes,
         memoryAvailableBytes: snapshot.memoryAvailableBytes,
         memoryLow: snapshot.memoryLow,
-        lastSuccessfulInitializationAt: snapshot.lastSuccessfulInitializationAt?.toISOString() ?? null,
-        lastSuccessfulCommunicationAt: snapshot.lastSuccessfulCommunicationAt?.toISOString() ?? null,
+        lastSuccessfulInitializationAt:
+          snapshot.lastSuccessfulInitializationAt?.toISOString() ?? null,
+        lastSuccessfulCommunicationAt:
+          snapshot.lastSuccessfulCommunicationAt?.toISOString() ?? null,
         lastMonitoringUpdateAt: snapshot.lastMonitoringUpdateAt.toISOString(),
       };
 
@@ -87,7 +110,10 @@ export const createDeviceMonitoringController = (
         });
         return;
       }
-      const result = await monitoring.ingest(session.managedDeviceId, parsed.data);
+      const result = await monitoring.ingest(
+        session.managedDeviceId,
+        parsed.data,
+      );
       res.status(200).json({
         data: {
           updated: result.updated,
@@ -115,15 +141,27 @@ export const createDeviceMonitoringController = (
 
       const deviceId = z.string().uuid().safeParse(req.params.deviceId);
       if (!deviceId.success) {
-        throw new AppError(400, 'INVALID_REQUEST', 'Managed-device identifier is invalid.');
+        throw new AppError(
+          400,
+          'INVALID_REQUEST',
+          'Managed-device identifier is invalid.',
+        );
       }
 
       const device = await devices.findById(deviceId.data);
       if (device === null) {
-        throw new AppError(404, 'DEVICE_NOT_FOUND', 'Managed device was not found.');
+        throw new AppError(
+          404,
+          'DEVICE_NOT_FOUND',
+          'Managed device was not found.',
+        );
       }
       if (device.adminId !== req.authenticatedAdmin.id) {
-        throw new AppError(403, 'AUTHORIZATION_DENIED', 'The administrator does not control this device.');
+        throw new AppError(
+          403,
+          'AUTHORIZATION_DENIED',
+          'The administrator does not control this device.',
+        );
       }
 
       const [snapshot, session] = await Promise.all([
@@ -132,23 +170,27 @@ export const createDeviceMonitoringController = (
       ]);
 
       const now = Date.now();
-      const sessionExpired = session !== null && session.expiresAt.getTime() <= now;
-      const lastSeenAgeMs = session === null ? null : Math.max(0, now - session.lastSeenAt.getTime());
-      const connectionState =
-        sessionExpired
-          ? 'EXPIRED'
-          : session === null
-            ? 'DISCONNECTED'
-            : session.state !== 'CONNECTED'
-              ? session.state
-              : (lastSeenAgeMs ?? 0) > 120_000
-                ? 'STALE'
-                : 'CONNECTED';
-      const freshness = snapshot === null
-        ? 'UNKNOWN'
-        : now - snapshot.serverReceivedAt.getTime() <= 5 * 60_000
-          ? 'FRESH'
-          : 'STALE';
+      const sessionExpired =
+        session !== null && session.expiresAt.getTime() <= now;
+      const lastSeenAgeMs =
+        session === null
+          ? null
+          : Math.max(0, now - session.lastSeenAt.getTime());
+      const connectionState = sessionExpired
+        ? 'EXPIRED'
+        : session === null
+          ? 'DISCONNECTED'
+          : session.state !== 'CONNECTED'
+            ? session.state
+            : (lastSeenAgeMs ?? 0) > 120_000
+              ? 'STALE'
+              : 'CONNECTED';
+      const freshness =
+        snapshot === null
+          ? 'UNKNOWN'
+          : now - snapshot.serverReceivedAt.getTime() <= 5 * 60_000
+            ? 'FRESH'
+            : 'STALE';
 
       res.status(200).json({
         data: {
@@ -162,10 +204,14 @@ export const createDeviceMonitoringController = (
           },
           connection: {
             state: connectionState,
-            sessionId: sessionExpired ? null : session?.id ?? null,
-            lastSeenAt: sessionExpired ? null : session?.lastSeenAt.toISOString() ?? null,
+            sessionId: sessionExpired ? null : (session?.id ?? null),
+            lastSeenAt: sessionExpired
+              ? null
+              : (session?.lastSeenAt.toISOString() ?? null),
             lastSeenAgeMs,
-            expiresAt: sessionExpired ? null : session?.expiresAt.toISOString() ?? null,
+            expiresAt: sessionExpired
+              ? null
+              : (session?.expiresAt.toISOString() ?? null),
           },
           monitoring: {
             freshness,

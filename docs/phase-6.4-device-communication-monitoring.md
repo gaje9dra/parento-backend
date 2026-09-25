@@ -40,15 +40,15 @@ The realtime adapter uses SSE because the managed client already has an HTTPS co
 Architecture:
 
 CommandService
-    ↓
+↓
 CommandDeliveryService
-    ↓
+↓
 CommandDeliveryPort
-    ↓
+↓
 SseDeviceTransport
-    ↓
+↓
 InMemoryDeviceConnectionRegistry
-    ↓
+↓
 Managed Device
 
 The command domain is not coupled to Express or SSE. The registry is deliberately an abstraction suitable for later distributed replacement; no distributed infrastructure is added in this phase.

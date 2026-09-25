@@ -61,7 +61,9 @@ export const createDeviceCommunicationController = (
         });
         return;
       }
-      const session = await communication.getSession(req.authenticatedDeviceSession.id);
+      const session = await communication.getSession(
+        req.authenticatedDeviceSession.id,
+      );
       if (session === null || session.expiresAt.getTime() <= Date.now()) {
         res.status(401).json({
           error: {

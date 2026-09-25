@@ -49,12 +49,24 @@ const command: Command = {
 class FakeCommands implements CommandRepository {
   readonly name = 'fake-commands';
   item = { ...command };
-  async create(): Promise<{ command: Command; created: boolean }> { return { command: this.item, created: true }; }
-  async findById(): Promise<Command | null> { return this.item; }
-  async findOwned(): Promise<Command | null> { return this.item; }
-  async cancelOwned(): Promise<Command> { return this.item; }
-  async findPendingForDevice(): Promise<Command[]> { return this.item.status === 'QUEUED' ? [this.item] : []; }
-  async transition(input: Parameters<CommandRepository['transition']>[0]): Promise<Command> {
+  async create(): Promise<{ command: Command; created: boolean }> {
+    return { command: this.item, created: true };
+  }
+  async findById(): Promise<Command | null> {
+    return this.item;
+  }
+  async findOwned(): Promise<Command | null> {
+    return this.item;
+  }
+  async cancelOwned(): Promise<Command> {
+    return this.item;
+  }
+  async findPendingForDevice(): Promise<Command[]> {
+    return this.item.status === 'QUEUED' ? [this.item] : [];
+  }
+  async transition(
+    input: Parameters<CommandRepository['transition']>[0],
+  ): Promise<Command> {
     this.item = {
       ...this.item,
       status: input.to,
@@ -66,19 +78,33 @@ class FakeCommands implements CommandRepository {
 
 class FakeSessions implements DeviceConnectionSessionRepository {
   readonly name = 'fake-sessions';
-  async create(): Promise<DeviceConnectionSession> { return session; }
-  async findByTokenHash(): Promise<DeviceConnectionSession | null> { return session; }
-  async findById(): Promise<DeviceConnectionSession | null> { return session; }
-  async findActiveByDeviceId(): Promise<DeviceConnectionSession | null> { return session; }
-  async touchConnected(): Promise<DeviceConnectionSession | null> { return session; }
-  async disconnect(): Promise<DeviceConnectionSession | null> { return session; }
+  async create(): Promise<DeviceConnectionSession> {
+    return session;
+  }
+  async findByTokenHash(): Promise<DeviceConnectionSession | null> {
+    return session;
+  }
+  async findById(): Promise<DeviceConnectionSession | null> {
+    return session;
+  }
+  async findActiveByDeviceId(): Promise<DeviceConnectionSession | null> {
+    return session;
+  }
+  async touchConnected(): Promise<DeviceConnectionSession | null> {
+    return session;
+  }
+  async disconnect(): Promise<DeviceConnectionSession | null> {
+    return session;
+  }
   async revokeForDevice(): Promise<void> {}
 }
 
 class FakeTransport implements CommandDeliveryPort {
   readonly name = 'fake';
   delivered: string[] = [];
-  async deliver(c: Command): Promise<void> { this.delivered.push(c.id); }
+  async deliver(c: Command): Promise<void> {
+    this.delivered.push(c.id);
+  }
 }
 
 describe('Phase 6.4 command delivery', () => {
@@ -94,7 +120,12 @@ describe('Phase 6.4 command delivery', () => {
       close: () => undefined,
     });
 
-    const delivery = new CommandDeliveryService(commands, transport, sessions, registry);
+    const delivery = new CommandDeliveryService(
+      commands,
+      transport,
+      sessions,
+      registry,
+    );
     await delivery.deliverQueuedForDevice(deviceId);
 
     expect(transport.delivered).toEqual([command.id]);
@@ -106,7 +137,12 @@ describe('Phase 6.4 command delivery', () => {
     const sessions = new FakeSessions();
     const registry = new InMemoryDeviceConnectionRegistry();
     const transport = new FakeTransport();
-    const delivery = new CommandDeliveryService(commands, transport, sessions, registry);
+    const delivery = new CommandDeliveryService(
+      commands,
+      transport,
+      sessions,
+      registry,
+    );
 
     await delivery.deliverQueuedForDevice(deviceId);
 

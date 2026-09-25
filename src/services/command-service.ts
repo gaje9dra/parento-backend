@@ -109,7 +109,8 @@ export class CommandService {
         expiresAt: new Date(now.getTime() + this.options.ttlSeconds * 1000),
       });
       if (!created.created) {
-        if (this.delivery !== undefined) await this.delivery.deliverQueuedForDevice(device.id);
+        if (this.delivery !== undefined)
+          await this.delivery.deliverQueuedForDevice(device.id);
         const existing = await this.commands.findById(created.command.id);
         return { command: existing ?? created.command, created: false };
       }
@@ -212,7 +213,11 @@ export class CommandService {
     if (resultMetadata !== null) {
       const bytes = Buffer.byteLength(JSON.stringify(resultMetadata), 'utf8');
       if (bytes > this.options.maxPayloadBytes) {
-        throw new AppError(413, 'COMMAND_PAYLOAD_TOO_LARGE', 'Command result metadata is too large.');
+        throw new AppError(
+          413,
+          'COMMAND_PAYLOAD_TOO_LARGE',
+          'Command result metadata is too large.',
+        );
       }
     }
     if (command!.status !== 'RUNNING')

@@ -70,7 +70,11 @@ const validateTimestamp = (
 ): void => {
   if (value === null) return;
   if (!Number.isSafeInteger(value) || value <= 0 || value > now + 5 * 60_000) {
-    throw new AppError(400, 'INVALID_MONITORING_PAYLOAD', field + ' is invalid.');
+    throw new AppError(
+      400,
+      'INVALID_MONITORING_PAYLOAD',
+      field + ' is invalid.',
+    );
   }
 };
 
@@ -110,8 +114,16 @@ export class DeviceMonitoringService {
     }
 
     const now = Date.now();
-    validateTimestamp(input.deviceCollectedAtEpochMillis, 'deviceCollectedAtEpochMillis', now);
-    validateTimestamp(input.lastMonitoringUpdateEpochMillis, 'lastMonitoringUpdateEpochMillis', now);
+    validateTimestamp(
+      input.deviceCollectedAtEpochMillis,
+      'deviceCollectedAtEpochMillis',
+      now,
+    );
+    validateTimestamp(
+      input.lastMonitoringUpdateEpochMillis,
+      'lastMonitoringUpdateEpochMillis',
+      now,
+    );
     validateTimestamp(
       input.lastSuccessfulInitializationEpochMillis,
       'lastSuccessfulInitializationEpochMillis',
@@ -124,8 +136,7 @@ export class DeviceMonitoringService {
     );
 
     if (
-      input.lastMonitoringUpdateEpochMillis <
-      input.deviceCollectedAtEpochMillis
+      input.lastMonitoringUpdateEpochMillis < input.deviceCollectedAtEpochMillis
     ) {
       throw new AppError(
         400,
@@ -157,10 +168,21 @@ export class DeviceMonitoringService {
         'Monitoring enum value is invalid.',
       );
     }
-    if (!Number.isInteger(input.apiLevel) || input.apiLevel < 1 || input.apiLevel > 1000) {
-      throw new AppError(400, 'INVALID_MONITORING_PAYLOAD', 'API level is invalid.');
+    if (
+      !Number.isInteger(input.apiLevel) ||
+      input.apiLevel < 1 ||
+      input.apiLevel > 1000
+    ) {
+      throw new AppError(
+        400,
+        'INVALID_MONITORING_PAYLOAD',
+        'API level is invalid.',
+      );
     }
-    if (!Number.isSafeInteger(input.appVersionCode) || input.appVersionCode < 0) {
+    if (
+      !Number.isSafeInteger(input.appVersionCode) ||
+      input.appVersionCode < 0
+    ) {
       throw new AppError(
         400,
         'INVALID_MONITORING_PAYLOAD',
@@ -222,7 +244,11 @@ export class DeviceMonitoringService {
 
     const device = await this.devices.findById(sessionDeviceId);
     if (device === null) {
-      throw new AppError(404, 'DEVICE_NOT_FOUND', 'Managed device was not found.');
+      throw new AppError(
+        404,
+        'DEVICE_NOT_FOUND',
+        'Managed device was not found.',
+      );
     }
     if (
       device.enrollmentStatus !== 'ACTIVE' ||
@@ -273,7 +299,11 @@ export class DeviceMonitoringService {
   ): Promise<DeviceMonitoringSnapshot | null> {
     const device = await this.devices.findById(deviceId);
     if (device === null) {
-      throw new AppError(404, 'DEVICE_NOT_FOUND', 'Managed device was not found.');
+      throw new AppError(
+        404,
+        'DEVICE_NOT_FOUND',
+        'Managed device was not found.',
+      );
     }
     if (device.adminId !== adminId) {
       throw new AppError(
