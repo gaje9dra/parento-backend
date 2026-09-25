@@ -21,7 +21,6 @@ export interface EnrollmentSessionRepository extends Repository {
   consume(input: {
     id: string;
     secretHash: string;
-    adminId: string;
     managedDeviceId: string;
     stableIdentifier: string;
     name: string;
