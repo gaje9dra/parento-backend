@@ -40,7 +40,12 @@ export const isValidEnrollmentSessionTransition = (
     );
   }
   if (from === 'VERIFIED') {
-    return to === 'COMPLETED' || to === 'EXPIRED' || to === 'CANCELLED' || to === 'REVOKED';
+    return (
+      to === 'COMPLETED' ||
+      to === 'EXPIRED' ||
+      to === 'CANCELLED' ||
+      to === 'REVOKED'
+    );
   }
   return false;
 };
