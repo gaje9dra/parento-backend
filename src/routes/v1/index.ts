@@ -112,6 +112,8 @@ export const createV1Router = (
       deviceSessions,
       authentication,
       rateLimit,
+      security,
+      realtime,
     ),
   );
 
