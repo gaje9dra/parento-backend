@@ -1,6 +1,12 @@
 import 'dotenv/config';
 import { z } from 'zod';
 
+export const DEFAULT_MONITORING_CONFIG = {
+  freshnessFreshMs: 300000,
+  freshnessStaleMs: 1800000,
+  maxPayloadBytes: 32768,
+} as const;
+
 const booleanString = z
   .enum(['true', 'false'])
   .transform((value) => value === 'true');
@@ -84,9 +90,9 @@ const rawEnvSchema = z.object({
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60000),
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().min(1).max(1000).default(10),
   REALTIME_ENABLED: booleanString.default(false),
-  MONITORING_FRESHNESS_FRESH_MS: z.coerce.number().int().positive().default(300000),
-  MONITORING_FRESHNESS_STALE_MS: z.coerce.number().int().positive().default(1800000),
-  MONITORING_MAX_PAYLOAD_BYTES: z.coerce.number().int().min(1024).max(1024 * 1024).default(32768),
+  MONITORING_FRESHNESS_FRESH_MS: z.coerce.number().int().positive().default(DEFAULT_MONITORING_CONFIG.freshnessFreshMs),
+  MONITORING_FRESHNESS_STALE_MS: z.coerce.number().int().positive().default(DEFAULT_MONITORING_CONFIG.freshnessStaleMs),
+  MONITORING_MAX_PAYLOAD_BYTES: z.coerce.number().int().min(1024).max(1024 * 1024).default(DEFAULT_MONITORING_CONFIG.maxPayloadBytes),
   EXTERNAL_SERVICE_BASE_URLS: z.string().default(''),
 });
 
