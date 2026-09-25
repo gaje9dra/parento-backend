@@ -147,7 +147,7 @@ export class PostgresDeviceConnectionSessionRepository
     );
   }
 
-  private async findById(id: string): Promise<DeviceConnectionSession | null> {
+  async findById(id: string): Promise<DeviceConnectionSession | null> {
     const result = await this.query<Row>(
       'SELECT ' + columns + ' FROM device_connection_sessions WHERE id=$1',
       [id],
