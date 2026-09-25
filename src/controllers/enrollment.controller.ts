@@ -3,16 +3,20 @@ import { z } from 'zod';
 import { logger } from '../logging/logger.js';
 import type { EnrollmentSessionService } from '../services/enrollment-session-service.js';
 
-const enrollmentIdSchema = z.object({
-  enrollmentId: z.string().uuid(),
-}).strict();
+const enrollmentIdSchema = z
+  .object({
+    enrollmentId: z.string().uuid(),
+  })
+  .strict();
 
-const consumeSchema = z.object({
-  authorizationSecret: z.string().min(20).max(256),
-  localInstallationIdentity: z.string().min(8).max(128),
-  name: z.string().trim().min(1).max(100),
-  platform: z.literal('android'),
-}).strict();
+const consumeSchema = z
+  .object({
+    authorizationSecret: z.string().min(20).max(256),
+    localInstallationIdentity: z.string().min(8).max(128),
+    name: z.string().trim().min(1).max(100),
+    platform: z.literal('android'),
+  })
+  .strict();
 
 const toResponse = (enrollment: {
   id: string;
@@ -38,7 +42,10 @@ const toResponse = (enrollment: {
   verificationAttempts: enrollment.verificationAttempts,
 });
 
-const requireAdmin = (req: Parameters<RequestHandler>[0], res: Parameters<RequestHandler>[1]): string | null => {
+const requireAdmin = (
+  req: Parameters<RequestHandler>[0],
+  res: Parameters<RequestHandler>[1],
+): string | null => {
   if (req.authenticatedAdmin === undefined) {
     res.status(401).json({
       error: {
@@ -115,7 +122,10 @@ export const createEnrollmentController = (
     if (adminId === null) return;
 
     try {
-      const enrollment = await service.getOwned(parsed.data.enrollmentId, adminId);
+      const enrollment = await service.getOwned(
+        parsed.data.enrollmentId,
+        adminId,
+      );
       res.status(200).json({
         data: { enrollment: toResponse(enrollment) },
         requestId: res.locals.requestId,
@@ -142,7 +152,10 @@ export const createEnrollmentController = (
     if (adminId === null) return;
 
     try {
-      const enrollment = await service.cancel(parsed.data.enrollmentId, adminId);
+      const enrollment = await service.cancel(
+        parsed.data.enrollmentId,
+        adminId,
+      );
       logger.info(
         {
           event: 'enrollment_cancelled',
