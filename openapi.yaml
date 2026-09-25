@@ -694,6 +694,16 @@ components:
                 - ENROLLMENT_STATE_CONFLICT
                 - INVALID_ENROLLMENT_VERIFICATION
                 - DEVICE_IDENTITY_CONFLICT
+                - DEVICE_AUTHENTICATION_REQUIRED
+                - DEVICE_AUTHORIZATION_DENIED
+                - DEVICE_SESSION_INVALID
+                - DEVICE_NOT_READY
+                - DEVICE_NOT_FOUND
+                - COMMAND_NOT_FOUND
+                - COMMAND_STATE_CONFLICT
+                - COMMAND_IDEMPOTENCY_CONFLICT
+                - COMMAND_PAYLOAD_TOO_LARGE
+                - UNSUPPORTED_COMMAND_TYPE
             message:
               type: string
             metadata:
