@@ -38,64 +38,90 @@ const thresholds = { freshMs: 300_000, staleMs: 1_800_000 };
 describe('Phase 7.1 monitoring freshness', () => {
   it('distinguishes fresh, stale and very stale telemetry', () => {
     expect(
-      classifyMonitoringFreshness(snapshot('2026-09-25T11:56:00.000Z'), {
-        enrollmentStatus: 'ACTIVE',
-        operationalStatus: 'ACTIVE',
-        communicationState: 'CONNECTED',
-        now,
-      }, thresholds),
+      classifyMonitoringFreshness(
+        snapshot('2026-09-25T11:56:00.000Z'),
+        {
+          enrollmentStatus: 'ACTIVE',
+          operationalStatus: 'ACTIVE',
+          communicationState: 'CONNECTED',
+          now,
+        },
+        thresholds,
+      ),
     ).toBe('FRESH');
 
     expect(
-      classifyMonitoringFreshness(snapshot('2026-09-25T11:50:00.000Z'), {
-        enrollmentStatus: 'ACTIVE',
-        operationalStatus: 'ACTIVE',
-        communicationState: 'CONNECTED',
-        now,
-      }, thresholds),
+      classifyMonitoringFreshness(
+        snapshot('2026-09-25T11:50:00.000Z'),
+        {
+          enrollmentStatus: 'ACTIVE',
+          operationalStatus: 'ACTIVE',
+          communicationState: 'CONNECTED',
+          now,
+        },
+        thresholds,
+      ),
     ).toBe('STALE');
 
     expect(
-      classifyMonitoringFreshness(snapshot('2026-09-25T11:20:00.000Z'), {
-        enrollmentStatus: 'ACTIVE',
-        operationalStatus: 'ACTIVE',
-        communicationState: 'CONNECTED',
-        now,
-      }, thresholds),
+      classifyMonitoringFreshness(
+        snapshot('2026-09-25T11:20:00.000Z'),
+        {
+          enrollmentStatus: 'ACTIVE',
+          operationalStatus: 'ACTIVE',
+          communicationState: 'CONNECTED',
+          now,
+        },
+        thresholds,
+      ),
     ).toBe('VERY_STALE');
   });
 
   it('distinguishes never-reported, disconnected and revoked devices', () => {
     expect(
-      classifyMonitoringFreshness(null, {
-        enrollmentStatus: 'ACTIVE',
-        operationalStatus: 'ACTIVE',
-        communicationState: 'CONNECTED',
-        now,
-      }, thresholds),
+      classifyMonitoringFreshness(
+        null,
+        {
+          enrollmentStatus: 'ACTIVE',
+          operationalStatus: 'ACTIVE',
+          communicationState: 'CONNECTED',
+          now,
+        },
+        thresholds,
+      ),
     ).toBe('NEVER_REPORTED');
 
     expect(
-      classifyMonitoringFreshness(snapshot('2026-09-25T11:59:00.000Z'), {
-        enrollmentStatus: 'ACTIVE',
-        operationalStatus: 'ACTIVE',
-        communicationState: null,
-        now,
-      }, thresholds),
+      classifyMonitoringFreshness(
+        snapshot('2026-09-25T11:59:00.000Z'),
+        {
+          enrollmentStatus: 'ACTIVE',
+          operationalStatus: 'ACTIVE',
+          communicationState: null,
+          now,
+        },
+        thresholds,
+      ),
     ).toBe('DISCONNECTED');
 
     expect(
-      classifyMonitoringFreshness(snapshot('2026-09-25T11:59:00.000Z'), {
-        enrollmentStatus: 'REVOKED',
-        operationalStatus: 'REVOKED',
-        communicationState: null,
-        now,
-      }, thresholds),
+      classifyMonitoringFreshness(
+        snapshot('2026-09-25T11:59:00.000Z'),
+        {
+          enrollmentStatus: 'REVOKED',
+          operationalStatus: 'REVOKED',
+          communicationState: null,
+          now,
+        },
+        thresholds,
+      ),
     ).toBe('REVOKED');
   });
 
   it('uses server receipt time for freshness age', () => {
-    expect(monitoringFreshnessAgeMs(snapshot('2026-09-25T11:55:00.000Z'), now)).toBe(300_000);
+    expect(
+      monitoringFreshnessAgeMs(snapshot('2026-09-25T11:55:00.000Z'), now),
+    ).toBe(300_000);
   });
 
   it('rejects invalid threshold ordering', () => {

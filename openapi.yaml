@@ -484,13 +484,33 @@ paths:
           schema: { type: string, enum: [PENDING, ACTIVE, REVOKED] }
         - name: communicationState
           in: query
-          schema: { type: string, enum: [CONNECTING, CONNECTED, STALE, DISCONNECTED, EXPIRED] }
+          schema:
+            {
+              type: string,
+              enum: [CONNECTING, CONNECTED, STALE, DISCONNECTED, EXPIRED],
+            }
         - name: managementMode
           in: query
-          schema: { type: string, enum: [NOT_MANAGED, PROFILE_OWNER, DEVICE_OWNER, UNKNOWN] }
+          schema:
+            {
+              type: string,
+              enum: [NOT_MANAGED, PROFILE_OWNER, DEVICE_OWNER, UNKNOWN],
+            }
         - name: freshness
           in: query
-          schema: { type: string, enum: [FRESH, STALE, VERY_STALE, NEVER_REPORTED, DISCONNECTED, REVOKED] }
+          schema:
+            {
+              type: string,
+              enum:
+                [
+                  FRESH,
+                  STALE,
+                  VERY_STALE,
+                  NEVER_REPORTED,
+                  DISCONNECTED,
+                  REVOKED,
+                ],
+            }
         - name: search
           in: query
           schema: { type: string, minLength: 1, maxLength: 100 }
@@ -762,7 +782,17 @@ components:
                 deviceCredential: { type: string, minLength: 43, maxLength: 43 }
     DeviceIdentity:
       type: object
-      required: [id, name, stableIdentifier, platform, enrollmentStatus, operationalStatus, firstEnrolledAt, lastSeenAt]
+      required:
+        [
+          id,
+          name,
+          stableIdentifier,
+          platform,
+          enrollmentStatus,
+          operationalStatus,
+          firstEnrolledAt,
+          lastSeenAt,
+        ]
       properties:
         id: { type: string, format: uuid }
         name: { type: string }
@@ -798,24 +828,61 @@ components:
           type: object
           required: [state, lastSeenAt, expiresAt]
           properties:
-            state: { type: string, enum: [CONNECTING, CONNECTED, STALE, DISCONNECTED, EXPIRED] }
+            state:
+              {
+                type: string,
+                enum: [CONNECTING, CONNECTED, STALE, DISCONNECTED, EXPIRED],
+              }
             lastSeenAt: { type: string, format: date-time, nullable: true }
             expiresAt: { type: string, format: date-time, nullable: true }
         monitoring:
           type: object
-          required: [freshness, ageMs, managementMode, androidVersion, apiLevel, appVersion, batteryPercentage, chargingState, networkState, storageAvailableBytes, memoryAvailableBytes, lastTelemetryAt]
+          required:
+            [
+              freshness,
+              ageMs,
+              managementMode,
+              androidVersion,
+              apiLevel,
+              appVersion,
+              batteryPercentage,
+              chargingState,
+              networkState,
+              storageAvailableBytes,
+              memoryAvailableBytes,
+              lastTelemetryAt,
+            ]
           properties:
-            freshness: { type: string, enum: [FRESH, STALE, VERY_STALE, NEVER_REPORTED, DISCONNECTED, REVOKED] }
+            freshness:
+              {
+                type: string,
+                enum:
+                  [
+                    FRESH,
+                    STALE,
+                    VERY_STALE,
+                    NEVER_REPORTED,
+                    DISCONNECTED,
+                    REVOKED,
+                  ],
+              }
             ageMs: { type: integer, minimum: 0, nullable: true }
-            managementMode: { type: string, enum: [NOT_MANAGED, PROFILE_OWNER, DEVICE_OWNER, UNKNOWN] }
+            managementMode:
+              {
+                type: string,
+                enum: [NOT_MANAGED, PROFILE_OWNER, DEVICE_OWNER, UNKNOWN],
+              }
             androidVersion: { type: string, nullable: true }
             apiLevel: { type: integer, nullable: true }
             appVersion: { type: string, nullable: true }
-            batteryPercentage: { type: integer, minimum: 0, maximum: 100, nullable: true }
+            batteryPercentage:
+              { type: integer, minimum: 0, maximum: 100, nullable: true }
             chargingState: { type: string, nullable: true }
             networkState: { type: string, nullable: true }
-            storageAvailableBytes: { type: integer, format: int64, nullable: true }
-            memoryAvailableBytes: { type: integer, format: int64, nullable: true }
+            storageAvailableBytes:
+              { type: integer, format: int64, nullable: true }
+            memoryAvailableBytes:
+              { type: integer, format: int64, nullable: true }
             lastTelemetryAt: { type: string, format: date-time, nullable: true }
     DeviceMonitoringStatusResponse:
       allOf:
@@ -834,7 +901,8 @@ components:
                   properties:
                     state: { type: string }
                     session: { type: object, nullable: true }
-                    lastConnectedAt: { type: string, format: date-time, nullable: true }
+                    lastConnectedAt:
+                      { type: string, format: date-time, nullable: true }
                 monitoring:
                   type: object
                   required: [freshness, ageMs, snapshot]

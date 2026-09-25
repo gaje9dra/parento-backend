@@ -1,5 +1,8 @@
 import type { DeviceMonitoringSnapshot } from '../domain/device-monitoring.js';
-import type { ManagedDevice, ManagedDeviceStatus } from '../domain/managed-device.js';
+import type {
+  ManagedDevice,
+  ManagedDeviceStatus,
+} from '../domain/managed-device.js';
 import type { DeviceConnectionSession } from '../domain/device-connection-session.js';
 import type { Repository } from './repository.js';
 
@@ -13,9 +16,17 @@ export interface MonitoringDevicePageRequest {
   readonly limit?: number;
   readonly cursor?: string | null;
   readonly enrollmentStatus?: ManagedDeviceStatus;
-  readonly communicationState?: 'CONNECTING' | 'CONNECTED' | 'STALE' | 'DISCONNECTED' | 'EXPIRED';
-  readonly managementMode?: 'NOT_MANAGED' | 'PROFILE_OWNER' | 'DEVICE_OWNER' | 'UNKNOWN';
-  readonly freshness?: 'FRESH' | 'STALE' | 'VERY_STALE' | 'NEVER_REPORTED' | 'DISCONNECTED' | 'REVOKED';
+  readonly communicationState?:
+    'CONNECTING' | 'CONNECTED' | 'STALE' | 'DISCONNECTED' | 'EXPIRED';
+  readonly managementMode?:
+    'NOT_MANAGED' | 'PROFILE_OWNER' | 'DEVICE_OWNER' | 'UNKNOWN';
+  readonly freshness?:
+    | 'FRESH'
+    | 'STALE'
+    | 'VERY_STALE'
+    | 'NEVER_REPORTED'
+    | 'DISCONNECTED'
+    | 'REVOKED';
   readonly search?: string;
 }
 

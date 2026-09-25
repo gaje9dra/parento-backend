@@ -5,6 +5,7 @@
 Phase 7.1 extends the Phase 6.4 backend monitoring foundation without replacing its communication architecture.
 
 Implemented:
+
 - authoritative latest-state monitoring remains one row per ManagedDevice;
 - centralized freshness thresholds with FRESH, STALE, VERY_STALE, NEVER_REPORTED, DISCONNECTED, and REVOKED states;
 - server receipt time is used for freshness age;
@@ -31,6 +32,7 @@ Older or duplicate observations do not roll the authoritative snapshot backward.
 Freshness is centralized in src/domain/device-monitoring-freshness.ts.
 
 Default thresholds:
+
 - FRESH: observation received within 5 minutes;
 - STALE: older than 5 minutes and within 30 minutes;
 - VERY_STALE: older than 30 minutes;
@@ -39,6 +41,7 @@ Default thresholds:
 - REVOKED: enrollment or operational state is revoked.
 
 Thresholds are configurable:
+
 - MONITORING_FRESHNESS_FRESH_MS
 - MONITORING_FRESHNESS_STALE_MS
 
@@ -61,6 +64,7 @@ GET /api/v1/devices
 Returns only devices owned by the authenticated administrator.
 
 Supported bounded query parameters:
+
 - limit (1–100);
 - cursor;
 - enrollmentStatus;
@@ -92,6 +96,7 @@ Phase 7.1 therefore does not introduce a second realtime system or broadcast mon
 ## Database
 
 Migration 0010_phase_7_1_monitoring_expansion.sql adds:
+
 - monitoring management-mode index;
 - ManagedDevice + collection-time index;
 - storage capacity consistency constraint;
@@ -112,6 +117,7 @@ Phase 1–6 authentication, authorization, enrollment, device-session, command, 
 ## Deferred / future
 
 Not implemented:
+
 - historical telemetry retention;
 - Admin monitoring realtime stream;
 - location;

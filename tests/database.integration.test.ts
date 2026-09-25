@@ -123,10 +123,14 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
       'device_monitoring_management_mode_idx',
     ]);
 
-    const monitoringConstraints = await database.query<{ constraint_name: string }>(
+    const monitoringConstraints = await database.query<{
+      constraint_name: string;
+    }>(
       "SELECT constraint_name FROM information_schema.table_constraints WHERE table_schema = 'public' AND table_name = 'device_monitoring_snapshots' AND constraint_name IN ('device_monitoring_storage_capacity_check','device_monitoring_memory_capacity_check') ORDER BY constraint_name",
     );
-    expect(monitoringConstraints.rows.map((row) => row.constraint_name)).toEqual([
+    expect(
+      monitoringConstraints.rows.map((row) => row.constraint_name),
+    ).toEqual([
       'device_monitoring_memory_capacity_check',
       'device_monitoring_storage_capacity_check',
     ]);

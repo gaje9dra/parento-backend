@@ -1,4 +1,7 @@
-import type { DeviceConnectionSession, DeviceConnectionState } from '../domain/device-connection-session.js';
+import type {
+  DeviceConnectionSession,
+  DeviceConnectionState,
+} from '../domain/device-connection-session.js';
 import type {
   DeviceMonitoringSnapshot,
   MonitoringBatteryStatus,
@@ -6,7 +9,10 @@ import type {
   MonitoringManagementMode,
   MonitoringNetworkState,
 } from '../domain/device-monitoring.js';
-import type { ManagedDevice, ManagedDeviceStatus } from '../domain/managed-device.js';
+import type {
+  ManagedDevice,
+  ManagedDeviceStatus,
+} from '../domain/managed-device.js';
 import { mapPostgresPersistenceError } from '../db/errors.js';
 import type {
   DeviceMonitoringRepository,
@@ -86,7 +92,9 @@ const mapDevice = (r: Row): ManagedDevice => ({
 });
 
 const mapSession = (r: Row): DeviceConnectionSession | null =>
-  r.session_id === null || r.session_state === null || r.session_expires_at === null
+  r.session_id === null ||
+  r.session_state === null ||
+  r.session_expires_at === null
     ? null
     : {
         id: r.session_id,
@@ -111,7 +119,9 @@ const encodeCursor = (row: Row): string =>
 
 const decodeCursor = (cursor: string): { createdAt: Date; id: string } => {
   try {
-    const parsed = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8')) as {
+    const parsed = JSON.parse(
+      Buffer.from(cursor, 'base64url').toString('utf8'),
+    ) as {
       createdAt?: unknown;
       id?: unknown;
     };
@@ -179,7 +189,10 @@ export class PostgresDeviceMonitoringRepository
         return { snapshot: existing, updated: false };
       }
 
-      return { snapshot: this.mapPersistedSnapshot(result.rows[0]), updated: true };
+      return {
+        snapshot: this.mapPersistedSnapshot(result.rows[0]),
+        updated: true,
+      };
     } catch (error) {
       throw mapPostgresPersistenceError(
         error,
@@ -197,7 +210,9 @@ export class PostgresDeviceMonitoringRepository
         ' FROM device_monitoring_snapshots m WHERE m.managed_device_id=$1',
       [managedDeviceId],
     );
-    return result.rows[0] === undefined ? null : this.mapPersistedSnapshot(result.rows[0]);
+    return result.rows[0] === undefined
+      ? null
+      : this.mapPersistedSnapshot(result.rows[0]);
   }
 
   async listForAdmin(
@@ -209,7 +224,12 @@ export class PostgresDeviceMonitoringRepository
     try {
       const limit = Math.min(Math.max(page.limit ?? 50, 1), 100);
       const cursor = page.cursor == null ? null : decodeCursor(page.cursor);
-      const values: unknown[] = [adminId, now, freshness.freshMs, freshness.staleMs];
+      const values: unknown[] = [
+        adminId,
+        now,
+        freshness.freshMs,
+        freshness.staleMs,
+      ];
       const conditions = ['d.admin_id = $1'];
       const add = (value: unknown): string => {
         values.push(value);
@@ -224,7 +244,13 @@ export class PostgresDeviceMonitoringRepository
       }
       if (page.search !== undefined && page.search.trim() !== '') {
         const search = add('%' + page.search.trim() + '%');
-        conditions.push('(d.name ILIKE ' + search + ' OR d.stable_identifier ILIKE ' + search + ')');
+        conditions.push(
+          '(d.name ILIKE ' +
+            search +
+            ' OR d.stable_identifier ILIKE ' +
+            search +
+            ')',
+        );
       }
 
       const freshnessExpression = `CASE
@@ -242,13 +268,21 @@ export class PostgresDeviceMonitoringRepository
       END`;
 
       if (page.communicationState !== undefined) {
-        conditions.push(communicationExpression + ' = ' + add(page.communicationState));
+        conditions.push(
+          communicationExpression + ' = ' + add(page.communicationState),
+        );
       }
       if (page.freshness !== undefined) {
         conditions.push(freshnessExpression + ' = ' + add(page.freshness));
       }
       if (cursor !== null) {
-        conditions.push('(d.created_at, d.id) < (' + add(cursor.createdAt) + ', ' + add(cursor.id) + ')');
+        conditions.push(
+          '(d.created_at, d.id) < (' +
+            add(cursor.createdAt) +
+            ', ' +
+            add(cursor.id) +
+            ')',
+        );
       }
 
       const limitPlaceholder = add(limit + 1);
@@ -278,7 +312,10 @@ export class PostgresDeviceMonitoringRepository
       return {
         items: rows.map((row) => ({
           device: mapDevice(row),
-          snapshot: row.managed_device_id === null ? null : this.mapPersistedSnapshot(row),
+          snapshot:
+            row.managed_device_id === null
+              ? null
+              : this.mapPersistedSnapshot(row),
           session: mapSession(row),
         })),
         nextCursor: hasMore ? encodeCursor(rows[rows.length - 1]!) : null,

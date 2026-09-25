@@ -21,24 +21,11 @@ const methodNotAllowed =
     });
   };
 
-const enforceMonitoringPayloadLimit = (
-  maxBytes: number,
-): RequestHandler => (req, res, next) => {
-  const declaredLength = Number(req.header('content-length'));
-  if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
-    res.status(413).json({
-      error: {
-        code: 'REQUEST_TOO_LARGE',
-        message: 'Monitoring payload exceeds the configured limit.',
-      },
-      requestId: res.locals.requestId,
-    });
-    return;
-  }
-
-  try {
-    const encoded = Buffer.byteLength(JSON.stringify(req.body ?? null), 'utf8');
-    if (encoded > maxBytes) {
+const enforceMonitoringPayloadLimit =
+  (maxBytes: number): RequestHandler =>
+  (req, res, next) => {
+    const declaredLength = Number(req.header('content-length'));
+    if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
       res.status(413).json({
         error: {
           code: 'REQUEST_TOO_LARGE',
@@ -48,18 +35,34 @@ const enforceMonitoringPayloadLimit = (
       });
       return;
     }
-  } catch {
-    res.status(400).json({
-      error: {
-        code: 'INVALID_MONITORING_PAYLOAD',
-        message: 'Monitoring payload could not be validated.',
-      },
-      requestId: res.locals.requestId,
-    });
-    return;
-  }
-  next();
-};
+
+    try {
+      const encoded = Buffer.byteLength(
+        JSON.stringify(req.body ?? null),
+        'utf8',
+      );
+      if (encoded > maxBytes) {
+        res.status(413).json({
+          error: {
+            code: 'REQUEST_TOO_LARGE',
+            message: 'Monitoring payload exceeds the configured limit.',
+          },
+          requestId: res.locals.requestId,
+        });
+        return;
+      }
+    } catch {
+      res.status(400).json({
+        error: {
+          code: 'INVALID_MONITORING_PAYLOAD',
+          message: 'Monitoring payload could not be validated.',
+        },
+        requestId: res.locals.requestId,
+      });
+      return;
+    }
+    next();
+  };
 
 export const createDeviceMonitoringRouter = (
   monitoring: DeviceMonitoringService,

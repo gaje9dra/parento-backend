@@ -35,8 +35,18 @@ const monitoringSchema = z
     memoryTotalBytes: z.number().int().nonnegative().safe().nullable(),
     memoryAvailableBytes: z.number().int().nonnegative().safe().nullable(),
     memoryLow: z.boolean().nullable(),
-    lastSuccessfulInitializationEpochMillis: z.number().int().positive().safe().nullable(),
-    lastSuccessfulCommunicationEpochMillis: z.number().int().positive().safe().nullable(),
+    lastSuccessfulInitializationEpochMillis: z
+      .number()
+      .int()
+      .positive()
+      .safe()
+      .nullable(),
+    lastSuccessfulCommunicationEpochMillis: z
+      .number()
+      .int()
+      .positive()
+      .safe()
+      .nullable(),
     lastMonitoringUpdateEpochMillis: z.number().int().positive().safe(),
   })
   .strict();
@@ -94,18 +104,20 @@ const toSnapshot = (snapshot: DeviceMonitoringSnapshot | null) =>
         lastMonitoringUpdateAt: snapshot.lastMonitoringUpdateAt.toISOString(),
       };
 
-const toSession = (session: {
-  id: string;
-  managedDeviceId: string;
-  state: string;
-  createdAt: Date;
-  connectedAt: Date | null;
-  lastActivityAt: Date;
-  disconnectedAt: Date | null;
-  expiresAt: Date;
-  lastSeenAt: Date;
-  revokedAt: Date | null;
-} | null) =>
+const toSession = (
+  session: {
+    id: string;
+    managedDeviceId: string;
+    state: string;
+    createdAt: Date;
+    connectedAt: Date | null;
+    lastActivityAt: Date;
+    disconnectedAt: Date | null;
+    expiresAt: Date;
+    lastSeenAt: Date;
+    revokedAt: Date | null;
+  } | null,
+) =>
   session === null
     ? null
     : {
@@ -148,10 +160,14 @@ export const createDeviceMonitoringController = (
         });
         return;
       }
-      const result = await monitoring.ingest(session.managedDeviceId, parsed.data, {
-        id: session.id,
-        expiresAt: session.expiresAt,
-      });
+      const result = await monitoring.ingest(
+        session.managedDeviceId,
+        parsed.data,
+        {
+          id: session.id,
+          expiresAt: session.expiresAt,
+        },
+      );
       res.status(200).json({
         data: {
           updated: result.updated,

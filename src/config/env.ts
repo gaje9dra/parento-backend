@@ -90,9 +90,22 @@ const rawEnvSchema = z.object({
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60000),
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().min(1).max(1000).default(10),
   REALTIME_ENABLED: booleanString.default(false),
-  MONITORING_FRESHNESS_FRESH_MS: z.coerce.number().int().positive().default(DEFAULT_MONITORING_CONFIG.freshnessFreshMs),
-  MONITORING_FRESHNESS_STALE_MS: z.coerce.number().int().positive().default(DEFAULT_MONITORING_CONFIG.freshnessStaleMs),
-  MONITORING_MAX_PAYLOAD_BYTES: z.coerce.number().int().min(1024).max(1024 * 1024).default(DEFAULT_MONITORING_CONFIG.maxPayloadBytes),
+  MONITORING_FRESHNESS_FRESH_MS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(DEFAULT_MONITORING_CONFIG.freshnessFreshMs),
+  MONITORING_FRESHNESS_STALE_MS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(DEFAULT_MONITORING_CONFIG.freshnessStaleMs),
+  MONITORING_MAX_PAYLOAD_BYTES: z.coerce
+    .number()
+    .int()
+    .min(1024)
+    .max(1024 * 1024)
+    .default(DEFAULT_MONITORING_CONFIG.maxPayloadBytes),
   EXTERNAL_SERVICE_BASE_URLS: z.string().default(''),
 });
 
@@ -382,11 +395,16 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     ]);
   }
 
-  if (parsed.data.MONITORING_FRESHNESS_STALE_MS <= parsed.data.MONITORING_FRESHNESS_FRESH_MS) {
-    throw new ConfigurationError([{
-      variable: 'MONITORING_FRESHNESS_STALE_MS',
-      message: 'Must be greater than MONITORING_FRESHNESS_FRESH_MS.',
-    }]);
+  if (
+    parsed.data.MONITORING_FRESHNESS_STALE_MS <=
+    parsed.data.MONITORING_FRESHNESS_FRESH_MS
+  ) {
+    throw new ConfigurationError([
+      {
+        variable: 'MONITORING_FRESHNESS_STALE_MS',
+        message: 'Must be greater than MONITORING_FRESHNESS_FRESH_MS.',
+      },
+    ]);
   }
 
   const productionIssues = productionRequirements(parsed.data);

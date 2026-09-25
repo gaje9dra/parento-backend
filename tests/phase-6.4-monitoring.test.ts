@@ -60,12 +60,24 @@ class FakeSessions implements DeviceConnectionSessionRepository {
     lastSeenAt: new Date(),
     revokedAt: null,
   };
-  async create(): Promise<DeviceConnectionSession> { return this.session!; }
-  async findByTokenHash(): Promise<DeviceConnectionSession | null> { return this.session; }
-  async findById(): Promise<DeviceConnectionSession | null> { return this.session; }
-  async findActiveByDeviceId(): Promise<DeviceConnectionSession | null> { return this.session; }
-  async touchConnected(): Promise<DeviceConnectionSession | null> { return this.session; }
-  async disconnect(): Promise<DeviceConnectionSession | null> { return this.session; }
+  async create(): Promise<DeviceConnectionSession> {
+    return this.session!;
+  }
+  async findByTokenHash(): Promise<DeviceConnectionSession | null> {
+    return this.session;
+  }
+  async findById(): Promise<DeviceConnectionSession | null> {
+    return this.session;
+  }
+  async findActiveByDeviceId(): Promise<DeviceConnectionSession | null> {
+    return this.session;
+  }
+  async touchConnected(): Promise<DeviceConnectionSession | null> {
+    return this.session;
+  }
+  async disconnect(): Promise<DeviceConnectionSession | null> {
+    return this.session;
+  }
   async revokeForDevice(): Promise<void> {}
 }
 
