@@ -372,7 +372,10 @@ export class DeviceMonitoringService {
             communicationState,
             now,
           },
-          this.options,
+          {
+            freshMs: this.options.freshnessFreshMs,
+            staleMs: this.options.freshnessStaleMs,
+          },
         ),
         ageMs: monitoringFreshnessAgeMs(snapshot, now),
         snapshot,
@@ -389,7 +392,10 @@ export class DeviceMonitoringService {
       adminId,
       page,
       now,
-      this.options,
+      {
+        freshMs: this.options.freshnessFreshMs,
+        staleMs: this.options.freshnessStaleMs,
+      },
     );
     return {
       ...result,
@@ -403,7 +409,10 @@ export class DeviceMonitoringService {
             communicationState: item.session?.state ?? null,
             now,
           },
-          this.options,
+          {
+            freshMs: this.options.freshnessFreshMs,
+            staleMs: this.options.freshnessStaleMs,
+          },
         ),
         ageMs: monitoringFreshnessAgeMs(item.snapshot, now),
       })),
