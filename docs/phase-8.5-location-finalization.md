@@ -4,7 +4,8 @@
 
 Repository: gaje9dra/parento-backend
 
-Phase 8 is a current-location system only. The backend stores one current location row per ManagedDevice and does not expose location history.
+Phase 8 is a current-location system only. The backend stores one current
+location row per ManagedDevice and does not expose location history.
 
 ## Reporting
 
@@ -31,11 +32,16 @@ Example request using synthetic coordinates:
 }
 ```
 
-For AVAILABLE reports, latitude and longitude are required. For UNAVAILABLE reports, coordinates and accuracy must be omitted/null according to the request schema.
+For AVAILABLE reports, latitude and longitude are required. For UNAVAILABLE
+reports, coordinates and accuracy must be omitted/null according to the
+request schema.
 
-The backend assigns receivedAt and rejects observedAt values more than five minutes ahead of backend time.
+The backend assigns receivedAt and rejects observedAt values more than five
+minutes ahead of backend time.
 
-A report with an older observedAt cannot replace a newer current state. An exact retry of the same reportId and report contents is a safe no-op. Reusing a reportId with different report data returns a stable 409 conflict.
+A report with an older observedAt cannot replace a newer current state. An
+exact retry of the same reportId and report contents is a safe no-op. Reusing
+a reportId with different report data returns a stable 409 conflict.
 
 ## Reporting response
 
@@ -75,7 +81,8 @@ Bearer Admin access token.
 
 Authorization:
 
-The requested ManagedDevice must belong to the authenticated Admin and must be readable through the existing Admin authorization boundary.
+The requested ManagedDevice must belong to the authenticated Admin and must be
+readable through the existing Admin authorization boundary.
 
 Example response:
 
@@ -98,7 +105,9 @@ Example response:
 }
 ```
 
-When no state has ever been reported, location is null and freshness is NEVER_REPORTED. An UNAVAILABLE current state is returned as UNAVAILABLE with null coordinates and freshness UNKNOWN.
+When no state has ever been reported, location is null and freshness is
+NEVER_REPORTED. An UNAVAILABLE current state is returned as UNAVAILABLE with
+null coordinates and freshness UNKNOWN.
 
 ## Freshness
 
@@ -113,6 +122,7 @@ Freshness is derived centrally from server time and observedAt:
 ## Validation and errors
 
 The backend rejects:
+
 - malformed request shapes
 - invalid report UUIDs
 - non-finite coordinates
@@ -127,9 +137,11 @@ The backend rejects:
 - unauthorized or revoked device sessions
 - Admin requests for devices owned by another Admin
 
-The standard error response contains an error code, safe message, and requestId. It never exposes SQL errors or stack traces.
+The standard error response contains an error code, safe message, and
+requestId. It never exposes SQL errors or stack traces.
 
 Relevant location-specific codes include:
+
 - INVALID_LOCATION_COORDINATES
 - INVALID_LOCATION_ACCURACY
 - INVALID_LOCATION_TIMESTAMP
@@ -156,11 +168,14 @@ Relevant location-specific codes include:
 
 ## Realtime
 
-No realtime location event contract exists in the current backend. Location uses authenticated HTTP reporting and retrieval. The existing realtime boundary remains unchanged.
+No realtime location event contract exists in the current backend. Location
+uses authenticated HTTP reporting and retrieval. The existing realtime
+boundary remains unchanged.
 
 ## Out of scope
 
 Phase 8.5 does not add:
+
 - location history
 - geofencing
 - route tracking
