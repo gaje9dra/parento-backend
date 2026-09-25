@@ -96,6 +96,7 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
       'enrollments_device_admin_fk',
       'managed_devices_stable_identifier_check',
       'managed_devices_stable_identifier_unique',
+    ]);
 
     const authColumns = await database.query<{ column_name: string }>(
       'SELECT column_name FROM information_schema.columns ' +
