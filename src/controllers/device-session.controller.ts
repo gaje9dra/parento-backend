@@ -1,0 +1,9 @@
+import type {RequestHandler} from 'express';
+import {z} from 'zod';
+import type {DeviceSessionService} from '../services/device-session-service.js';
+const idSchema=z.object({sessionId:z.string().uuid()}).strict();
+const response=(s:{id:string;managedDeviceId:string;state:string;createdAt:Date;lastActivityAt:Date;connectedAt:Date|null;disconnectedAt:Date|null;expiresAt:Date})=>({id:s.id,managedDeviceId:s.managedDeviceId,state:s.state,createdAt:s.createdAt.toISOString(),lastActivityAt:s.lastActivityAt.toISOString(),connectedAt:s.connectedAt?.toISOString()??null,disconnectedAt:s.disconnectedAt?.toISOString()??null,expiresAt:s.expiresAt.toISOString()});
+export const createDeviceSessionController=(service:DeviceSessionService)=>({
+ connect:(async(req,res,next)=>{const token=req.header('x-device-credential');if(token===undefined){res.status(401).json({error:{code:'AUTHENTICATION_REQUIRED',message:'Device authentication is required.'},requestId:res.locals.requestId});return;}try{const s=await service.connect(token);res.status(201).json({data:{session:response(s)},requestId:res.locals.requestId});}catch(e){next(e);}}) as RequestHandler,
+ disconnect:(async(req,res,next)=>{const p=idSchema.safeParse(req.params);const token=req.header('x-device-credential');if(!p.success||token===undefined){res.status(401).json({error:{code:'AUTHENTICATION_REQUIRED',message:'Device authentication is required.'},requestId:res.locals.requestId});return;}try{const s=await service.disconnect(p.data.sessionId,token);if(s===null){res.status(404).json({error:{code:'RESOURCE_NOT_FOUND',message:'Device session was not found.'},requestId:res.locals.requestId});return;}res.status(200).json({data:{session:response(s)},requestId:res.locals.requestId});}catch(e){next(e);}}) as RequestHandler,
+});
