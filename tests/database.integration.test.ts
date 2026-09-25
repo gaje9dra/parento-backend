@@ -95,7 +95,10 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
       "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('device_credentials','device_connection_sessions','commands','command_events') ORDER BY table_name",
     );
     expect(communicationTables.rows.map((row) => row.table_name)).toEqual([
-      'command_events', 'commands', 'device_connection_sessions', 'device_credentials',
+      'command_events',
+      'commands',
+      'device_connection_sessions',
+      'device_credentials',
     ]);
 
     const sessionTable = await database.query<{ table_name: string }>(

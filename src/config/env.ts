@@ -62,9 +62,19 @@ const rawEnvSchema = z.object({
     .min(1)
     .max(1000)
     .default(10),
-  DEVICE_SESSION_TTL_SECONDS: z.coerce.number().int().min(60).max(86400).default(300),
+  DEVICE_SESSION_TTL_SECONDS: z.coerce
+    .number()
+    .int()
+    .min(60)
+    .max(86400)
+    .default(300),
   COMMAND_TTL_SECONDS: z.coerce.number().int().min(30).max(86400).default(300),
-  COMMAND_MAX_PAYLOAD_BYTES: z.coerce.number().int().min(2).max(65536).default(4096),
+  COMMAND_MAX_PAYLOAD_BYTES: z.coerce
+    .number()
+    .int()
+    .min(2)
+    .max(65536)
+    .default(4096),
   REQUEST_BODY_LIMIT: z.string().min(1).default('100kb'),
   REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(120000),
   HEADERS_TIMEOUT_MS: z.coerce.number().int().positive().default(15000),

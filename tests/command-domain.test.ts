@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { isTerminalCommandStatus, isValidCommandTransition } from '../src/domain/command.js';
+import {
+  isTerminalCommandStatus,
+  isValidCommandTransition,
+} from '../src/domain/command.js';
 
 describe('Phase 6.1 command state machine', () => {
   it('accepts only documented forward lifecycle transitions', () => {
@@ -19,7 +22,13 @@ describe('Phase 6.1 command state machine', () => {
   });
 
   it('keeps terminal states terminal', () => {
-    for (const status of ['SUCCEEDED', 'FAILED', 'EXPIRED', 'CANCELLED', 'REJECTED'] as const) {
+    for (const status of [
+      'SUCCEEDED',
+      'FAILED',
+      'EXPIRED',
+      'CANCELLED',
+      'REJECTED',
+    ] as const) {
       expect(isTerminalCommandStatus(status)).toBe(true);
     }
   });

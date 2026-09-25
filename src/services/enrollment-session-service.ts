@@ -133,7 +133,10 @@ export class EnrollmentSessionService {
     localInstallationIdentity: string;
     name: string;
     platform: string;
-  }): Promise<{ readonly enrollment: EnrollmentSession; readonly deviceCredential: string }> {
+  }): Promise<{
+    readonly enrollment: EnrollmentSession;
+    readonly deviceCredential: string;
+  }> {
     this.assertUuid(input.enrollmentId);
 
     if (!IDENTIFIER_SCHEMA.test(input.localInstallationIdentity)) {

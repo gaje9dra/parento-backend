@@ -114,7 +114,7 @@ describe.skipIf(!hasDatabase)(
           name: 'Replay Device 2',
           platform: 'android',
           now: new Date(),
-        deviceCredentialHash: hashOpaqueToken(generateOpaqueToken()),
+          deviceCredentialHash: hashOpaqueToken(generateOpaqueToken()),
         }),
       ).rejects.toMatchObject({ code: 'INVALID_STATE' });
     });
@@ -148,7 +148,7 @@ describe.skipIf(!hasDatabase)(
           name: 'Duplicate',
           platform: 'android',
           now: new Date(),
-        deviceCredentialHash: hashOpaqueToken(generateOpaqueToken()),
+          deviceCredentialHash: hashOpaqueToken(generateOpaqueToken()),
         }),
       ).rejects.toMatchObject({ code: 'CONFLICT' });
     });

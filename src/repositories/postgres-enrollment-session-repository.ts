@@ -256,7 +256,10 @@ export class PostgresEnrollmentSessionRepository
           [randomUUID(), input.managedDeviceId, input.deviceCredentialHash],
         );
         if (credential.rowCount !== 1) {
-          throw new PersistenceError('UNKNOWN', 'Unable to create the device credential.');
+          throw new PersistenceError(
+            'UNKNOWN',
+            'Unable to create the device credential.',
+          );
         }
 
         const updated = await client.query<SessionRow>(

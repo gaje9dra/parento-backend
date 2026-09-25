@@ -296,12 +296,18 @@ paths:
               properties:
                 type: { type: string, enum: [FUTURE_COMMAND] }
                 version: { type: integer, enum: [1] }
-                payload: { type: object, additionalProperties: false, maxProperties: 0 }
+                payload:
+                  {
+                    type: object,
+                    additionalProperties: false,
+                    maxProperties: 0,
+                  }
                 idempotencyKey: { type: string, maxLength: 128, nullable: true }
                 correlationId: { type: string, maxLength: 128, nullable: true }
       responses:
         '201': { description: Command created }
-        '200': { description: Existing command returned for an idempotent retry }
+        '200':
+          { description: Existing command returned for an idempotent retry }
         '400': { $ref: '#/components/responses/ApiErrorResponse' }
         '403': { $ref: '#/components/responses/ApiErrorResponse' }
         '404': { $ref: '#/components/responses/ApiErrorResponse' }

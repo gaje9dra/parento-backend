@@ -47,7 +47,9 @@ export const createV1Router = (
   );
 
   const deviceCredentials = new PostgresDeviceCredentialRepository(database);
-  const deviceSessions = new PostgresDeviceConnectionSessionRepository(database);
+  const deviceSessions = new PostgresDeviceConnectionSessionRepository(
+    database,
+  );
   const managedDevices = new PostgresManagedDeviceRepository(database);
   const commands = new PostgresCommandRepository(database);
   const communication = new DeviceCommunicationService(
@@ -56,11 +58,10 @@ export const createV1Router = (
     managedDevices,
     { sessionTtlSeconds: security.deviceSessionTtlSeconds },
   );
-  const commandService = new CommandService(
-    commands,
-    managedDevices,
-    { ttlSeconds: security.commandTtlSeconds, maxPayloadBytes: security.commandMaxPayloadBytes },
-  );
+  const commandService = new CommandService(commands, managedDevices, {
+    ttlSeconds: security.commandTtlSeconds,
+    maxPayloadBytes: security.commandMaxPayloadBytes,
+  });
 
   router.use(createCommandRouter(authentication, commandService));
   router.use(

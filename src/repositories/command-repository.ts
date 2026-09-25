@@ -1,4 +1,8 @@
-import type { Command, CommandActorType, CommandStatus } from '../domain/command.js';
+import type {
+  Command,
+  CommandActorType,
+  CommandStatus,
+} from '../domain/command.js';
 import type { Repository } from './repository.js';
 
 export interface CommandRepository extends Repository {
