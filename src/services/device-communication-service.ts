@@ -71,7 +71,7 @@ export class DeviceCommunicationService {
   }
 
   getSession(id: string): Promise<DeviceConnectionSession | null> {
-    return this.sessions.findById?.(id) ?? null;
+    return this.sessions.findById?.(id) ?? Promise.resolve(null);
   }
 
   async heartbeat(
