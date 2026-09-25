@@ -6,7 +6,7 @@ import { PostgresRepository } from './postgres-repository.js';
 import { mapPostgresPersistenceError } from '../db/errors.js';
 
 interface StateRow extends QueryResultRow {
-  managed_device_id: string; schema_version: number; observed_at: Date; received_at: Date;
+  managed_device_id: string; schema_version: number; observed_at: Date | null; received_at: Date | null;
   android_version: string | null; api_level: number | null; app_version: string | null; app_version_code: number | null;
   battery_percentage: number | null; battery_charging_state: string | null; battery_status: string | null; network_state: string | null;
   storage_total_bytes: string | null; storage_available_bytes: string | null; storage_used_bytes: string | null;
@@ -15,7 +15,9 @@ interface StateRow extends QueryResultRow {
   enrollment_status: string; operational_status: string; communication_state: string | null; created_at: Date;
 }
 
-const mapState = (row: StateRow): DeviceMonitoringState => ({
+const mapState = (row: StateRow): DeviceMonitoringState => {
+  if (row.observed_at === null || row.received_at === null) throw new PersistenceError('NOT_FOUND', 'Monitoring state was not reported.');
+  return ({
   managedDeviceId: row.managed_device_id, schemaVersion: row.schema_version, observedAt: row.observed_at, receivedAt: row.received_at,
   androidVersion: row.android_version, apiLevel: row.api_level, appVersion: row.app_version, appVersionCode: row.app_version_code,
   batteryPercentage: row.battery_percentage, batteryChargingState: row.battery_charging_state as DeviceMonitoringState['batteryChargingState'],
