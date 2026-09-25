@@ -75,6 +75,7 @@ class FakeEnrollmentRepository implements EnrollmentSessionRepository {
     platform: string;
     now: Date;
     maxAttempts?: number;
+    deviceCredentialHash: string;
   }): Promise<EnrollmentSession> {
     const current = this.sessions.get(input.id);
     if (current === undefined) {
@@ -159,6 +160,7 @@ describe('EnrollmentSessionService', () => {
       name: 'Child',
       platform: 'android',
       now: new Date(),
+      deviceCredentialHash: 'test-device-credential-hash',
     });
 
     expect(completed.status).toBe('COMPLETED');
