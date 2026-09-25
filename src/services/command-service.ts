@@ -25,7 +25,12 @@ export class CommandService {
   if(device.enrollmentStatus!=='ACTIVE'||device.operationalStatus!=='ACTIVE') throw new AppError(409,'DEVICE_NOT_READY','Managed device is not available for commands.');
   if(input.idempotencyKey!==null && !/^[A-Za-z0-9._:-]{1,128}$/.test(input.idempotencyKey)) throw new AppError(400,'INVALID_REQUEST','Idempotency key is invalid.');
   const now=new Date();
-  try{return await this.commands.create({id:randomUUID(),managedDeviceId:device.id,adminId,type:'FUTURE_COMMAND',version:1,payload,correlationId:input.correlationId,idempotencyKey:input.idempotencyKey,expiresAt:new Date(now.getTime()+this.options.ttlSeconds*1000)});}
+  try{
+   const created=await this.commands.create({id:randomUUID(),managedDeviceId:device.id,adminId,type:'FUTURE_COMMAND',version:1,payload,correlationId:input.correlationId,idempotencyKey:input.idempotencyKey,expiresAt:new Date(now.getTime()+this.options.ttlSeconds*1000)});
+   if(!created.created) return created;
+   const queued=await this.commands.transition({id:created.command.id,from:'CREATED',to:'QUEUED',actorType:'SYSTEM',actorId:null,now:new Date(),correlationId:created.command.correlationId});
+   return {command:queued,created:true};
+  }
   catch(error){if(error instanceof PersistenceError && error.code==='CONFLICT') throw new AppError(409,'COMMAND_IDEMPOTENCY_CONFLICT','A command already exists for this idempotency key.');throw error;}
  }
  async getOwned(id:string,adminId:string):Promise<Command>{
