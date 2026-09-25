@@ -614,4 +614,4 @@ The future gaje9dra/parento-managed integration contract is documented in docs/p
 
 See docs/phase-5.1-enrollment.md and openapi.yaml for the complete contract and security model.
 
-Phase 5.1 implementation verification is performed by the repository CI workflow before the phase is marked complete. The implementation has been formatter-normalized and is undergoing the final CI verification pass.
+Phase 5.1 implementation verification is performed by the repository CI workflow before the phase is marked complete. The implementation has been formatter-normalized, migration expectations and IPv6 rate-limit handling were corrected, and the final CI verification pass is running.
