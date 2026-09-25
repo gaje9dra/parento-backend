@@ -182,7 +182,7 @@ describe.skipIf(!hasDatabase)(
         displayName: null,
       });
       const secret = generateOpaqueToken();
-      const expiresAt = new Date();
+      const expiresAt = new Date(Date.now() + 60_000);
       const session = await enrollments.create({
         id: randomUUID(),
         adminId: admin.id,
