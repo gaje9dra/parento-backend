@@ -29,8 +29,8 @@ export const createEnrollmentRouter = (
   const controller = createEnrollmentController(service);
   const verificationRateLimiter = createEnrollmentVerificationRateLimiter({
     enabled: rateLimitConfig.enabled,
-    windowMs: rateLimitConfig.enrollmentVerificationWindowMs,
-    maxRequests: rateLimitConfig.enrollmentVerificationMaxRequests,
+    windowMs: rateLimitConfig.enrollmentVerificationWindowMs ?? 60_000,
+    maxRequests: rateLimitConfig.enrollmentVerificationMaxRequests ?? 10,
   });
 
   const adminAuth = requireAdminAuthentication(authentication);
