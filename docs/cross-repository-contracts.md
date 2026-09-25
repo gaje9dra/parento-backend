@@ -27,6 +27,7 @@ POST /api/v1/auth/admin/logout
 The authentication endpoints identify authorized administrator accounts and manage opaque server-side sessions.
 
 Phase 8 location integration also exposes the authenticated current-location boundary:
+
 - POST /api/v1/device/location
 - GET /api/v1/devices/{deviceId}/location
 
