@@ -116,6 +116,98 @@ describe.skipIf(!hasDatabase)(
       ).rejects.toMatchObject({ code: 'INVALID_STATE' });
     });
 
+
+
+    it('rejects enrollment creation for a disabled administrator', async () => {
+      const admin = await admins.create({
+        id: randomUUID(),
+        email: 'enrollment-disabled-create@example.com',
+        displayName: null,
+      });
+      await admins.updateStatus(admin.id, 'DISABLED');
+
+      await expect(
+        enrollments.create({
+          id: randomUUID(),
+          adminId: admin.id,
+          secretHash: hashOpaqueToken(generateOpaqueToken()),
+          expiresAt: new Date(Date.now() + 60_000),
+        }),
+      ).rejects.toMatchObject({
+        code: 'INVALID_STATE',
+        message: 'Administrator is not active.',
+      });
+    });
+
+    it('rejects consumption when the owning administrator is disabled', async () => {
+      const admin = await admins.create({
+        id: randomUUID(),
+        email: 'enrollment-disabled-consume@example.com',
+        displayName: null,
+      });
+      const secret = generateOpaqueToken();
+      const session = await enrollments.create({
+        id: randomUUID(),
+        adminId: admin.id,
+        secretHash: hashOpaqueToken(secret),
+        expiresAt: new Date(Date.now() + 60_000),
+      });
+
+      await admins.updateStatus(admin.id, 'DISABLED');
+
+      await expect(
+        enrollments.consume({
+          id: session.id,
+          secretHash: hashOpaqueToken(secret),
+          managedDeviceId: randomUUID(),
+          stableIdentifier: 'managed-installation-disabled',
+          name: 'Disabled Owner Device',
+          platform: 'android',
+          now: new Date(),
+        }),
+      ).rejects.toMatchObject({
+        code: 'INVALID_STATE',
+        message: 'Enrollment authorization is no longer available.',
+      });
+
+      const devices = await database.query<{ count: string }>(
+        'SELECT COUNT(*)::text AS count FROM managed_devices WHERE stable_identifier = $1',
+        ['managed-installation-disabled'],
+      );
+      expect(devices.rows[0]?.count).toBe('0');
+    });
+
+    it('treats expiration at the exact boundary as expired', async () => {
+      const admin = await admins.create({
+        id: randomUUID(),
+        email: 'enrollment-expiration-boundary@example.com',
+        displayName: null,
+      });
+      const secret = generateOpaqueToken();
+      const expiresAt = new Date();
+      const session = await enrollments.create({
+        id: randomUUID(),
+        adminId: admin.id,
+        secretHash: hashOpaqueToken(secret),
+        expiresAt,
+      });
+
+      await expect(
+        enrollments.consume({
+          id: session.id,
+          secretHash: hashOpaqueToken(secret),
+          managedDeviceId: randomUUID(),
+          stableIdentifier: 'managed-installation-expired-boundary',
+          name: 'Expired Boundary Device',
+          platform: 'android',
+          now: new Date(expiresAt.getTime()),
+        }),
+      ).rejects.toMatchObject({
+        code: 'INVALID_STATE',
+        message: 'Enrollment session expired.',
+      });
+    });
+
     it('rejects an already-associated installation identity', async () => {
       const admin = await admins.create({
         id: randomUUID(),
