@@ -68,6 +68,10 @@ const rawEnvSchema = z.object({
     .min(60)
     .max(86400)
     .default(300),
+  MONITORING_STALE_SECONDS: z.coerce.number().int().min(30).max(604800).default(300),
+  MONITORING_VERY_STALE_SECONDS: z.coerce.number().int().min(60).max(2592000).default(86400),
+  MONITORING_MAX_FUTURE_SKEW_SECONDS: z.coerce.number().int().min(0).max(3600).default(300),
+  MONITORING_MAX_PAYLOAD_BYTES: z.coerce.number().int().min(1024).max(65536).default(32768),
   COMMAND_TTL_SECONDS: z.coerce.number().int().min(30).max(86400).default(300),
   COMMAND_MAX_PAYLOAD_BYTES: z.coerce
     .number()
@@ -156,6 +160,10 @@ export interface AppConfig {
     readonly credentials: boolean;
   };
   readonly security: {
+    readonly monitoringStaleSeconds: number;
+    readonly monitoringVeryStaleSeconds: number;
+    readonly monitoringMaxFutureSkewSeconds: number;
+    readonly monitoringMaxPayloadBytes: number;
     readonly jwtIssuer?: string;
     readonly enrollmentSessionTtlSeconds: number;
     readonly enrollmentVerificationMaxAttempts: number;
@@ -357,6 +365,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     }
   }
 
+  if (parsed.data.MONITORING_VERY_STALE_SECONDS <= parsed.data.MONITORING_STALE_SECONDS) {
+    throw new ConfigurationError([{ variable: 'MONITORING_VERY_STALE_SECONDS', message: 'Very-stale threshold must exceed stale threshold.' }]);
+  }
+
   if (
     parsed.data.AUTH_ACCESS_TOKEN_TTL_SECONDS > parsed.data.SESSION_TTL_SECONDS
   ) {
@@ -450,6 +462,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       enrollmentVerificationMaxAttempts:
         parsed.data.ENROLLMENT_VERIFICATION_MAX_ATTEMPTS,
       deviceSessionTtlSeconds: parsed.data.DEVICE_SESSION_TTL_SECONDS,
+      monitoringStaleSeconds: parsed.data.MONITORING_STALE_SECONDS,
+      monitoringVeryStaleSeconds: parsed.data.MONITORING_VERY_STALE_SECONDS,
+      monitoringMaxFutureSkewSeconds: parsed.data.MONITORING_MAX_FUTURE_SKEW_SECONDS,
+      monitoringMaxPayloadBytes: parsed.data.MONITORING_MAX_PAYLOAD_BYTES,
       commandTtlSeconds: parsed.data.COMMAND_TTL_SECONDS,
       commandMaxPayloadBytes: parsed.data.COMMAND_MAX_PAYLOAD_BYTES,
       requestBodyLimit: parsed.data.REQUEST_BODY_LIMIT,
