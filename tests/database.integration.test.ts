@@ -133,9 +133,9 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
     await runMigrations(database);
     const status = await migrationStatus(database);
     expect(status.at(-1)).toEqual({
-      id: '0007',
+      id: '0008',
       applied: true,
-      name: 'phase_5_1_enrollment_sessions',
+      name: 'phase_6_1_device_communication',
     });
   });
 
