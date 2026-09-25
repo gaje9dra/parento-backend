@@ -60,10 +60,6 @@ export const createDeviceCommunicationController = (
         id: req.authenticatedDeviceSession.id,
         managedDeviceId: req.authenticatedDeviceSession.managedDeviceId,
         state: req.authenticatedDeviceSession.state as any,
-        createdAt: new Date(),
-        connectedAt: null,
-        lastActivityAt: new Date(),
-        disconnectedAt: null,
         expiresAt: req.authenticatedDeviceSession.expiresAt,
       });
       res.status(200).json({
@@ -90,10 +86,6 @@ export const createDeviceCommunicationController = (
         id: req.authenticatedDeviceSession.id,
         managedDeviceId: req.authenticatedDeviceSession.managedDeviceId,
         state: req.authenticatedDeviceSession.state as any,
-        createdAt: new Date(),
-        connectedAt: null,
-        lastActivityAt: new Date(),
-        disconnectedAt: null,
         expiresAt: req.authenticatedDeviceSession.expiresAt,
       });
       res.status(200).json({
