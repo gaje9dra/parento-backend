@@ -112,7 +112,9 @@ export class DeviceCommunicationService {
     return updated;
   }
 
-  private assertLive(session: DeviceConnectionSession): void {
+  private assertLive(
+    session: Pick<DeviceConnectionSession, 'id' | 'managedDeviceId' | 'state' | 'expiresAt'>,
+  ): void {
     if (
       session.expiresAt.getTime() <= Date.now() ||
       ['DISCONNECTED', 'EXPIRED'].includes(session.state)
