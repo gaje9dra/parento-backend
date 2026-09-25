@@ -33,7 +33,17 @@ export class SseDeviceTransport implements CommandDeliveryPort {
       }
     };
 
+    const keepAlive = setInterval(() => {
+      if (response.writableEnded || response.destroyed) return;
+      try {
+        response.write(': keepalive\\n\\n');
+      } catch {
+        // close/error handlers perform cleanup
+      }
+    }, 15_000);
+
     const close = () => {
+      clearInterval(keepAlive);
       if (!response.writableEnded) response.end();
     };
 
@@ -45,6 +55,7 @@ export class SseDeviceTransport implements CommandDeliveryPort {
     });
 
     const cleanup = () => {
+      clearInterval(keepAlive);
       this.registry.unregister(session.id);
       onClosed();
     };
