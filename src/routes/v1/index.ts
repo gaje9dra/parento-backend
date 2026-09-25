@@ -27,6 +27,7 @@ export const createV1Router = (
   database: Database,
   security: AppConfig['security'],
   rateLimit: AppConfig['rateLimit'],
+  realtime: AppConfig['realtime'],
 ): Router => {
   const router = Router();
   const adminRepository = new PostgresAdminRepository(database);
@@ -65,10 +66,10 @@ export const createV1Router = (
     { sessionTtlSeconds: security.deviceSessionTtlSeconds },
   );
   const registry = new InMemoryDeviceConnectionRegistry();
-  const transport = new SseDeviceTransport(registry);
+  const transport = realtime.enabled ? new SseDeviceTransport(registry) : undefined;
   const delivery = new CommandDeliveryService(
     commands,
-    transport,
+    transport ?? new SseDeviceTransport(registry),
     deviceSessions,
     registry,
   );
