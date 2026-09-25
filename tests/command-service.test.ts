@@ -39,7 +39,7 @@ class FakeSessions implements DeviceConnectionSessionRepository {
 describe('Phase 6.1 command authorization',()=>{
  it('binds command creation to the authenticated administrator ownership',async()=>{
   const owner=randomUUID(), other=randomUUID(), devices=new FakeDevices(); devices.item=device(owner);
-  const service=new CommandService(new FakeCommands(),devices,new FakeSessions(),{ttlSeconds:300,maxPayloadBytes:4096});
+  const service=new CommandService(new FakeCommands(),devices,{ttlSeconds:300,maxPayloadBytes:4096});
   await expect(service.create(other,{deviceId:devices.item.id,type:'FUTURE_COMMAND',version:1,payload:{},idempotencyKey:null,correlationId:null})).rejects.toMatchObject({statusCode:403,code:'AUTHORIZATION_DENIED'});
  });
  it('rejects arbitrary payload content in the neutral command registry',async()=>{
