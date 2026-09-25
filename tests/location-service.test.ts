@@ -214,7 +214,6 @@ describe('LocationService', () => {
     });
   });
 
-
   it('maps report-id conflicts to a stable client error', async () => {
     const locations = {
       report: vi.fn(async () => {
@@ -246,7 +245,6 @@ describe('LocationService', () => {
     });
   });
 
-
   it.each([
     ['latitude minimum', -90, 75],
     ['latitude maximum', 90, 75],
@@ -255,30 +253,30 @@ describe('LocationService', () => {
   ])(
     'accepts %s boundary coordinates',
     async (_label, latitude, longitude) => {
-    const locations = {
-      report: vi.fn(
-        async (input: Parameters<LocationRepository['report']>[0]) => ({
-          applied: true,
-          location: { ...location, ...input },
-        }),
-      ),
-      findLatest: vi.fn(),
-      findByReportId: vi.fn(),
-    } as unknown as LocationRepository;
-    const service = new LocationService(locations, deviceRepo);
+      const locations = {
+        report: vi.fn(
+          async (input: Parameters<LocationRepository['report']>[0]) => ({
+            applied: true,
+            location: { ...location, ...input },
+          }),
+        ),
+        findLatest: vi.fn(),
+        findByReportId: vi.fn(),
+      } as unknown as LocationRepository;
+      const service = new LocationService(locations, deviceRepo);
 
-    await expect(
-      service.report(
-        { managedDeviceId: device.id },
-        {
-          reportId: location.reportId,
-          availability: 'AVAILABLE',
-          latitude,
-          longitude,
-          accuracyMeters: null,
-          observedAt: new Date(),
-        },
-      ),
+      await expect(
+        service.report(
+          { managedDeviceId: device.id },
+          {
+            reportId: location.reportId,
+            availability: 'AVAILABLE',
+            latitude,
+            longitude,
+            accuracyMeters: null,
+            observedAt: new Date(),
+          },
+        ),
       ).resolves.toMatchObject({ applied: true });
     },
   );
