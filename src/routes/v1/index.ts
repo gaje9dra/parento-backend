@@ -5,6 +5,9 @@ import { PostgresAdminRepository } from '../../repositories/postgres-admin-repos
 import { AdminAuthenticationService } from '../../services/admin-authentication-service.js';
 import { createAdminAuthRouter } from './admin-auth.routes.js';
 import { createHealthRouter } from './health.routes.js';
+import { createEnrollmentRouter } from './enrollment.routes.js';
+import { PostgresEnrollmentSessionRepository } from '../../repositories/postgres-enrollment-session-repository.js';
+import { EnrollmentSessionService } from '../../services/enrollment-session-service.js';
 
 export const createV1Router = (
   database: Database,
@@ -22,5 +25,11 @@ export const createV1Router = (
 
   router.use(createHealthRouter(database));
   router.use(createAdminAuthRouter(authentication, rateLimit));
+  const enrollmentRepository = new PostgresEnrollmentSessionRepository(database);
+  const enrollmentService = new EnrollmentSessionService(enrollmentRepository, {
+    ttlSeconds: security.enrollmentSessionTtlSeconds,
+    maxVerificationAttempts: security.enrollmentVerificationMaxAttempts,
+  });
+  router.use(createEnrollmentRouter(authentication, enrollmentService, rateLimit));
   return router;
 };
