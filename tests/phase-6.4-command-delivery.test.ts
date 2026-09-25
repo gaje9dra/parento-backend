@@ -89,7 +89,7 @@ class FakeSessions implements DeviceConnectionSessionRepository {
     return session;
   }
   async findActiveByDeviceId(): Promise<DeviceConnectionSession | null> {
-    return session;
+    return this.active ? session : null;
   }
   async touchConnected(): Promise<DeviceConnectionSession | null> {
     return session;
@@ -138,6 +138,7 @@ describe('Phase 6.4 command delivery', () => {
     const sessions = new FakeSessions();
     const registry = new InMemoryDeviceConnectionRegistry();
     const transport = new FakeTransport();
+    sessions.active = false;
     const delivery = new CommandDeliveryService(
       commands,
       transport,
