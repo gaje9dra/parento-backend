@@ -67,12 +67,14 @@ export const createV1Router = (
   );
   const registry = new InMemoryDeviceConnectionRegistry();
   const transport = realtime.enabled ? new SseDeviceTransport(registry) : undefined;
-  const delivery = new CommandDeliveryService(
-    commands,
-    transport ?? new SseDeviceTransport(registry),
-    deviceSessions,
-    registry,
-  );
+  const delivery = realtime.enabled
+    ? new CommandDeliveryService(
+        commands,
+        transport,
+        deviceSessions,
+        registry,
+      )
+    : undefined;
   const commandService = new CommandService(
     commands,
     managedDevices,
