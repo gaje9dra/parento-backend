@@ -116,8 +116,6 @@ describe.skipIf(!hasDatabase)(
       ).rejects.toMatchObject({ code: 'INVALID_STATE' });
     });
 
-
-
     it('rejects enrollment creation for a disabled administrator', async () => {
       const admin = await admins.create({
         id: randomUUID(),
