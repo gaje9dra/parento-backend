@@ -143,7 +143,6 @@ export class PostgresEnrollmentSessionRepository
   async consume(input: {
     id: string;
     secretHash: string;
-    adminId: string;
     managedDeviceId: string;
     stableIdentifier: string;
     name: string;
