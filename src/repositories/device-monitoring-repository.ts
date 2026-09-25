@@ -17,7 +17,12 @@ export interface MonitoringDevicePageRequest {
   readonly cursor?: string | null | undefined;
   readonly enrollmentStatus?: ManagedDeviceStatus | undefined;
   readonly communicationState?:
-    'CONNECTING' | 'CONNECTED' | 'STALE' | 'DISCONNECTED' | 'EXPIRED' | undefined;
+    | 'CONNECTING'
+    | 'CONNECTED'
+    | 'STALE'
+    | 'DISCONNECTED'
+    | 'EXPIRED'
+    | undefined;
   readonly managementMode?:
     'NOT_MANAGED' | 'PROFILE_OWNER' | 'DEVICE_OWNER' | 'UNKNOWN' | undefined;
   readonly freshness?:
