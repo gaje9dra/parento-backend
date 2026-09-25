@@ -28,5 +28,6 @@ export interface EnrollmentSessionRepository extends Repository {
     platform: string;
     now: Date;
     maxAttempts?: number;
+    deviceCredentialHash: string;
   }): Promise<EnrollmentSession>;
 }
