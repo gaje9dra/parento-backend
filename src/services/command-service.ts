@@ -2,7 +2,6 @@ import { randomUUID } from 'node:crypto';
 import type { Command, CommandStatus } from '../domain/command.js';
 import { PersistenceError } from '../domain/persistence-errors.js';
 import type { CommandRepository } from '../repositories/command-repository.js';
-import type { DeviceConnectionSessionRepository } from '../repositories/device-connection-session-repository.js';
 import type { ManagedDeviceRepository } from '../repositories/managed-device-repository.js';
 import { AppError } from '../types/errors.js';
 
@@ -11,7 +10,7 @@ export interface CommandServiceOptions { readonly ttlSeconds: number; readonly m
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export class CommandService {
- constructor(private readonly commands:CommandRepository,private readonly devices:ManagedDeviceRepository,private readonly sessions:DeviceConnectionSessionRepository,private readonly options:CommandServiceOptions){}
+ constructor(private readonly commands:CommandRepository,private readonly devices:ManagedDeviceRepository,private readonly options:CommandServiceOptions){}
  async create(adminId:string,input:{deviceId:string;type:string;version:number;payload:unknown;idempotencyKey:string|null;correlationId:string|null}):Promise<{command:Command;created:boolean}>{
   if(!UUID.test(input.deviceId)) throw new AppError(400,'INVALID_REQUEST','Managed-device identifier is invalid.');
   if(input.type!=='FUTURE_COMMAND'||input.version!==1) throw new AppError(400,'UNSUPPORTED_COMMAND_TYPE','The requested command type is not enabled in this phase.');
