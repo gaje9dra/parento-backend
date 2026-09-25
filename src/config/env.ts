@@ -39,6 +39,10 @@ const rawEnvSchema = z.object({
     .positive()
     .default(900),
   SESSION_TTL_SECONDS: z.coerce.number().int().positive().default(86400),
+  ENROLLMENT_SESSION_TTL_SECONDS: z.coerce.number().int().min(60).max(86400).default(900),
+  ENROLLMENT_VERIFICATION_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(100).default(10),
+  ENROLLMENT_VERIFICATION_WINDOW_MS: z.coerce.number().int().positive().default(60000),
+  ENROLLMENT_VERIFICATION_MAX_REQUESTS: z.coerce.number().int().min(1).max(1000).default(10),
   REQUEST_BODY_LIMIT: z.string().min(1).default('100kb'),
   REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(120000),
   HEADERS_TIMEOUT_MS: z.coerce.number().int().positive().default(15000),
@@ -121,6 +125,8 @@ export interface AppConfig {
   };
   readonly security: {
     readonly jwtIssuer?: string;
+    readonly enrollmentSessionTtlSeconds: number;
+    readonly enrollmentVerificationMaxAttempts: number;
     readonly jwtAudience?: string;
     readonly accessTokenTtlSeconds: number;
     readonly sessionTtlSeconds: number;
@@ -132,6 +138,8 @@ export interface AppConfig {
   };
   readonly rateLimit: {
     readonly enabled: boolean;
+    readonly enrollmentVerificationWindowMs: number;
+    readonly enrollmentVerificationMaxRequests: number;
     readonly windowMs: number;
     readonly maxRequests: number;
   };
@@ -403,6 +411,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
         : { jwtAudience: parsed.data.JWT_AUDIENCE }),
       accessTokenTtlSeconds: parsed.data.AUTH_ACCESS_TOKEN_TTL_SECONDS,
       sessionTtlSeconds: parsed.data.SESSION_TTL_SECONDS,
+      enrollmentSessionTtlSeconds: parsed.data.ENROLLMENT_SESSION_TTL_SECONDS,
+      enrollmentVerificationMaxAttempts: parsed.data.ENROLLMENT_VERIFICATION_MAX_ATTEMPTS,
       requestBodyLimit: parsed.data.REQUEST_BODY_LIMIT,
       requestTimeoutMs: parsed.data.REQUEST_TIMEOUT_MS,
       headersTimeoutMs: parsed.data.HEADERS_TIMEOUT_MS,
@@ -413,6 +423,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       enabled: parsed.data.RATE_LIMIT_ENABLED,
       windowMs: parsed.data.RATE_LIMIT_WINDOW_MS,
       maxRequests: parsed.data.RATE_LIMIT_MAX_REQUESTS,
+      enrollmentVerificationWindowMs: parsed.data.ENROLLMENT_VERIFICATION_WINDOW_MS,
+      enrollmentVerificationMaxRequests: parsed.data.ENROLLMENT_VERIFICATION_MAX_REQUESTS,
     },
     realtime: { enabled: parsed.data.REALTIME_ENABLED },
     externalServices: {
