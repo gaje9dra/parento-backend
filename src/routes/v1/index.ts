@@ -28,7 +28,11 @@ export const createV1Router = (
   security: AppConfig['security'],
   rateLimit: AppConfig['rateLimit'],
   realtime: AppConfig['realtime'] = { enabled: false },
-  monitoringConfig: AppConfig['monitoring'],
+  monitoringConfig: AppConfig['monitoring'] = {
+    freshnessFreshMs: 300000,
+    freshnessStaleMs: 1800000,
+    maxPayloadBytes: 32768,
+  },
 ): Router => {
   const router = Router();
   const adminRepository = new PostgresAdminRepository(database);
