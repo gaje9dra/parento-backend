@@ -1,0 +1,34 @@
+name: Temporary Phase 7.1 Formatter
+
+on:
+  push:
+    branches: [phase-7-1-device-monitoring-expansion]
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.21.0
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Format
+        run: npx prettier --write .
+
+      - name: Commit formatted files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "chore: format Phase 7.1 changes"
+          git push
