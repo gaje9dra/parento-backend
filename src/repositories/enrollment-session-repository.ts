@@ -16,7 +16,11 @@ export interface EnrollmentSessionRepository extends Repository {
 
   listByAdminId(adminId: string): Promise<EnrollmentSession[]>;
 
-  cancelOwned(id: string, adminId: string, now: Date): Promise<EnrollmentSession | null>;
+  cancelOwned(
+    id: string,
+    adminId: string,
+    now: Date,
+  ): Promise<EnrollmentSession | null>;
 
   consume(input: {
     id: string;
