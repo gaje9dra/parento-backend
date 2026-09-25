@@ -1,11 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
+import { generateOpaqueToken, hashOpaqueToken } from '../src/auth/token.js';
 import { loadConfig } from '../src/config/env.js';
 import { createDatabase } from '../src/db/index.js';
 import { resetMigrations, runMigrations } from '../src/db/migrate.js';
 import { PostgresAdminRepository } from '../src/repositories/postgres-admin-repository.js';
 import { PostgresEnrollmentSessionRepository } from '../src/repositories/postgres-enrollment-session-repository.js';
-import { generateOpaqueToken, hashOpaqueToken } from '../src/auth/token.js';
 
 const hasDatabase = Boolean(process.env.DATABASE_URL);
 
