@@ -6,6 +6,7 @@ import { requireDeviceSession } from '../../middleware/device-session-auth.js';
 import type { DeviceConnectionSessionRepository } from '../../repositories/device-connection-session-repository.js';
 import type { ManagedDeviceRepository } from '../../repositories/managed-device-repository.js';
 import type { DeviceMonitoringService } from '../../services/device-monitoring-service.js';
+import { createDeviceCommunicationRateLimiter } from '../../middleware/device-communication-rate-limit.js';
 import { createDeviceMonitoringController } from '../../controllers/device-monitoring.controller.js';
 
 const methodNotAllowed =
@@ -35,10 +36,17 @@ export const createDeviceMonitoringRouter = (
     sessions,
   );
   const adminAuth = requireAdminAuthentication(authentication);
+  const limiter = createDeviceCommunicationRateLimiter({
+    enabled: rateLimitConfig.enabled,
+    windowMs: rateLimitConfig.windowMs,
+    maxRequests: rateLimitConfig.maxRequests,
+  });
+  const limited = limiter === undefined ? [] : [limiter];
 
-  router.post('/device/monitoring', requireDeviceSession(sessions), controller.ingest);
+  router.post('/device/monitoring', ...limited, requireDeviceSession(sessions), controller.ingest);
   router.get(
     '/devices/:deviceId/status',
+    ...limited,
     adminAuth,
     requireAdminAuthorization,
     controller.status,
@@ -46,7 +54,5 @@ export const createDeviceMonitoringRouter = (
 
   router.all('/device/monitoring', methodNotAllowed('POST, OPTIONS'));
   router.all('/devices/:deviceId/status', methodNotAllowed('GET, OPTIONS'));
-  void rateLimitConfig;
-
   return router;
 };
