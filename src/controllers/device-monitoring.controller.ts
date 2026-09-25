@@ -1,20 +1,18 @@
 import type { RequestHandler } from 'express';
 import { z } from 'zod';
 import type { DeviceMonitoringService } from '../services/device-monitoring-service.js';
-import type { ManagedDeviceRepository } from '../repositories/managed-device-repository.js';
-import type { DeviceConnectionSessionRepository } from '../repositories/device-connection-session-repository.js';
 import { AppError } from '../types/errors.js';
 import type { DeviceMonitoringSnapshot } from '../domain/device-monitoring.js';
 
 const monitoringSchema = z
   .object({
     managedDeviceId: z.string().uuid(),
-    schemaVersion: z.number().int(),
-    deviceCollectedAtEpochMillis: z.number().int(),
+    schemaVersion: z.literal(1),
+    deviceCollectedAtEpochMillis: z.number().int().safe(),
     androidVersion: z.string().min(1).max(64),
-    apiLevel: z.number().int(),
+    apiLevel: z.number().int().min(1).max(1000),
     appVersion: z.string().min(1).max(64),
-    appVersionCode: z.number().int().nonnegative(),
+    appVersionCode: z.number().int().nonnegative().safe(),
     managementMode: z.enum([
       'NOT_MANAGED',
       'PROFILE_OWNER',
@@ -31,25 +29,40 @@ const monitoringSchema = z
     ]),
     batteryStatus: z.enum(['NORMAL', 'LOW', 'CRITICAL', 'FULL', 'UNKNOWN']),
     networkState: z.enum(['UNKNOWN', 'OFFLINE', 'WIFI', 'CELLULAR', 'OTHER']),
-    storageTotalBytes: z.number().int().nonnegative().nullable(),
-    storageAvailableBytes: z.number().int().nonnegative().nullable(),
-    storageUsedBytes: z.number().int().nonnegative().nullable(),
-    memoryTotalBytes: z.number().int().nonnegative().nullable(),
-    memoryAvailableBytes: z.number().int().nonnegative().nullable(),
+    storageTotalBytes: z.number().int().nonnegative().safe().nullable(),
+    storageAvailableBytes: z.number().int().nonnegative().safe().nullable(),
+    storageUsedBytes: z.number().int().nonnegative().safe().nullable(),
+    memoryTotalBytes: z.number().int().nonnegative().safe().nullable(),
+    memoryAvailableBytes: z.number().int().nonnegative().safe().nullable(),
     memoryLow: z.boolean().nullable(),
-    lastSuccessfulInitializationEpochMillis: z
-      .number()
-      .int()
-      .positive()
-      .nullable(),
-    lastSuccessfulCommunicationEpochMillis: z
-      .number()
-      .int()
-      .positive()
-      .nullable(),
-    lastMonitoringUpdateEpochMillis: z.number().int().positive(),
+    lastSuccessfulInitializationEpochMillis: z.number().int().positive().safe().nullable(),
+    lastSuccessfulCommunicationEpochMillis: z.number().int().positive().safe().nullable(),
+    lastMonitoringUpdateEpochMillis: z.number().int().positive().safe(),
   })
   .strict();
+
+const listQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+  cursor: z.string().min(1).max(512).optional(),
+  enrollmentStatus: z.enum(['PENDING', 'ACTIVE', 'REVOKED']).optional(),
+  communicationState: z
+    .enum(['CONNECTING', 'CONNECTED', 'STALE', 'DISCONNECTED', 'EXPIRED'])
+    .optional(),
+  managementMode: z
+    .enum(['NOT_MANAGED', 'PROFILE_OWNER', 'DEVICE_OWNER', 'UNKNOWN'])
+    .optional(),
+  freshness: z
+    .enum([
+      'FRESH',
+      'STALE',
+      'VERY_STALE',
+      'NEVER_REPORTED',
+      'DISCONNECTED',
+      'REVOKED',
+    ])
+    .optional(),
+  search: z.string().trim().min(1).max(100).optional(),
+});
 
 const toSnapshot = (snapshot: DeviceMonitoringSnapshot | null) =>
   snapshot === null
@@ -81,10 +94,35 @@ const toSnapshot = (snapshot: DeviceMonitoringSnapshot | null) =>
         lastMonitoringUpdateAt: snapshot.lastMonitoringUpdateAt.toISOString(),
       };
 
+const toSession = (session: {
+  id: string;
+  managedDeviceId: string;
+  state: string;
+  createdAt: Date;
+  connectedAt: Date | null;
+  lastActivityAt: Date;
+  disconnectedAt: Date | null;
+  expiresAt: Date;
+  lastSeenAt: Date;
+  revokedAt: Date | null;
+} | null) =>
+  session === null
+    ? null
+    : {
+        id: session.id,
+        managedDeviceId: session.managedDeviceId,
+        state: session.state,
+        createdAt: session.createdAt.toISOString(),
+        connectedAt: session.connectedAt?.toISOString() ?? null,
+        lastActivityAt: session.lastActivityAt.toISOString(),
+        disconnectedAt: session.disconnectedAt?.toISOString() ?? null,
+        expiresAt: session.expiresAt.toISOString(),
+        lastSeenAt: session.lastSeenAt.toISOString(),
+        revokedAt: session.revokedAt?.toISOString() ?? null,
+      };
+
 export const createDeviceMonitoringController = (
   monitoring: DeviceMonitoringService,
-  devices: ManagedDeviceRepository,
-  sessions: DeviceConnectionSessionRepository,
 ) => ({
   ingest: (async (req, res, next) => {
     try {
@@ -110,10 +148,7 @@ export const createDeviceMonitoringController = (
         });
         return;
       }
-      const result = await monitoring.ingest(
-        session.managedDeviceId,
-        parsed.data,
-      );
+      const result = await monitoring.ingest(session.managedDeviceId, parsed.data);
       res.status(200).json({
         data: {
           updated: result.updated,
@@ -148,75 +183,102 @@ export const createDeviceMonitoringController = (
         );
       }
 
-      const device = await devices.findById(deviceId.data);
-      if (device === null) {
-        throw new AppError(
-          404,
-          'DEVICE_NOT_FOUND',
-          'Managed device was not found.',
-        );
-      }
-      if (device.adminId !== req.authenticatedAdmin.id) {
-        throw new AppError(
-          403,
-          'AUTHORIZATION_DENIED',
-          'The administrator does not control this device.',
-        );
-      }
-
-      const [snapshot, session] = await Promise.all([
-        monitoring.getForAdmin(req.authenticatedAdmin.id, device.id),
-        sessions.findActiveByDeviceId?.(device.id) ?? null,
-      ]);
-
-      const now = Date.now();
-      const sessionExpired =
-        session !== null && session.expiresAt.getTime() <= now;
-      const lastSeenAgeMs =
-        session === null
-          ? null
-          : Math.max(0, now - session.lastSeenAt.getTime());
-      const connectionState = sessionExpired
-        ? 'EXPIRED'
-        : session === null
-          ? 'DISCONNECTED'
-          : session.state !== 'CONNECTED'
-            ? session.state
-            : (lastSeenAgeMs ?? 0) > 120_000
-              ? 'STALE'
-              : 'CONNECTED';
-      const freshness =
-        snapshot === null
-          ? 'UNKNOWN'
-          : now - snapshot.serverReceivedAt.getTime() <= 5 * 60_000
-            ? 'FRESH'
-            : 'STALE';
-
+      const status = await monitoring.getStatusForAdmin(
+        req.authenticatedAdmin.id,
+        deviceId.data,
+      );
       res.status(200).json({
         data: {
           device: {
-            id: device.id,
-            name: device.name,
-            platform: device.platform,
-            enrollmentStatus: device.enrollmentStatus,
-            operationalStatus: device.operationalStatus,
-            lastSeenAt: device.lastSeenAt?.toISOString() ?? null,
+            id: status.device.id,
+            name: status.device.name,
+            stableIdentifier: status.device.stableIdentifier,
+            platform: status.device.platform,
+            enrollmentStatus: status.device.enrollmentStatus,
+            operationalStatus: status.device.operationalStatus,
+            firstEnrolledAt: status.device.createdAt.toISOString(),
+            lastSeenAt: status.device.lastSeenAt?.toISOString() ?? null,
           },
           connection: {
-            state: connectionState,
-            sessionId: sessionExpired ? null : (session?.id ?? null),
-            lastSeenAt: sessionExpired
-              ? null
-              : (session?.lastSeenAt.toISOString() ?? null),
-            lastSeenAgeMs,
-            expiresAt: sessionExpired
-              ? null
-              : (session?.expiresAt.toISOString() ?? null),
+            state: status.connection.state,
+            session: toSession(status.connection.session),
+            lastConnectedAt:
+              status.connection.session?.connectedAt?.toISOString() ?? null,
           },
           monitoring: {
-            freshness,
-            snapshot: toSnapshot(snapshot),
+            freshness: status.monitoring.freshness,
+            ageMs: status.monitoring.ageMs,
+            snapshot: toSnapshot(status.monitoring.snapshot),
           },
+        },
+        requestId: res.locals.requestId,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }) as RequestHandler,
+
+  list: (async (req, res, next) => {
+    try {
+      if (!req.authenticatedAdmin) {
+        res.status(401).json({
+          error: {
+            code: 'AUTHENTICATION_REQUIRED',
+            message: 'Administrator authentication is required.',
+          },
+          requestId: res.locals.requestId,
+        });
+        return;
+      }
+      const parsed = listQuerySchema.safeParse(req.query);
+      if (!parsed.success) {
+        throw new AppError(
+          400,
+          'INVALID_REQUEST',
+          'Device monitoring query parameters are invalid.',
+        );
+      }
+
+      const result = await monitoring.listForAdmin(
+        req.authenticatedAdmin.id,
+        parsed.data,
+      );
+      res.status(200).json({
+        data: {
+          items: result.items.map((item) => ({
+            device: {
+              id: item.device.id,
+              name: item.device.name,
+              stableIdentifier: item.device.stableIdentifier,
+              platform: item.device.platform,
+              enrollmentStatus: item.device.enrollmentStatus,
+              operationalStatus: item.device.operationalStatus,
+              firstEnrolledAt: item.device.createdAt.toISOString(),
+              lastSeenAt: item.device.lastSeenAt?.toISOString() ?? null,
+            },
+            connection: {
+              state: item.session?.state ?? 'DISCONNECTED',
+              lastSeenAt: item.session?.lastSeenAt.toISOString() ?? null,
+              expiresAt: item.session?.expiresAt.toISOString() ?? null,
+            },
+            monitoring: {
+              freshness: item.freshness,
+              ageMs: item.ageMs,
+              managementMode: item.snapshot?.managementMode ?? 'UNKNOWN',
+              androidVersion: item.snapshot?.androidVersion ?? null,
+              apiLevel: item.snapshot?.apiLevel ?? null,
+              appVersion: item.snapshot?.appVersion ?? null,
+              batteryPercentage: item.snapshot?.batteryPercentage ?? null,
+              chargingState: item.snapshot?.chargingState ?? null,
+              networkState: item.snapshot?.networkState ?? null,
+              storageAvailableBytes:
+                item.snapshot?.storageAvailableBytes ?? null,
+              memoryAvailableBytes: item.snapshot?.memoryAvailableBytes ?? null,
+              lastTelemetryAt:
+                item.snapshot?.lastMonitoringUpdateAt.toISOString() ?? null,
+            },
+          })),
+          nextCursor: result.nextCursor,
         },
         requestId: res.locals.requestId,
       });
