@@ -84,6 +84,9 @@ const rawEnvSchema = z.object({
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60000),
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().min(1).max(1000).default(10),
   REALTIME_ENABLED: booleanString.default(false),
+  MONITORING_FRESHNESS_FRESH_MS: z.coerce.number().int().positive().default(300000),
+  MONITORING_FRESHNESS_STALE_MS: z.coerce.number().int().positive().default(1800000),
+  MONITORING_MAX_PAYLOAD_BYTES: z.coerce.number().int().min(1024).max(1024 * 1024).default(32768),
   EXTERNAL_SERVICE_BASE_URLS: z.string().default(''),
 });
 
@@ -179,6 +182,11 @@ export interface AppConfig {
     readonly maxRequests: number;
   };
   readonly realtime: { readonly enabled: boolean };
+  readonly monitoring: {
+    readonly freshnessFreshMs: number;
+    readonly freshnessStaleMs: number;
+    readonly maxPayloadBytes: number;
+  };
   readonly externalServices: {
     readonly baseUrls: Readonly<Record<string, string>>;
   };
@@ -368,6 +376,13 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     ]);
   }
 
+  if (parsed.data.MONITORING_FRESHNESS_STALE_MS <= parsed.data.MONITORING_FRESHNESS_FRESH_MS) {
+    throw new ConfigurationError([{
+      variable: 'MONITORING_FRESHNESS_STALE_MS',
+      message: 'Must be greater than MONITORING_FRESHNESS_FRESH_MS.',
+    }]);
+  }
+
   const productionIssues = productionRequirements(parsed.data);
   if (productionIssues.length > 0) {
     throw new ConfigurationError(
@@ -468,6 +483,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
         parsed.data.ENROLLMENT_VERIFICATION_MAX_REQUESTS,
     },
     realtime: { enabled: parsed.data.REALTIME_ENABLED },
+    monitoring: {
+      freshnessFreshMs: parsed.data.MONITORING_FRESHNESS_FRESH_MS,
+      freshnessStaleMs: parsed.data.MONITORING_FRESHNESS_STALE_MS,
+      maxPayloadBytes: parsed.data.MONITORING_MAX_PAYLOAD_BYTES,
+    },
     externalServices: {
       baseUrls: parseExternalServices(parsed.data.EXTERNAL_SERVICE_BASE_URLS),
     },
