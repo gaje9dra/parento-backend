@@ -10,7 +10,7 @@ ALTER TABLE device_monitoring_snapshots
       (
         storage_available_bytes IS NULL OR
         storage_used_bytes IS NULL OR
-        storage_available_bytes + storage_used_bytes <= storage_total_bytes
+        storage_available_bytes <= storage_total_bytes - storage_used_bytes
       )
     )
   ),
