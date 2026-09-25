@@ -7,7 +7,32 @@ import type {
 } from '../domain/device-monitoring.js';
 import type { DeviceMonitoringRepository } from '../repositories/device-monitoring-repository.js';
 import type { ManagedDeviceRepository } from '../repositories/managed-device-repository.js';
+import type { DeviceConnectionSession } from '../domain/device-connection-session.js';
+import type { DeviceConnectionSessionRepository } from '../repositories/device-connection-session-repository.js';
+import {
+  classifyMonitoringFreshness,
+  monitoringFreshnessAgeMs,
+  type MonitoringFreshness,
+} from '../domain/device-monitoring-freshness.js';
 import { AppError } from '../types/errors.js';
+
+export interface DeviceMonitoringServiceOptions {
+  readonly freshnessFreshMs: number;
+  readonly freshnessStaleMs: number;
+}
+
+export interface AdminDeviceMonitoringStatus {
+  readonly device: import('../domain/managed-device.js').ManagedDevice;
+  readonly connection: {
+    readonly state: string;
+    readonly session: DeviceConnectionSession | null;
+  };
+  readonly monitoring: {
+    readonly freshness: MonitoringFreshness;
+    readonly ageMs: number | null;
+    readonly snapshot: DeviceMonitoringSnapshot | null;
+  };
+}
 
 export interface DeviceMonitoringInput {
   readonly managedDeviceId: string;
@@ -92,6 +117,8 @@ export class DeviceMonitoringService {
   constructor(
     private readonly repository: DeviceMonitoringRepository,
     private readonly devices: ManagedDeviceRepository,
+    private readonly sessions: DeviceConnectionSessionRepository,
+    private readonly options: DeviceMonitoringServiceOptions,
   ) {}
 
   async ingest(
@@ -297,6 +324,77 @@ export class DeviceMonitoringService {
     adminId: string,
     deviceId: string,
   ): Promise<DeviceMonitoringSnapshot | null> {
+    await this.authorizeDevice(adminId, deviceId);
+    return this.repository.findByDeviceId(deviceId);
+  }
+
+  async getStatusForAdmin(
+    adminId: string,
+    deviceId: string,
+    now = new Date(),
+  ): Promise<AdminDeviceMonitoringStatus> {
+    const device = await this.authorizeDevice(adminId, deviceId);
+    const [snapshot, session] = await Promise.all([
+      this.repository.findByDeviceId(deviceId),
+      this.sessions.findActiveByDeviceId?.(deviceId) ?? Promise.resolve(null),
+    ]);
+    return {
+      device,
+      connection: {
+        state: session?.state ?? 'DISCONNECTED',
+        session,
+      },
+      monitoring: {
+        freshness: classifyMonitoringFreshness(
+          snapshot,
+          {
+            enrollmentStatus: device.enrollmentStatus,
+            operationalStatus: device.operationalStatus,
+            communicationState: session?.state ?? null,
+            now,
+          },
+          this.options,
+        ),
+        ageMs: monitoringFreshnessAgeMs(snapshot, now),
+        snapshot,
+      },
+    };
+  }
+
+  async listForAdmin(
+    adminId: string,
+    page: import('../repositories/device-monitoring-repository.js').MonitoringDevicePageRequest,
+    now = new Date(),
+  ) {
+    const result = await this.repository.listForAdmin(
+      adminId,
+      page,
+      now,
+      this.options,
+    );
+    return {
+      ...result,
+      items: result.items.map((item) => ({
+        ...item,
+        freshness: classifyMonitoringFreshness(
+          item.snapshot,
+          {
+            enrollmentStatus: item.device.enrollmentStatus,
+            operationalStatus: item.device.operationalStatus,
+            communicationState: item.session?.state ?? null,
+            now,
+          },
+          this.options,
+        ),
+        ageMs: monitoringFreshnessAgeMs(item.snapshot, now),
+      })),
+    };
+  }
+
+  private async authorizeDevice(
+    adminId: string,
+    deviceId: string,
+  ): Promise<import('../domain/managed-device.js').ManagedDevice> {
     const device = await this.devices.findById(deviceId);
     if (device === null) {
       throw new AppError(
@@ -312,6 +410,6 @@ export class DeviceMonitoringService {
         'The administrator does not control this device.',
       );
     }
-    return this.repository.findByDeviceId(deviceId);
+    return device;
   }
 }
