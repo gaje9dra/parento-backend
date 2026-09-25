@@ -1,7 +1,8 @@
 name: Format Phase 5.1
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [main]
 
 permissions:
   contents: write
