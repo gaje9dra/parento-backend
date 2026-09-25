@@ -112,10 +112,18 @@ const input = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
+const createService = (repository: DeviceMonitoringRepository) =>
+  new DeviceMonitoringService(
+    repository,
+    new FakeDevices(),
+    new FakeSessions(),
+    { freshnessFreshMs: 300_000, freshnessStaleMs: 1_800_000 },
+  );
+
 describe('Phase 6.4 monitoring', () => {
   it('accepts the Phase 6.3 monitoring contract and records server receipt time', async () => {
     const repository = new FakeMonitoring();
-    const service = new DeviceMonitoringService(repository, new FakeDevices());
+    const service = createService(repository);
     const result = await service.ingest(deviceId, input());
     expect(result.updated).toBe(true);
     expect(result.snapshot.managedDeviceId).toBe(deviceId);
@@ -123,10 +131,7 @@ describe('Phase 6.4 monitoring', () => {
   });
 
   it('rejects a device identity mismatch', async () => {
-    const service = new DeviceMonitoringService(
-      new FakeMonitoring(),
-      new FakeDevices(),
-    );
+    const service = createService(new FakeMonitoring());
     await expect(
       service.ingest(deviceId, input({ managedDeviceId: randomUUID() })),
     ).rejects.toMatchObject({ statusCode: 403, code: 'AUTHORIZATION_DENIED' });
