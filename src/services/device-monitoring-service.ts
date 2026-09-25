@@ -124,6 +124,7 @@ export class DeviceMonitoringService {
   async ingest(
     sessionDeviceId: string,
     input: DeviceMonitoringInput,
+    sessionContext?: { readonly id: string; readonly expiresAt: Date },
   ): Promise<{ snapshot: DeviceMonitoringSnapshot; updated: boolean }> {
     if (input.managedDeviceId !== sessionDeviceId) {
       throw new AppError(
@@ -288,7 +289,7 @@ export class DeviceMonitoringService {
       );
     }
 
-    return this.repository.upsert({
+    const result = await this.repository.upsert({
       managedDeviceId: sessionDeviceId,
       schemaVersion: input.schemaVersion,
       deviceCollectedAt: new Date(input.deviceCollectedAtEpochMillis),
@@ -318,6 +319,15 @@ export class DeviceMonitoringService {
           : new Date(input.lastSuccessfulCommunicationEpochMillis),
       lastMonitoringUpdateAt: new Date(input.lastMonitoringUpdateEpochMillis),
     });
+    if (sessionContext !== undefined) {
+      await this.sessions.touchConnected(
+        sessionContext.id,
+        new Date(now),
+        sessionContext.expiresAt,
+      );
+    }
+    await this.devices.touchLastSeen?.(sessionDeviceId, new Date(now));
+    return result;
   }
 
   async getForAdmin(
