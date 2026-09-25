@@ -213,9 +213,8 @@ describe('EnrollmentSessionService', () => {
   });
 
   it('validates the documented enrollment state transition graph', async () => {
-    const { isValidEnrollmentSessionTransition } = await import(
-      '../src/domain/enrollment-session.js'
-    );
+    const { isValidEnrollmentSessionTransition } =
+      await import('../src/domain/enrollment-session.js');
     const valid: [EnrollmentSessionStatus, EnrollmentSessionStatus][] = [
       ['CREATED', 'PENDING'],
       ['PENDING', 'VERIFIED'],
@@ -229,14 +228,14 @@ describe('EnrollmentSessionService', () => {
       expect(isValidEnrollmentSessionTransition(from, to)).toBe(true);
     }
 
-    expect(
-      isValidEnrollmentSessionTransition('COMPLETED', 'PENDING'),
-    ).toBe(false);
-    expect(
-      isValidEnrollmentSessionTransition('CANCELLED', 'PENDING'),
-    ).toBe(false);
-    expect(
-      isValidEnrollmentSessionTransition('REVOKED', 'COMPLETED'),
-    ).toBe(false);
+    expect(isValidEnrollmentSessionTransition('COMPLETED', 'PENDING')).toBe(
+      false,
+    );
+    expect(isValidEnrollmentSessionTransition('CANCELLED', 'PENDING')).toBe(
+      false,
+    );
+    expect(isValidEnrollmentSessionTransition('REVOKED', 'COMPLETED')).toBe(
+      false,
+    );
   });
 });

@@ -567,7 +567,6 @@ is introduced.
 
 See `docs/phase-3.3-admin-session-lifecycle.md`.
 
-
 ## Phase 5.1 — Secure Device Enrollment & Pairing Foundation
 
 Phase 5.1 adds the backend foundation for intentional administrator-authorized managed-device enrollment.

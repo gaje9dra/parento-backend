@@ -404,10 +404,32 @@ components:
                 tokenType: { type: string, enum: [Bearer] }
     EnrollmentStatus:
       type: string
-      enum: [CREATED, PENDING, VERIFIED, COMPLETED, EXPIRED, CANCELLED, REVOKED, FAILED]
+      enum:
+        [
+          CREATED,
+          PENDING,
+          VERIFIED,
+          COMPLETED,
+          EXPIRED,
+          CANCELLED,
+          REVOKED,
+          FAILED,
+        ]
     Enrollment:
       type: object
-      required: [id, status, createdAt, updatedAt, expiresAt, verifiedAt, completedAt, cancelledAt, managedDeviceId, verificationAttempts]
+      required:
+        [
+          id,
+          status,
+          createdAt,
+          updatedAt,
+          expiresAt,
+          verifiedAt,
+          completedAt,
+          cancelledAt,
+          managedDeviceId,
+          verificationAttempts,
+        ]
       properties:
         id: { type: string, format: uuid }
         status: { $ref: '#/components/schemas/EnrollmentStatus' }
@@ -429,7 +451,8 @@ components:
               required: [enrollment, authorizationSecret]
               properties:
                 enrollment: { $ref: '#/components/schemas/Enrollment' }
-                authorizationSecret: { type: string, minLength: 43, maxLength: 43 }
+                authorizationSecret:
+                  { type: string, minLength: 43, maxLength: 43 }
     EnrollmentListResponse:
       allOf:
         - $ref: '#/components/schemas/ApiSuccess'

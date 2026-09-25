@@ -3,9 +3,7 @@ import type {
   EnrollmentSession,
   EnrollmentSessionStatus,
 } from '../domain/enrollment-session.js';
-import {
-  isValidEnrollmentSessionTransition,
-} from '../domain/enrollment-session.js';
+import { isValidEnrollmentSessionTransition } from '../domain/enrollment-session.js';
 import { PersistenceError } from '../domain/persistence-errors.js';
 import { mapPostgresPersistenceError } from '../db/errors.js';
 import type { EnrollmentSessionRepository } from './enrollment-session-repository.js';
@@ -132,7 +130,9 @@ export class PostgresEnrollmentSessionRepository
             columns,
           [id, now],
         );
-        return updated.rows[0] === undefined ? null : toSession(updated.rows[0]);
+        return updated.rows[0] === undefined
+          ? null
+          : toSession(updated.rows[0]);
       });
     } catch (error) {
       throw mapPostgresPersistenceError(

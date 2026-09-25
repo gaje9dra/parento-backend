@@ -203,7 +203,10 @@ export class EnrollmentSessionService {
                 'Enrollment session has expired.',
               );
             }
-            if (error.message === 'Enrollment verification is no longer available.') {
+            if (
+              error.message ===
+              'Enrollment verification is no longer available.'
+            ) {
               throw new AppError(
                 429,
                 'RATE_LIMITED',
@@ -217,7 +220,10 @@ export class EnrollmentSessionService {
                 'Enrollment verification failed.',
               );
             }
-            if (error.message === 'Enrollment authorization is no longer available.') {
+            if (
+              error.message ===
+              'Enrollment authorization is no longer available.'
+            ) {
               throw new AppError(
                 403,
                 'AUTHORIZATION_DENIED',

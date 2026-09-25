@@ -431,7 +431,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       accessTokenTtlSeconds: parsed.data.AUTH_ACCESS_TOKEN_TTL_SECONDS,
       sessionTtlSeconds: parsed.data.SESSION_TTL_SECONDS,
       enrollmentSessionTtlSeconds: parsed.data.ENROLLMENT_SESSION_TTL_SECONDS,
-      enrollmentVerificationMaxAttempts: parsed.data.ENROLLMENT_VERIFICATION_MAX_ATTEMPTS,
+      enrollmentVerificationMaxAttempts:
+        parsed.data.ENROLLMENT_VERIFICATION_MAX_ATTEMPTS,
       requestBodyLimit: parsed.data.REQUEST_BODY_LIMIT,
       requestTimeoutMs: parsed.data.REQUEST_TIMEOUT_MS,
       headersTimeoutMs: parsed.data.HEADERS_TIMEOUT_MS,
@@ -442,8 +443,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       enabled: parsed.data.RATE_LIMIT_ENABLED,
       windowMs: parsed.data.RATE_LIMIT_WINDOW_MS,
       maxRequests: parsed.data.RATE_LIMIT_MAX_REQUESTS,
-      enrollmentVerificationWindowMs: parsed.data.ENROLLMENT_VERIFICATION_WINDOW_MS,
-      enrollmentVerificationMaxRequests: parsed.data.ENROLLMENT_VERIFICATION_MAX_REQUESTS,
+      enrollmentVerificationWindowMs:
+        parsed.data.ENROLLMENT_VERIFICATION_WINDOW_MS,
+      enrollmentVerificationMaxRequests:
+        parsed.data.ENROLLMENT_VERIFICATION_MAX_REQUESTS,
     },
     realtime: { enabled: parsed.data.REALTIME_ENABLED },
     externalServices: {

@@ -262,19 +262,19 @@ No QR format or client-side pairing UI is defined yet.
 
 ## Threat-model review
 
-| Threat | Mitigation |
-| --- | --- |
-| Secret theft | high entropy, expiration, one-time use, rate limits, no logging |
-| Secret guessing | 256-bit random secret, rate limits, bounded attempts |
-| Replay | transactional state transition and row lock |
-| Cross-admin access | authenticated ownership checks |
-| Disabled owner | active-admin check during completion |
-| Concurrent consumers | PostgreSQL transaction and row locking |
-| Expired authorization | server-side expiration check |
-| Device identity duplication | unique database constraint and explicit conflict |
-| Partial completion | managed-device creation and session completion share one transaction |
-| Client-supplied admin identity | not accepted |
-| Hardware fingerprint harvesting | not collected |
+| Threat                          | Mitigation                                                           |
+| ------------------------------- | -------------------------------------------------------------------- |
+| Secret theft                    | high entropy, expiration, one-time use, rate limits, no logging      |
+| Secret guessing                 | 256-bit random secret, rate limits, bounded attempts                 |
+| Replay                          | transactional state transition and row lock                          |
+| Cross-admin access              | authenticated ownership checks                                       |
+| Disabled owner                  | active-admin check during completion                                 |
+| Concurrent consumers            | PostgreSQL transaction and row locking                               |
+| Expired authorization           | server-side expiration check                                         |
+| Device identity duplication     | unique database constraint and explicit conflict                     |
+| Partial completion              | managed-device creation and session completion share one transaction |
+| Client-supplied admin identity  | not accepted                                                         |
+| Hardware fingerprint harvesting | not collected                                                        |
 
 ## Deferred functionality
 

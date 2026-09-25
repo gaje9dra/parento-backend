@@ -4,12 +4,8 @@ import { loadConfig } from '../src/config/env.js';
 import { createDatabase } from '../src/db/index.js';
 import { resetMigrations, runMigrations } from '../src/db/migrate.js';
 import { PostgresAdminRepository } from '../src/repositories/postgres-admin-repository.js';
-import {
-  PostgresManagedDeviceRepository,
-} from '../src/repositories/postgres-managed-device-repository.js';
-import {
-  PostgresEnrollmentRepository,
-} from '../src/repositories/postgres-enrollment-repository.js';
+import { PostgresManagedDeviceRepository } from '../src/repositories/postgres-managed-device-repository.js';
+import { PostgresEnrollmentRepository } from '../src/repositories/postgres-enrollment-repository.js';
 import { EnrollmentPersistenceService } from '../src/services/enrollment-persistence-service.js';
 import { AdminPersistenceService } from '../src/services/admin-persistence-service.js';
 
@@ -63,10 +59,12 @@ describe.skipIf(!hasDatabase)('Phase 2.3 domain persistence', () => {
 
     expect(admin.email).toBe('admin@example.com');
     expect(admin.displayName).toBe('Parent Admin');
-    expect(await adminService.findByEmail(' ADMIN@EXAMPLE.COM ')).toMatchObject({
-      id: admin.id,
-      email: 'admin@example.com',
-    });
+    expect(await adminService.findByEmail(' ADMIN@EXAMPLE.COM ')).toMatchObject(
+      {
+        id: admin.id,
+        email: 'admin@example.com',
+      },
+    );
 
     expect(() =>
       adminService.create({
