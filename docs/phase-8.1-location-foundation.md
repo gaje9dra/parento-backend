@@ -47,3 +47,8 @@ parento-managed will later call POST /api/v1/device/location with the authentica
 - Admin map UI
 - location history
 - Phase 9+ device-control/surveillance features
+
+## Verification
+
+The repository verification workflow runs formatting, lint, type checking,
+database migration checks, tests, build, and dependency audit for this phase.
