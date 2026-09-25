@@ -74,13 +74,16 @@ No background cleanup worker is required for security enforcement.
 
 Consumption:
 
-1. locks the enrollment session row;
-2. validates server-side expiration and state;
-3. verifies the presented secret;
-4. locks and checks the owning administrator;
-5. checks the stable installation identity;
-6. creates the ManagedDevice;
-7. marks the session `COMPLETED`.
+1. reads the enrollment owner;
+2. locks and checks the owning administrator;
+3. locks the enrollment session row;
+4. validates server-side expiration and state;
+5. verifies the presented secret;
+6. checks the stable installation identity;
+7. creates the ManagedDevice;
+8. marks the session `COMPLETED`.
+
+Administrator-first locking is used consistently with cancellation to avoid lock-order deadlocks.
 
 All steps occur in one PostgreSQL transaction.
 
