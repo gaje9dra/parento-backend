@@ -2,6 +2,7 @@ import type { RequestHandler } from 'express';
 import { z } from 'zod';
 import type { DeviceCommunicationService } from '../services/device-communication-service.js';
 import type { CommandService } from '../services/command-service.js';
+import type { Command } from '../domain/command.js';
 
 const idSchema=z.object({commandId:z.string().uuid()}).strict();
 const resultSchema=z.object({
@@ -37,4 +38,4 @@ export const createDeviceCommunicationController=(communication:DeviceCommunicat
  result:(async(req,res,next)=>{try{const p=idSchema.safeParse(req.params);const b=resultSchema.safeParse(req.body);if(!p.success||!b.success){res.status(400).json({error:{code:'INVALID_REQUEST',message:'Invalid command result.'},requestId:res.locals.requestId});return;}const s=req.authenticatedDeviceSession;if(!s){res.status(401).json({error:{code:'DEVICE_SESSION_INVALID',message:'Managed-device session is required.'},requestId:res.locals.requestId});return;}const c=await commands.result(p.data.commandId,s,b.data.status,b.data.resultCode,b.data.errorCategory,b.data.resultMetadata);res.status(200).json({data:{command:toCommand(c)},requestId:res.locals.requestId});}catch(e){next(e);}}) as RequestHandler,
 });
 const toSession=(s:{id:string;managedDeviceId:string;state:string;createdAt:Date;connectedAt:Date|null;lastActivityAt:Date;disconnectedAt:Date|null;expiresAt:Date})=>({id:s.id,managedDeviceId:s.managedDeviceId,state:s.state,createdAt:s.createdAt.toISOString(),connectedAt:s.connectedAt?.toISOString()??null,lastActivityAt:s.lastActivityAt.toISOString(),disconnectedAt:s.disconnectedAt?.toISOString()??null,expiresAt:s.expiresAt.toISOString()});
-const toCommand=(c:any)=>({...c,createdAt:c.createdAt.toISOString(),expiresAt:c.expiresAt.toISOString(),deliveryAt:c.deliveryAt?.toISOString()??null,acknowledgedAt:c.acknowledgedAt?.toISOString()??null,startedAt:c.startedAt?.toISOString()??null,completedAt:c.completedAt?.toISOString()??null,cancelledAt:c.cancelledAt?.toISOString()??null});
+const toCommand=(c:Command)=>({...c,createdAt:c.createdAt.toISOString(),expiresAt:c.expiresAt.toISOString(),deliveryAt:c.deliveryAt?.toISOString()??null,acknowledgedAt:c.acknowledgedAt?.toISOString()??null,startedAt:c.startedAt?.toISOString()??null,completedAt:c.completedAt?.toISOString()??null,cancelledAt:c.cancelledAt?.toISOString()??null});
