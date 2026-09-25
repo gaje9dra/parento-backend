@@ -760,6 +760,18 @@ components:
                 enrollment: { $ref: '#/components/schemas/Enrollment' }
                 managedDeviceId: { type: string, format: uuid }
                 deviceCredential: { type: string, minLength: 43, maxLength: 43 }
+    DeviceIdentity:
+      type: object
+      required: [id, name, stableIdentifier, platform, enrollmentStatus, operationalStatus, firstEnrolledAt, lastSeenAt]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        stableIdentifier: { type: string }
+        platform: { type: string }
+        enrollmentStatus: { type: string, enum: [PENDING, ACTIVE, REVOKED] }
+        operationalStatus: { type: string, enum: [PENDING, ACTIVE, REVOKED] }
+        firstEnrolledAt: { type: string, format: date-time }
+        lastSeenAt: { type: string, format: date-time, nullable: true }
     DeviceMonitoringListResponse:
       allOf:
         - $ref: '#/components/schemas/ApiSuccess'
@@ -781,17 +793,7 @@ components:
       required: [device, connection, monitoring]
       properties:
         device:
-          type: object
-          required: [id, name, stableIdentifier, platform, enrollmentStatus, operationalStatus, firstEnrolledAt, lastSeenAt]
-          properties:
-            id: { type: string, format: uuid }
-            name: { type: string }
-            stableIdentifier: { type: string }
-            platform: { type: string }
-            enrollmentStatus: { type: string, enum: [PENDING, ACTIVE, REVOKED] }
-            operationalStatus: { type: string, enum: [PENDING, ACTIVE, REVOKED] }
-            firstEnrolledAt: { type: string, format: date-time }
-            lastSeenAt: { type: string, format: date-time, nullable: true }
+          $ref: '#/components/schemas/DeviceIdentity'
         connection:
           type: object
           required: [state, lastSeenAt, expiresAt]
@@ -825,7 +827,7 @@ components:
               required: [device, connection, monitoring]
               properties:
                 device:
-                  $ref: '#/components/schemas/DeviceMonitoringSummary/properties/device'
+                  $ref: '#/components/schemas/DeviceIdentity'
                 connection:
                   type: object
                   required: [state, session, lastConnectedAt]
