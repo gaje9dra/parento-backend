@@ -38,28 +38,24 @@ export const createLocationController = (service: LocationService) => ({
   report: (async (req, res, next) => {
     try {
       if (!req.authenticatedDeviceSession) {
-        res
-          .status(401)
-          .json({
-            error: {
-              code: 'DEVICE_SESSION_INVALID',
-              message: 'Managed-device session is required.',
-            },
-            requestId: res.locals.requestId,
-          });
+        res.status(401).json({
+          error: {
+            code: 'DEVICE_SESSION_INVALID',
+            message: 'Managed-device session is required.',
+          },
+          requestId: res.locals.requestId,
+        });
         return;
       }
       const parsed = reportSchema.safeParse(req.body);
       if (!parsed.success) {
-        res
-          .status(400)
-          .json({
-            error: {
-              code: 'INVALID_REQUEST',
-              message: 'Invalid location report.',
-            },
-            requestId: res.locals.requestId,
-          });
+        res.status(400).json({
+          error: {
+            code: 'INVALID_REQUEST',
+            message: 'Invalid location report.',
+          },
+          requestId: res.locals.requestId,
+        });
         return;
       }
       const result = await service.report(req.authenticatedDeviceSession, {
@@ -85,28 +81,24 @@ export const createLocationController = (service: LocationService) => ({
   get: (async (req, res, next) => {
     try {
       if (!req.authenticatedAdmin) {
-        res
-          .status(401)
-          .json({
-            error: {
-              code: 'AUTHENTICATION_REQUIRED',
-              message: 'Administrator authentication is required.',
-            },
-            requestId: res.locals.requestId,
-          });
+        res.status(401).json({
+          error: {
+            code: 'AUTHENTICATION_REQUIRED',
+            message: 'Administrator authentication is required.',
+          },
+          requestId: res.locals.requestId,
+        });
         return;
       }
       const parsed = deviceIdSchema.safeParse(req.params);
       if (!parsed.success) {
-        res
-          .status(400)
-          .json({
-            error: {
-              code: 'INVALID_REQUEST',
-              message: 'Invalid managed-device identifier.',
-            },
-            requestId: res.locals.requestId,
-          });
+        res.status(400).json({
+          error: {
+            code: 'INVALID_REQUEST',
+            message: 'Invalid managed-device identifier.',
+          },
+          requestId: res.locals.requestId,
+        });
         return;
       }
       const result = await service.getForAdmin(
