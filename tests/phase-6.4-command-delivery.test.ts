@@ -78,6 +78,7 @@ class FakeCommands implements CommandRepository {
 
 class FakeSessions implements DeviceConnectionSessionRepository {
   readonly name = 'fake-sessions';
+  active = true;
   async create(): Promise<DeviceConnectionSession> {
     return session;
   }
