@@ -44,7 +44,6 @@ CREATE TABLE device_monitoring_state (
     (memory_total_bytes IS NULL OR memory_total_bytes >= 0) AND
     (memory_available_bytes IS NULL OR memory_available_bytes >= 0)
   ),
-  CONSTRAINT device_monitoring_received_check CHECK (received_at >= observed_at - INTERVAL '7 days')
 );
 
 CREATE INDEX device_monitoring_observed_idx
