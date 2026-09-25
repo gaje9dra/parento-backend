@@ -8,8 +8,9 @@ export const createApiRouter = (
   database: Database,
   security: AppConfig['security'],
   rateLimit: AppConfig['rateLimit'],
+  realtime: AppConfig['realtime'],
 ): Router => {
   const router = Router();
-  router.use(apiBasePath, createV1Router(database, security, rateLimit));
+  router.use(apiBasePath, createV1Router(database, security, rateLimit, realtime));
   return router;
 };
