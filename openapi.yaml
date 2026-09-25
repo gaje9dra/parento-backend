@@ -449,8 +449,6 @@ paths:
         '401': { $ref: '#/components/responses/ApiErrorResponse' }
         '403': { $ref: '#/components/responses/ApiErrorResponse' }
         '413': { $ref: '#/components/responses/ApiErrorResponse' }
-    get:
-      description: Not supported. Device telemetry is submitted with POST only.
   /admin/devices:
     get:
       tags: [Admin Monitoring]
@@ -770,6 +768,7 @@ components:
                 - DEVICE_AUTHENTICATION_REQUIRED
                 - DEVICE_AUTHORIZATION_DENIED
                 - DEVICE_SESSION_INVALID
+                - INVALID_MONITORING_TIMESTAMP
                 - DEVICE_NOT_READY
                 - DEVICE_NOT_FOUND
                 - COMMAND_NOT_FOUND
