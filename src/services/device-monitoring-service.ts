@@ -348,10 +348,17 @@ export class DeviceMonitoringService {
       this.repository.findByDeviceId(deviceId),
       this.sessions.findActiveByDeviceId?.(deviceId) ?? Promise.resolve(null),
     ]);
+    const communicationState =
+      session === null
+        ? null
+        : session.expiresAt.getTime() <= now.getTime()
+          ? 'EXPIRED'
+          : session.state;
+
     return {
       device,
       connection: {
-        state: session?.state ?? 'DISCONNECTED',
+        state: communicationState ?? 'DISCONNECTED',
         session,
       },
       monitoring: {
@@ -360,7 +367,7 @@ export class DeviceMonitoringService {
           {
             enrollmentStatus: device.enrollmentStatus,
             operationalStatus: device.operationalStatus,
-            communicationState: session?.state ?? null,
+            communicationState,
             now,
           },
           this.options,
