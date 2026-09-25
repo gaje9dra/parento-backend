@@ -67,3 +67,8 @@ parento-managed will later need to securely retain the one-time device credentia
 parento-admin will later need to create commands through the administrator-authenticated endpoint, send stable idempotency keys for retries, and display lifecycle status without treating delivery as execution.
 
 No changes were made to either repository in Phase 6.1.
+
+
+## Verification status
+
+Repository verification is performed by the existing GitHub verification workflow; the branch must pass formatting, lint, type checking, migrations, tests, build, and dependency audit before merge.
