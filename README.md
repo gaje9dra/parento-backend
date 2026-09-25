@@ -615,3 +615,10 @@ The future gaje9dra/parento-managed integration contract is documented in docs/p
 See docs/phase-5.1-enrollment.md and openapi.yaml for the complete contract and security model.
 
 Phase 5.1 implementation verification is performed by the repository CI workflow before the phase is marked complete. The implementation has been formatter-normalized, migration expectations and IPv6 rate-limit handling were corrected, and the final CI verification pass is running, including the enrollment API boundary tests.
+
+
+## Phase 6.1 — Device Communication Foundation
+
+The backend now contains a secure device-session and command-lifecycle foundation. Enrollment issues a one-time opaque device credential whose hash is stored server-side. Devices exchange that credential for a short-lived communication session. Administrator commands are ownership-authorized, idempotency-aware, expiration-bound, state-machine controlled, and auditable through command events. Transport remains behind `CommandDeliveryPort` and no functional device-control capability is implemented.
+
+See `docs/phase-6.1-device-communication.md` and `openapi.yaml` for the backend contract.
