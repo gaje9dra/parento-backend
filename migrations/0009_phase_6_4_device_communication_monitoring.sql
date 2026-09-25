@@ -55,3 +55,25 @@ CREATE TABLE device_monitoring_snapshots (
 
 CREATE INDEX device_monitoring_freshness_idx
   ON device_monitoring_snapshots (server_received_at DESC, device_collected_at DESC);
+
+
+CREATE OR REPLACE FUNCTION revoke_device_communication_state()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.enrollment_status = 'REVOKED' OR NEW.operational_status = 'REVOKED' THEN
+    UPDATE device_credentials
+      SET status = 'REVOKED', revoked_at = COALESCE(revoked_at, NOW())
+      WHERE managed_device_id = NEW.id AND status = 'ACTIVE';
+
+    UPDATE device_connection_sessions
+      SET state = 'EXPIRED',
+          disconnected_at = COALESCE(disconnected_at, NOW()),
+          last_activity_at = NOW(),
+          last_seen_at = NOW(),
+          revoked_at = COALESCE(revoked_at, NOW())
+      WHERE managed_device_id = NEW.id
+        AND state IN ('CONNECTING', 'CONNECTED', 'STALE');
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
