@@ -160,6 +160,120 @@ paths:
       responses:
         '405':
           $ref: '#/components/responses/MethodNotAllowed'
+  /api/v1/devices/enrollments:
+    post:
+      summary: Create an enrollment session
+      operationId: createEnrollment
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: false
+      responses:
+        '201':
+          description: Enrollment session and one-time authorization secret
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnrollmentCreateResponse'
+        '401':
+          $ref: '#/components/responses/ApiErrorResponse'
+        '403':
+          $ref: '#/components/responses/ApiErrorResponse'
+        '429':
+          $ref: '#/components/responses/ApiErrorResponse'
+    get:
+      summary: List enrollment sessions owned by the administrator
+      operationId: listEnrollments
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Enrollment sessions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnrollmentListResponse'
+        '401':
+          $ref: '#/components/responses/ApiErrorResponse'
+  /api/v1/devices/enrollments/{enrollmentId}:
+    get:
+      summary: Get an owned enrollment session
+      operationId: getEnrollment
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EnrollmentId'
+      responses:
+        '200':
+          description: Enrollment status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnrollmentStatusResponse'
+        '404':
+          $ref: '#/components/responses/ApiErrorResponse'
+        '410':
+          $ref: '#/components/responses/ApiErrorResponse'
+    post:
+      summary: Method not allowed
+      operationId: postEnrollmentNotAllowed
+      responses:
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+  /api/v1/devices/enrollments/{enrollmentId}/cancel:
+    post:
+      summary: Cancel an active owned enrollment session
+      operationId: cancelEnrollment
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EnrollmentId'
+      responses:
+        '200':
+          description: Cancelled enrollment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnrollmentStatusResponse'
+        '404':
+          $ref: '#/components/responses/ApiErrorResponse'
+        '409':
+          $ref: '#/components/responses/ApiErrorResponse'
+        '410':
+          $ref: '#/components/responses/ApiErrorResponse'
+  /api/v1/devices/enrollments/{enrollmentId}/consume:
+    post:
+      summary: Consume enrollment authorization and associate a managed Android installation
+      operationId: consumeEnrollment
+      parameters:
+        - $ref: '#/components/parameters/EnrollmentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EnrollmentConsumeRequest'
+      responses:
+        '200':
+          description: Completed enrollment and managed-device identity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnrollmentConsumeResponse'
+        '400':
+          $ref: '#/components/responses/ApiErrorResponse'
+        '401':
+          $ref: '#/components/responses/ApiErrorResponse'
+        '403':
+          $ref: '#/components/responses/ApiErrorResponse'
+        '404':
+          $ref: '#/components/responses/ApiErrorResponse'
+        '409':
+          $ref: '#/components/responses/ApiErrorResponse'
+        '410':
+          $ref: '#/components/responses/ApiErrorResponse'
+        '429':
+          $ref: '#/components/responses/ApiErrorResponse'
 components:
   securitySchemes:
     bearerAuth:
@@ -288,6 +402,87 @@ components:
                 accessTokenExpiresAt: { type: string, format: date-time }
                 sessionExpiresAt: { type: string, format: date-time }
                 tokenType: { type: string, enum: [Bearer] }
+    EnrollmentStatus:
+      type: string
+      enum: [CREATED, PENDING, VERIFIED, COMPLETED, EXPIRED, CANCELLED, REVOKED, FAILED]
+    Enrollment:
+      type: object
+      required: [id, status, createdAt, updatedAt, expiresAt, verifiedAt, completedAt, cancelledAt, managedDeviceId, verificationAttempts]
+      properties:
+        id: { type: string, format: uuid }
+        status: { $ref: '#/components/schemas/EnrollmentStatus' }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }
+        verifiedAt: { type: string, format: date-time, nullable: true }
+        completedAt: { type: string, format: date-time, nullable: true }
+        cancelledAt: { type: string, format: date-time, nullable: true }
+        managedDeviceId: { type: string, format: uuid, nullable: true }
+        verificationAttempts: { type: integer, minimum: 0 }
+    EnrollmentCreateResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccess'
+        - type: object
+          properties:
+            data:
+              type: object
+              required: [enrollment, authorizationSecret]
+              properties:
+                enrollment: { $ref: '#/components/schemas/Enrollment' }
+                authorizationSecret: { type: string, minLength: 43, maxLength: 43 }
+    EnrollmentListResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccess'
+        - type: object
+          properties:
+            data:
+              type: object
+              required: [enrollments]
+              properties:
+                enrollments:
+                  type: array
+                  items: { $ref: '#/components/schemas/Enrollment' }
+    EnrollmentStatusResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccess'
+        - type: object
+          properties:
+            data:
+              type: object
+              required: [enrollment]
+              properties:
+                enrollment: { $ref: '#/components/schemas/Enrollment' }
+    EnrollmentConsumeRequest:
+      type: object
+      additionalProperties: false
+      required: [authorizationSecret, localInstallationIdentity, name, platform]
+      properties:
+        authorizationSecret:
+          type: string
+          minLength: 43
+          maxLength: 43
+        localInstallationIdentity:
+          type: string
+          minLength: 8
+          maxLength: 128
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        platform:
+          type: string
+          enum: [android]
+    EnrollmentConsumeResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccess'
+        - type: object
+          properties:
+            data:
+              type: object
+              required: [enrollment, managedDeviceId]
+              properties:
+                enrollment: { $ref: '#/components/schemas/Enrollment' }
+                managedDeviceId: { type: string, format: uuid }
     ApiError:
       type: object
       required: [error, requestId]
@@ -312,13 +507,33 @@ components:
                 - SERVICE_UNAVAILABLE
                 - DATABASE_UNAVAILABLE
                 - NOT_FOUND
+                - ENROLLMENT_NOT_FOUND
+                - ENROLLMENT_EXPIRED
+                - ENROLLMENT_ALREADY_CONSUMED
+                - ENROLLMENT_STATE_CONFLICT
+                - INVALID_ENROLLMENT_VERIFICATION
+                - DEVICE_IDENTITY_CONFLICT
             message:
               type: string
             metadata:
               type: object
         requestId:
           type: string
+  parameters:
+    EnrollmentId:
+      name: enrollmentId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
   responses:
+    ApiErrorResponse:
+      description: API error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
     MethodNotAllowed:
       description: HTTP method is not supported for the endpoint
       headers:
