@@ -615,3 +615,34 @@ The future gaje9dra/parento-managed integration contract is documented in docs/p
 See docs/phase-5.1-enrollment.md and openapi.yaml for the complete contract and security model.
 
 Phase 5.1 implementation verification is performed by the repository CI workflow before the phase is marked complete. The implementation has been formatter-normalized, migration expectations and IPv6 rate-limit handling were corrected, and the final CI verification pass is running, including the enrollment API boundary tests.
+
+
+## Phase 5.4 — Enrollment Security Hardening & Phase 5 Backend Completion
+
+Phase 5.4 hardens the Phase 5.1 enrollment implementation without changing the established API architecture or modifying the Android repositories.
+
+Implemented:
+
+- administrator-row locking during enrollment creation, cancellation, and consumption;
+- server-side disabled-administrator enforcement at the database transaction boundary;
+- database invariants for enrollment secret digest format and state/timestamp/device-association consistency;
+- exact server-time expiration enforcement at the consumption boundary;
+- replay and concurrent-consumption protection retained with PostgreSQL row locking and stable installation identity uniqueness;
+- expanded enrollment integration coverage for disabled administrators and expiration boundaries;
+- Phase 5.4 enrollment security documentation.
+
+Migration:
+
+`migrations/0008_phase_5_4_enrollment_security_hardening.sql`
+
+The Phase 5 HTTP contract remains unchanged:
+
+- `POST /api/v1/devices/enrollments`
+- `GET /api/v1/devices/enrollments`
+- `GET /api/v1/devices/enrollments/{enrollmentId}`
+- `POST /api/v1/devices/enrollments/{enrollmentId}/cancel`
+- `POST /api/v1/devices/enrollments/{enrollmentId}/consume`
+
+No Phase 6 functionality is implemented. No changes are made to `gaje9dra/parento-admin` or `gaje9dra/parento-managed`.
+
+See `docs/phase-5.4-enrollment-security.md` for the final security model, state machine, transaction boundaries, database invariants, and cross-repository contract.
