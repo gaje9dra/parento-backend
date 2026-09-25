@@ -621,3 +621,20 @@ Phase 5.1 implementation verification is performed by the repository CI workflow
 The backend now contains a secure device-session and command-lifecycle foundation. Enrollment issues a one-time opaque device credential whose hash is stored server-side. Devices exchange that credential for a short-lived communication session. Administrator commands are ownership-authorized, idempotency-aware, expiration-bound, state-machine controlled, and auditable through command events. Transport remains behind `CommandDeliveryPort` and no functional device-control capability is implemented.
 
 See `docs/phase-6.1-device-communication.md` and `openapi.yaml` for the backend contract.
+
+
+## Phase 6.4 — Device Communication, Monitoring & Realtime Integration
+
+Phase 6.4 builds on the Phase 6.1 device-session and command foundation. It adds authenticated SSE command delivery, single-active-session enforcement, session last-seen/revocation metadata, validated Phase 6.3 monitoring ingestion, latest-state monitoring persistence, and an admin-authorized device status endpoint.
+
+Realtime is opt-in through `REALTIME_ENABLED=true`. The transport boundary remains separate from command business logic.
+
+Implemented endpoints:
+
+- `GET /api/v1/device/stream`
+- `POST /api/v1/device/monitoring`
+- `GET /api/v1/devices/:deviceId/status`
+
+The managed Android client is intentionally not modified in this backend phase. Its later integration must consume the documented monitoring and SSE contracts.
+
+See `docs/phase-6.4-device-communication-monitoring.md` for the complete contract, lifecycle, security, freshness, retention, and operational details.
