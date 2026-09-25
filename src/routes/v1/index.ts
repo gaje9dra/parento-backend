@@ -114,12 +114,10 @@ export const createV1Router = (
   router.use(
     createDeviceMonitoringRouter(
       monitoring,
-      managedDevices,
       deviceSessions,
       authentication,
       rateLimit,
-      security,
-      realtime,
+      monitoringConfig,
     ),
   );
 
