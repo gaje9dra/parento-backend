@@ -8,7 +8,9 @@ export interface DeviceConnectionSession {
   readonly createdAt: Date;
   readonly connectedAt: Date | null;
   readonly lastActivityAt: Date;
+  readonly lastSeenAt: Date;
   readonly disconnectedAt: Date | null;
+  readonly revokedAt: Date | null;
   readonly expiresAt: Date;
 }
 
