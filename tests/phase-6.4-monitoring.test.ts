@@ -97,6 +97,9 @@ class FakeMonitoring implements DeviceMonitoringRepository {
   async findByDeviceId(): Promise<DeviceMonitoringSnapshot | null> {
     return this.snapshot;
   }
+  async listForAdmin() {
+    return { items: [], nextCursor: null };
+  }
 }
 
 const input = (overrides: Record<string, unknown> = {}) => ({
