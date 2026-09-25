@@ -167,6 +167,16 @@ export class LocationService {
         'AUTHORIZATION_DENIED',
         'The administrator does not control this device.',
       );
+    if (
+      device.enrollmentStatus !== 'ACTIVE' ||
+      device.operationalStatus !== 'ACTIVE'
+    ) {
+      throw new AppError(
+        403,
+        'DEVICE_AUTHORIZATION_DENIED',
+        'Managed device is not authorized for location retrieval.',
+      );
+    }
     const location = await this.locations.findLatest(managedDeviceId);
     return { location, freshness: getLocationFreshness(location) };
   }
