@@ -50,9 +50,13 @@ export class PostgresLocationRepository
     return result.rows[0] === undefined ? null : toLocation(result.rows[0]);
   }
 
-  async findByReportId(reportId: string): Promise<ManagedDeviceLocation | null> {
+  async findByReportId(
+    reportId: string,
+  ): Promise<ManagedDeviceLocation | null> {
     const result = await this.query<LocationRow>(
-      'SELECT ' + columns + ' FROM managed_device_locations WHERE report_id = $1',
+      'SELECT ' +
+        columns +
+        ' FROM managed_device_locations WHERE report_id = $1',
       [reportId],
     );
     return result.rows[0] === undefined ? null : toLocation(result.rows[0]);
