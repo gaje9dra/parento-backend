@@ -31,14 +31,20 @@ export const createDeviceSessionController = (
     const credential = req.header('x-device-credential');
     if (credential === undefined) {
       res.status(401).json({
-        error: { code: 'AUTHENTICATION_REQUIRED', message: 'Device authentication is required.' },
+        error: {
+          code: 'AUTHENTICATION_REQUIRED',
+          message: 'Device authentication is required.',
+        },
         requestId: res.locals.requestId,
       });
       return;
     }
     try {
       const session = await service.connect(credential);
-      res.status(201).json({ data: { session: sessionResponse(session) }, requestId: res.locals.requestId });
+      res.status(201).json({
+        data: { session: sessionResponse(session) },
+        requestId: res.locals.requestId,
+      });
     } catch (error) {
       next(error);
     }
@@ -46,20 +52,33 @@ export const createDeviceSessionController = (
 
   disconnect: (async (req, res, next) => {
     const parsed = idSchema.safeParse(req.params);
-    if (!parsed.success) {
+    const credential = req.header('x-device-credential');
+    if (!parsed.success || credential === undefined) {
       res.status(400).json({
-        error: { code: 'INVALID_REQUEST', message: 'Invalid session identifier.' },
+        error: {
+          code: 'INVALID_REQUEST',
+          message: 'A valid session identifier and device credential are required.',
+        },
         requestId: res.locals.requestId,
       });
       return;
     }
     try {
-      const session = await service.disconnect(parsed.data.sessionId);
+      const session = await service.disconnect(parsed.data.sessionId, credential);
       if (session === null) {
-        res.status(404).json({ error: { code: 'RESOURCE_NOT_FOUND', message: 'Device session was not found.' }, requestId: res.locals.requestId });
+        res.status(404).json({
+          error: {
+            code: 'RESOURCE_NOT_FOUND',
+            message: 'Device session was not found.',
+          },
+          requestId: res.locals.requestId,
+        });
         return;
       }
-      res.status(200).json({ data: { session: sessionResponse(session) }, requestId: res.locals.requestId });
+      res.status(200).json({
+        data: { session: sessionResponse(session) },
+        requestId: res.locals.requestId,
+      });
     } catch (error) {
       next(error);
     }
