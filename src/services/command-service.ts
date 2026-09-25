@@ -34,8 +34,10 @@ export class CommandService {
   if(command===null) throw new AppError(404,'COMMAND_NOT_FOUND','Command was not found.');
   return this.expireIfNeeded(command);
  }
- async cancel(id:string,adminId:string):Promise<Command>{
+ async getOwnedForDevice(id:string,adminId:string,deviceId:string):Promise<Command>{ const command=await this.getOwned(id,adminId); if(command.managedDeviceId!==deviceId) throw new AppError(403,'AUTHORIZATION_DENIED','The command is not assigned to this device.'); return command; }
+ async cancel(id:string,adminId:string,deviceId?:string):Promise<Command>{
   const command=await this.getOwned(id,adminId);
+  if(deviceId!==undefined && command.managedDeviceId!==deviceId) throw new AppError(403,'AUTHORIZATION_DENIED','The command is not assigned to this device.');
   if(['SUCCEEDED','FAILED','EXPIRED','CANCELLED','REJECTED'].includes(command.status)) throw new AppError(409,'COMMAND_STATE_CONFLICT','The command cannot be cancelled in its current state.');
   try{return await this.commands.cancelOwned(id,adminId,new Date());}catch(error){if(error instanceof PersistenceError) throw new AppError(409,'COMMAND_STATE_CONFLICT',error.message);throw error;}
  }
