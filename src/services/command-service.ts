@@ -4,6 +4,7 @@ import { PersistenceError } from '../domain/persistence-errors.js';
 import type { CommandRepository } from '../repositories/command-repository.js';
 import type { ManagedDeviceRepository } from '../repositories/managed-device-repository.js';
 import { AppError } from '../types/errors.js';
+import type { CommandDeliveryService } from './command-delivery-service.js';
 
 export interface CommandServiceOptions {
   readonly ttlSeconds: number;
@@ -18,6 +19,7 @@ export class CommandService {
     private readonly commands: CommandRepository,
     private readonly devices: ManagedDeviceRepository,
     private readonly options: CommandServiceOptions,
+    private readonly delivery?: CommandDeliveryService,
   ) {}
   async create(
     adminId: string,
@@ -116,7 +118,11 @@ export class CommandService {
         now: new Date(),
         correlationId: created.command.correlationId,
       });
-      return { command: queued, created: true };
+      if (this.delivery !== undefined) {
+        await this.delivery.deliverQueuedForDevice(device.id);
+      }
+      const latest = await this.commands.findById(queued.id);
+      return { command: latest ?? queued, created: true };
     } catch (error) {
       if (error instanceof PersistenceError && error.code === 'CONFLICT')
         throw new AppError(
