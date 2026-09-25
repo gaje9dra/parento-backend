@@ -174,6 +174,30 @@ export class PostgresEnrollmentSessionRepository
 
     try {
       return await this.transaction(async (client) => {
+        const ownerResult = await client.query<{ admin_id: string }>(
+          'SELECT admin_id FROM enrollment_sessions WHERE id = $1',
+          [input.id],
+        );
+        const owner = ownerResult.rows[0];
+        if (owner === undefined) {
+          throw new PersistenceError(
+            'NOT_FOUND',
+            'Enrollment session not found.',
+          );
+        }
+
+        const adminResult = await client.query<{
+          status: 'ACTIVE' | 'DISABLED';
+        }>('SELECT status FROM admins WHERE id = $1 FOR UPDATE', [
+          owner.admin_id,
+        ]);
+        if (adminResult.rows[0]?.status !== 'ACTIVE') {
+          throw new PersistenceError(
+            'INVALID_STATE',
+            'Enrollment authorization is no longer available.',
+          );
+        }
+
         const result = await client.query<SessionRow>(
           'SELECT ' +
             columns +
@@ -181,7 +205,7 @@ export class PostgresEnrollmentSessionRepository
           [input.id],
         );
         const current = result.rows[0];
-        if (current === undefined) {
+        if (current === undefined || current.admin_id !== owner.admin_id) {
           throw new PersistenceError(
             'NOT_FOUND',
             'Enrollment session not found.',
@@ -226,18 +250,6 @@ export class PostgresEnrollmentSessionRepository
             attempts >= maxAttempts
               ? 'Enrollment verification is no longer available.'
               : 'Enrollment verification failed.',
-          );
-        }
-
-        const adminResult = await client.query<{
-          status: 'ACTIVE' | 'DISABLED';
-        }>('SELECT status FROM admins WHERE id = $1 FOR UPDATE', [
-          current.admin_id,
-        ]);
-        if (adminResult.rows[0]?.status !== 'ACTIVE') {
-          throw new PersistenceError(
-            'INVALID_STATE',
-            'Enrollment authorization is no longer available.',
           );
         }
 
