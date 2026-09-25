@@ -1,4 +1,4 @@
-import { timingSafeEqual } from 'node:crypto';
+import { randomUUID, timingSafeEqual } from 'node:crypto';
 import type {
   EnrollmentSession,
   EnrollmentSessionStatus,
@@ -151,6 +151,7 @@ export class PostgresEnrollmentSessionRepository
     platform: string;
     now: Date;
     maxAttempts?: number;
+    deviceCredentialHash: string;
   }): Promise<EnrollmentSession> {
     const maxAttempts = input.maxAttempts ?? 10;
 
@@ -248,6 +249,14 @@ export class PostgresEnrollmentSessionRepository
             'UNKNOWN',
             'Unable to create the managed device.',
           );
+        }
+
+        const credential = await client.query(
+          'INSERT INTO device_credentials (id, managed_device_id, credential_hash) VALUES ($1, $2, $3)',
+          [randomUUID(), input.managedDeviceId, input.deviceCredentialHash],
+        );
+        if (credential.rowCount !== 1) {
+          throw new PersistenceError('UNKNOWN', 'Unable to create the device credential.');
         }
 
         const updated = await client.query<SessionRow>(
