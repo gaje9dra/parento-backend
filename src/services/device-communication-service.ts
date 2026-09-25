@@ -44,7 +44,7 @@ export class DeviceCommunicationService {
     return { session: connected, sessionToken };
   }
 
-  async heartbeat(session: DeviceConnectionSession): Promise<DeviceConnectionSession> {
+  async heartbeat(session: Pick<DeviceConnectionSession, 'id' | 'managedDeviceId' | 'state' | 'expiresAt'>): Promise<DeviceConnectionSession> {
     this.assertLive(session);
     const now = new Date();
     const updated = await this.sessions.touchConnected(
@@ -56,7 +56,7 @@ export class DeviceCommunicationService {
     return updated;
   }
 
-  async disconnect(session: DeviceConnectionSession): Promise<DeviceConnectionSession> {
+  async disconnect(session: Pick<DeviceConnectionSession, 'id' | 'managedDeviceId' | 'state' | 'expiresAt'>): Promise<DeviceConnectionSession> {
     this.assertLive(session);
     const updated = await this.sessions.disconnect(session.id, new Date(), 'DISCONNECTED');
     if (updated === null) throw new AppError(401, 'DEVICE_SESSION_INVALID', 'Device session is no longer valid.');
