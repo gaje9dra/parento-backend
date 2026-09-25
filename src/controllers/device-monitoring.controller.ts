@@ -134,6 +134,16 @@ export const createDeviceMonitoringController = (
       const now = Date.now();
       const sessionExpired = session === null || session.expiresAt.getTime() <= now;
       const lastSeenAgeMs = session === null ? null : Math.max(0, now - session.lastSeenAt.getTime());
+      const connectionState =
+        sessionExpired
+          ? 'EXPIRED'
+          : session === null
+            ? 'DISCONNECTED'
+            : session.state !== 'CONNECTED'
+              ? session.state
+              : (lastSeenAgeMs ?? 0) > 120_000
+                ? 'STALE'
+                : 'CONNECTED';
       const freshness = snapshot === null
         ? 'UNKNOWN'
         : now - snapshot.serverReceivedAt.getTime() <= 5 * 60_000
@@ -151,7 +161,7 @@ export const createDeviceMonitoringController = (
             lastSeenAt: device.lastSeenAt?.toISOString() ?? null,
           },
           connection: {
-            state: sessionExpired ? 'EXPIRED' : session?.state ?? 'DISCONNECTED',
+            state: connectionState,
             sessionId: sessionExpired ? null : session?.id ?? null,
             lastSeenAt: sessionExpired ? null : session?.lastSeenAt.toISOString() ?? null,
             lastSeenAgeMs,
