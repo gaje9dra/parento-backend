@@ -28,17 +28,7 @@ jobs:
 
       - name: Format Phase 8.1 files
         run: |
-          npx prettier --write \
-            src/domain/location.ts \
-            src/repositories/location-repository.ts \
-            src/repositories/postgres-location-repository.ts \
-            src/services/location-service.ts \
-            src/controllers/location.controller.ts \
-            src/routes/v1/location.routes.ts \
-            tests/location-service.test.ts \
-            docs/phase-8.1-location-foundation.md \
-            openapi.yaml \
-            src/routes/v1/index.ts
+          npx prettier --write .
 
       - name: Commit formatted files
         run: |
