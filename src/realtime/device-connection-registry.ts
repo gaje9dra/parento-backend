@@ -1,4 +1,3 @@
-import type { Response } from 'express';
 import type { DeviceConnectionSession } from '../domain/device-connection-session.js';
 
 export interface ActiveDeviceConnection {
