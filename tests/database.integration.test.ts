@@ -38,6 +38,7 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
       { id: '0004', applied: true, name: 'phase_2_4_query_indexes' },
       { id: '0005', applied: true, name: 'phase_3_1_admin_authentication' },
       { id: '0006', applied: true, name: 'phase_3_3_session_lifecycle' },
+      { id: '0007', applied: true, name: 'phase_5_1_enrollment_sessions' },
     ]);
   });
 
@@ -46,7 +47,7 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
     await runMigrations(database);
 
     const status = await migrationStatus(database);
-    expect(status.filter((migration) => migration.applied)).toHaveLength(6);
+    expect(status.filter((migration) => migration.applied)).toHaveLength(7);
   });
 
   it('verifies the final schema has the Phase 2 integrity constraints and query indexes', async () => {
@@ -124,9 +125,9 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
     await runMigrations(database);
     const status = await migrationStatus(database);
     expect(status.at(-1)).toEqual({
-      id: '0006',
+      id: '0007',
       applied: true,
-      name: 'phase_3_3_session_lifecycle',
+      name: 'phase_5_1_enrollment_sessions',
     });
   });
 
