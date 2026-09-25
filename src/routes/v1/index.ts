@@ -16,6 +16,9 @@ import { createCommandRouter } from './command.routes.js';
 import { createDeviceCommunicationRouter } from './device-communication.routes.js';
 import { DeviceCommunicationService } from '../../services/device-communication-service.js';
 import { CommandService } from '../../services/command-service.js';
+import { DeviceMonitoringService } from '../../services/device-monitoring-service.js';
+import { PostgresDeviceMonitoringRepository } from '../../repositories/postgres-device-monitoring-repository.js';
+import { createDeviceMonitoringRouter } from './device-monitoring.routes.js';
 
 export const createV1Router = (
   database: Database,
@@ -64,6 +67,27 @@ export const createV1Router = (
   });
 
   router.use(createCommandRouter(authentication, commandService));
+const monitoringRepository = new PostgresDeviceMonitoringRepository(database);
+  const monitoringService = new DeviceMonitoringService(
+    monitoringRepository,
+    managedDevices,
+    {
+      staleSeconds: security.monitoringStaleSeconds,
+      veryStaleSeconds: security.monitoringVeryStaleSeconds,
+      maxFutureSkewSeconds: security.monitoringMaxFutureSkewSeconds,
+    },
+  );
+
+  router.use(
+    createDeviceMonitoringRouter(
+      monitoringService,
+      authentication,
+      deviceSessions,
+      rateLimit,
+      security.monitoringMaxPayloadBytes,
+    ),
+  );
+
   router.use(
     createDeviceCommunicationRouter(
       communication,
