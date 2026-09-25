@@ -209,6 +209,12 @@ export class CommandService {
   ): Promise<Command> {
     const command = await this.commands.findById(id);
     this.assertDevice(command, session.managedDeviceId);
+    if (resultMetadata !== null) {
+      const bytes = Buffer.byteLength(JSON.stringify(resultMetadata), 'utf8');
+      if (bytes > this.options.maxPayloadBytes) {
+        throw new AppError(413, 'COMMAND_PAYLOAD_TOO_LARGE', 'Command result metadata is too large.');
+      }
+    }
     if (command!.status !== 'RUNNING')
       throw new AppError(
         409,
