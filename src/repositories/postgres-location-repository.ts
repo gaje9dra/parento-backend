@@ -88,6 +88,7 @@ export class PostgresLocationRepository
       throw new PersistenceError(
         'CONFLICT',
         'Unable to persist location report.',
+        error,
       );
     }
   }
