@@ -69,6 +69,10 @@ export class DeviceCommunicationService {
     return { session: connected, sessionToken };
   }
 
+  getSession(id: string): Promise<DeviceConnectionSession | null> {
+    return this.sessions.findById(id);
+  }
+
   async heartbeat(
     session: Pick<
       DeviceConnectionSession,
