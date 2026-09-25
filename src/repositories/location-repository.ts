@@ -19,5 +19,6 @@ export interface LocationReportResult {
 
 export interface LocationRepository extends Repository {
   findLatest(managedDeviceId: string): Promise<ManagedDeviceLocation | null>;
+  findByReportId(reportId: string): Promise<ManagedDeviceLocation | null>;
   report(input: LocationReportInput): Promise<LocationReportResult>;
 }
