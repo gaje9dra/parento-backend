@@ -18,7 +18,7 @@ export interface CommandRepository extends Repository {
     expiresAt: Date;
   }): Promise<{ command: Command; created: boolean }>;
   findById(id: string): Promise<Command | null>;
-  findPendingForDevice(managedDeviceId: string, limit: number): Promise<Command[]>;
+  findPendingForDevice?(managedDeviceId: string, limit: number): Promise<Command[]>;
   findOwned(id: string, adminId: string): Promise<Command | null>;
   cancelOwned(id: string, adminId: string, now: Date): Promise<Command>;
   transition(input: {
