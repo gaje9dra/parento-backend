@@ -6,6 +6,23 @@ ALTER TABLE device_connection_sessions
 CREATE INDEX device_connection_sessions_last_seen_idx
   ON device_connection_sessions (managed_device_id, last_seen_at DESC);
 
+WITH ranked AS (
+  SELECT id,
+         ROW_NUMBER() OVER (
+           PARTITION BY managed_device_id
+           ORDER BY last_seen_at DESC, created_at DESC, id DESC
+         ) AS rn
+  FROM device_connection_sessions
+  WHERE state IN ('CONNECTING','CONNECTED','STALE')
+)
+UPDATE device_connection_sessions s
+SET state='EXPIRED',
+    disconnected_at=COALESCE(disconnected_at,NOW()),
+    last_activity_at=NOW(),
+    last_seen_at=NOW()
+FROM ranked r
+WHERE s.id=r.id AND r.rn>1;
+
 CREATE UNIQUE INDEX device_connection_sessions_one_active_idx
   ON device_connection_sessions (managed_device_id)
   WHERE state IN ('CONNECTING', 'CONNECTED', 'STALE');
