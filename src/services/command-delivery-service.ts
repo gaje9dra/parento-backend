@@ -50,6 +50,11 @@ export class CommandDeliveryService {
           correlationId: command.correlationId,
         });
 
+        if (delivering.expiresAt.getTime() <= Date.now()) {
+          await this.safeExpire(delivering);
+          continue;
+        }
+
         await this.transport.deliver(delivering, session);
 
         await this.commands.transition({
