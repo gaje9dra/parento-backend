@@ -25,7 +25,7 @@ class FakeCommands implements CommandRepository {
  async findById(){return this.command;}
  async findOwned(){return this.command;}
  async cancelOwned(){throw new Error('unused');}
- async transition(){throw new Error('unused');}
+ async transition(input:Parameters<CommandRepository['transition']>[0]){if(!this.command)throw new Error('unused');this.command={...this.command,status:input.to};return this.command;}
 }
 describe('Phase 6.1 command authorization',()=>{
  it('binds command creation to the authenticated administrator ownership',async()=>{
