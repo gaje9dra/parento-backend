@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { PersistenceError } from '../src/domain/persistence-errors.js';
 import { LocationService } from '../src/services/location-service.js';
 import type { LocationRepository } from '../src/repositories/location-repository.js';
 import type { ManagedDeviceRepository } from '../src/repositories/managed-device-repository.js';
@@ -35,11 +36,14 @@ const deviceRepo = {
 describe('LocationService', () => {
   it('accepts a valid report and assigns backend receipt time', async () => {
     const locations = {
-      report: vi.fn(async (input: Parameters<LocationRepository['report']>[0]) => ({
-        applied: true,
-        location: { ...location, ...input, receivedAt: new Date() },
-      })),
+      report: vi.fn(
+        async (input: Parameters<LocationRepository['report']>[0]) => ({
+          applied: true,
+          location: { ...location, ...input, receivedAt: new Date() },
+        }),
+      ),
       findLatest: vi.fn(),
+      findByReportId: vi.fn(),
     } as unknown as LocationRepository;
     const service = new LocationService(locations, deviceRepo);
     const result = await service.report(
@@ -207,6 +211,38 @@ describe('LocationService', () => {
     ).rejects.toMatchObject({
       code: 'DEVICE_AUTHORIZATION_DENIED',
       statusCode: 403,
+    });
+  });
+
+
+  it('maps report-id conflicts to a stable client error', async () => {
+    const locations = {
+      report: vi.fn(async () => {
+        throw new PersistenceError(
+          'CONFLICT',
+          'The location report identifier is already in use.',
+        );
+      }),
+      findLatest: vi.fn(),
+      findByReportId: vi.fn(),
+    } as unknown as LocationRepository;
+    const service = new LocationService(locations, deviceRepo);
+
+    await expect(
+      service.report(
+        { managedDeviceId: device.id },
+        {
+          reportId: location.reportId,
+          availability: 'AVAILABLE',
+          latitude: location.latitude,
+          longitude: location.longitude,
+          accuracyMeters: location.accuracyMeters,
+          observedAt: new Date(),
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: 'LOCATION_REPORT_ID_CONFLICT',
+      statusCode: 409,
     });
   });
 
