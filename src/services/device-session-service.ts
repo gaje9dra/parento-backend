@@ -16,18 +16,7 @@ export class DeviceSessionService {
   ) {}
 
   async connect(credential: string, now = new Date()) {
-    if (!DEVICE_TOKEN_PATTERN.test(credential)) {
-      throw new AppError(401, 'AUTHENTICATION_REQUIRED', 'Device authentication is required.');
-    }
-    const record = await this.repository.findCredentialByHash(hashOpaqueToken(credential));
-    if (
-      record === null ||
-      record.revokedAt !== null ||
-      (record.expiresAt !== null && record.expiresAt.getTime() <= now.getTime())
-    ) {
-      throw new AppError(401, 'AUTHENTICATION_REQUIRED', 'Device authentication is required.');
-    }
-
+    const record = await this.findValidCredential(credential, now);
     try {
       return await this.repository.createSession({
         id: randomUUID(),
@@ -40,15 +29,61 @@ export class DeviceSessionService {
         expiresAt: new Date(now.getTime() + this.options.ttlSeconds * 1000),
       });
     } catch (error) {
-      if (error instanceof Error && error.message === 'Managed device is not active.') {
-        throw new AppError(403, 'AUTHORIZATION_DENIED', 'Managed device is not active.');
+      if (
+        error instanceof Error &&
+        error.message === 'Managed device is not active.'
+      ) {
+        throw new AppError(
+          403,
+          'AUTHORIZATION_DENIED',
+          'Managed device is not active.',
+        );
       }
       throw error;
     }
   }
 
-  disconnect(id: string, now = new Date()) {
-    return this.repository.disconnect(id, now, 'DISCONNECTED');
+  async disconnect(
+    sessionId: string,
+    credential: string,
+    now = new Date(),
+  ) {
+    const record = await this.findValidCredential(credential, now);
+    const session = await this.repository.findById(sessionId);
+    if (session === null || session.credentialId !== record.id) {
+      throw new AppError(
+        403,
+        'AUTHORIZATION_DENIED',
+        'Device session is not authorized.',
+      );
+    }
+    return this.repository.disconnect(sessionId, now, 'DISCONNECTED');
+  }
+
+  private async findValidCredential(credential: string, now: Date) {
+    if (!DEVICE_TOKEN_PATTERN.test(credential)) {
+      throw new AppError(
+        401,
+        'AUTHENTICATION_REQUIRED',
+        'Device authentication is required.',
+      );
+    }
+
+    const record = await this.repository.findCredentialByHash(
+      hashOpaqueToken(credential),
+    );
+    if (
+      record === null ||
+      record.revokedAt !== null ||
+      (record.expiresAt !== null && record.expiresAt.getTime() <= now.getTime())
+    ) {
+      throw new AppError(
+        401,
+        'AUTHENTICATION_REQUIRED',
+        'Device authentication is required.',
+      );
+    }
+    return record;
   }
 
   static issueCredential(): string {
