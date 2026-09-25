@@ -1,4 +1,4 @@
-import { rateLimit } from 'express-rate-limit';
+import { ipKeyGenerator, rateLimit } from 'express-rate-limit';
 import type { RequestHandler } from 'express';
 
 export const createEnrollmentVerificationRateLimiter = (input: {
@@ -15,7 +15,7 @@ export const createEnrollmentVerificationRateLimiter = (input: {
     legacyHeaders: false,
     identifier: 'enrollment-verification',
     keyGenerator: (req) =>
-      req.ip ?? req.socket.remoteAddress ?? 'unknown-client',
+      ipKeyGenerator(req.ip ?? req.socket.remoteAddress ?? 'unknown-client'),
     handler: (_req, res) => {
       res.status(429).json({
         error: {
