@@ -634,6 +634,6 @@ Implemented endpoints:
 - `POST /api/v1/device/monitoring`
 - `GET /api/v1/devices/:deviceId/status`
 
-The managed Android client is intentionally not modified in this backend phase. Its later integration must consume the documented monitoring and SSE contracts.
+The managed Android client is intentionally not modified in this backend phase. Monitoring synchronization remains a documented cross-repository dependency. Its later integration must consume the documented monitoring and SSE contracts.
 
 See `docs/phase-6.4-device-communication-monitoring.md` for the complete contract, lifecycle, security, freshness, retention, and operational details.
