@@ -22,3 +22,6 @@ This phase stores and validates dedicated device credentials but does not retrof
 
 ## Scope
 No lock, wipe, reboot, camera, microphone, screen, location, app blocking, website blocking, network filtering, arbitrary code execution, or covert capability is implemented.
+
+## Verification
+This document describes the backend-only foundation; actual device-control capabilities remain out of scope.
