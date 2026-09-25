@@ -9,11 +9,12 @@ export const createApiRouter = (
   security: AppConfig['security'],
   rateLimit: AppConfig['rateLimit'],
   realtime: AppConfig['realtime'] = { enabled: false },
+  monitoring: AppConfig['monitoring'],
 ): Router => {
   const router = Router();
   router.use(
     apiBasePath,
-    createV1Router(database, security, rateLimit, realtime),
+    createV1Router(database, security, rateLimit, realtime, monitoring),
   );
   return router;
 };
