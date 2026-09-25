@@ -1,4 +1,5 @@
 import { AppError } from '../types/errors.js';
+import { PersistenceError } from '../domain/persistence-errors.js';
 import type { DeviceMonitoringRepository } from '../repositories/device-monitoring-repository.js';
 import type { ManagedDeviceRepository } from '../repositories/managed-device-repository.js';
 import type { BatteryChargingState, BatteryStatus, DeviceMonitoringSnapshot, ManagementMode, NetworkState, DeviceMonitoringState } from '../domain/device-monitoring.js';
@@ -79,8 +80,15 @@ export class DeviceMonitoringService {
   }
 
   async listForAdmin(adminId: string, page?: { limit?: number; cursor?: string | null }) {
-    const result = await this.repository.listForAdmin(adminId, page);
-    return { ...result, items: result.items.map(item => ({ ...item, freshness: this.freshness(item.state, item.enrollmentStatus, item.operationalStatus, item.communicationState, new Date()) })) };
+    try {
+      const result = await this.repository.listForAdmin(adminId, page);
+      return { ...result, items: result.items.map(item => ({ ...item, freshness: this.freshness(item.state, item.enrollmentStatus, item.operationalStatus, item.communicationState, new Date()) })) };
+    } catch (error) {
+      if (error instanceof PersistenceError && error.code === 'INVALID_STATE') {
+        throw new AppError(400, 'INVALID_REQUEST', 'Invalid device page cursor.');
+      }
+      throw error;
+    }
   }
 
   async getForAdmin(adminId: string, managedDeviceId: string) {
