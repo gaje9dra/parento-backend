@@ -114,6 +114,23 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
       'device_monitoring_snapshots',
     ]);
 
+    const monitoringIndexes = await database.query<{ indexname: string }>(
+      "SELECT indexname FROM pg_indexes WHERE schemaname = 'public' AND indexname IN ('device_monitoring_freshness_idx','device_monitoring_management_mode_idx','device_monitoring_device_collected_idx') ORDER BY indexname",
+    );
+    expect(monitoringIndexes.rows.map((row) => row.indexname)).toEqual([
+      'device_monitoring_device_collected_idx',
+      'device_monitoring_freshness_idx',
+      'device_monitoring_management_mode_idx',
+    ]);
+
+    const monitoringConstraints = await database.query<{ constraint_name: string }>(
+      "SELECT constraint_name FROM information_schema.table_constraints WHERE table_schema = 'public' AND table_name = 'device_monitoring_snapshots' AND constraint_name IN ('device_monitoring_storage_capacity_check','device_monitoring_memory_capacity_check') ORDER BY constraint_name",
+    );
+    expect(monitoringConstraints.rows.map((row) => row.constraint_name)).toEqual([
+      'device_monitoring_memory_capacity_check',
+      'device_monitoring_storage_capacity_check',
+    ]);
+
     const sessionTable = await database.query<{ table_name: string }>(
       'SELECT table_name FROM information_schema.tables ' +
         "WHERE table_schema = 'public' AND table_name = 'admin_sessions'",
