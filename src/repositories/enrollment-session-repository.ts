@@ -1,6 +1,5 @@
 import type {
   EnrollmentSession,
-  EnrollmentSessionStatus,
 } from '../domain/enrollment-session.js';
 import type { Repository } from './repository.js';
 
