@@ -35,7 +35,7 @@ const deviceRepo = {
 describe('LocationService', () => {
   it('accepts a valid report and assigns backend receipt time', async () => {
     const locations = {
-      report: vi.fn(async (input) => ({
+      report: vi.fn(async (input: Parameters<LocationRepository['report']>[0]) => ({
         applied: true,
         location: { ...location, ...input, receivedAt: new Date() },
       })),
