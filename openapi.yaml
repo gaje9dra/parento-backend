@@ -433,6 +433,49 @@ paths:
         '401': { $ref: '#/components/responses/ApiErrorResponse' }
         '403': { $ref: '#/components/responses/ApiErrorResponse' }
         '409': { $ref: '#/components/responses/ApiErrorResponse' }
+  /devices/monitoring:
+    post:
+      tags: [Device Monitoring]
+      summary: Submit the current operational monitoring snapshot
+      security: [{ deviceSessionBearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DeviceMonitoringRequest' }
+      responses:
+        '200': { description: Monitoring snapshot accepted or ignored as older than current state }
+        '400': { $ref: '#/components/responses/ApiErrorResponse' }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '403': { $ref: '#/components/responses/ApiErrorResponse' }
+        '413': { $ref: '#/components/responses/ApiErrorResponse' }
+    get:
+      description: Not supported. Device telemetry is submitted with POST only.
+  /admin/devices:
+    get:
+      tags: [Admin Monitoring]
+      summary: List devices owned by the authenticated administrator with current monitoring state
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: limit, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 100 } }
+        - { name: cursor, in: query, required: false, schema: { type: string } }
+      responses:
+        '200': { description: Authorized device monitoring page }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '403': { $ref: '#/components/responses/ApiErrorResponse' }
+  /admin/devices/{deviceId}:
+    get:
+      tags: [Admin Monitoring]
+      summary: Get current monitoring state for an authorized managed device
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: deviceId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: Authorized device monitoring detail }
+        '400': { $ref: '#/components/responses/ApiErrorResponse' }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '403': { $ref: '#/components/responses/ApiErrorResponse' }
+        '404': { $ref: '#/components/responses/ApiErrorResponse' }
 components:
   securitySchemes:
     bearerAuth:
@@ -444,6 +487,30 @@ components:
       scheme: bearer
       bearerFormat: opaque
   schemas:
+    DeviceMonitoringRequest:
+      type: object
+      additionalProperties: false
+      required: [schemaVersion, observedAt]
+      properties:
+        schemaVersion: { type: integer, enum: [1] }
+        observedAt: { type: string, format: date-time }
+        androidVersion: { type: string, maxLength: 32, nullable: true }
+        apiLevel: { type: integer, minimum: 1, maximum: 100, nullable: true }
+        appVersion: { type: string, maxLength: 64, nullable: true }
+        appVersionCode: { type: integer, minimum: 0, nullable: true }
+        batteryPercentage: { type: integer, minimum: 0, maximum: 100, nullable: true }
+        batteryChargingState: { type: string, enum: [CHARGING, DISCHARGING, FULL, NOT_CHARGING, UNKNOWN], nullable: true }
+        batteryStatus: { type: string, enum: [NORMAL, LOW, CRITICAL, FULL, UNKNOWN], nullable: true }
+        networkState: { type: string, enum: [UNKNOWN, OFFLINE, WIFI, CELLULAR, OTHER], nullable: true }
+        storageTotalBytes: { type: integer, minimum: 0, nullable: true }
+        storageAvailableBytes: { type: integer, minimum: 0, nullable: true }
+        storageUsedBytes: { type: integer, minimum: 0, nullable: true }
+        memoryTotalBytes: { type: integer, minimum: 0, nullable: true }
+        memoryAvailableBytes: { type: integer, minimum: 0, nullable: true }
+        memoryLow: { type: boolean, nullable: true }
+        managementMode: { type: string, enum: [UNMANAGED, PROFILE_OWNER, DEVICE_OWNER, UNKNOWN], nullable: true }
+        lastSuccessfulInitializationAt: { type: string, format: date-time, nullable: true }
+        lastSuccessfulCommunicationAt: { type: string, format: date-time, nullable: true }
     ApiSuccessHealth:
       allOf:
         - $ref: '#/components/schemas/ApiSuccess'
