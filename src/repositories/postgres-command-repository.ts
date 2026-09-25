@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import type { PoolClient } from 'pg';
 import type { Command, CommandActorType, CommandStatus } from '../domain/command.js';
 import { isTerminalCommandStatus, isValidCommandTransition } from '../domain/command.js';
 import { PersistenceError } from '../domain/persistence-errors.js';
@@ -75,7 +76,7 @@ export class PostgresCommandRepository extends PostgresRepository implements Com
  private async recordEvent(commandId:string,fromStatus:CommandStatus|null,toStatus:CommandStatus,actorType:CommandActorType,actorId:string|null,correlationId:string|null):Promise<void>{
   await this.query('INSERT INTO command_events (id,command_id,from_status,to_status,actor_type,actor_id,correlation_id) VALUES ($1,$2,$3,$4,$5,$6,$7)',[randomUUID(),commandId,fromStatus,toStatus,actorType,actorId,correlationId]);
  }
- private async insertEvent(client: {query: (text:string,values?:unknown[])=>Promise<unknown>},commandId:string,fromStatus:CommandStatus|null,toStatus:CommandStatus,actorType:CommandActorType,actorId:string|null,correlationId:string|null,occurredAt:Date):Promise<void>{
+ private async insertEvent(client: PoolClient),commandId:string,fromStatus:CommandStatus|null,toStatus:CommandStatus,actorType:CommandActorType,actorId:string|null,correlationId:string|null,occurredAt:Date):Promise<void>{
   await client.query('INSERT INTO command_events (id,command_id,from_status,to_status,actor_type,actor_id,correlation_id,occurred_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)',[randomUUID(),commandId,fromStatus,toStatus,actorType,actorId,correlationId,occurredAt]);
  }
 }
