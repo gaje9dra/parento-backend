@@ -3,10 +3,16 @@ import type { AppConfig } from '../../config/env.js';
 import type { Database } from '../../db/index.js';
 import { PostgresAdminRepository } from '../../repositories/postgres-admin-repository.js';
 import { PostgresEnrollmentSessionRepository } from '../../repositories/postgres-enrollment-session-repository.js';
+import { PostgresDeviceSessionRepository } from '../../repositories/postgres-device-session-repository.js';
+import { PostgresCommandRepository } from '../../repositories/postgres-command-repository.js';
+import { PostgresManagedDeviceRepository } from '../../repositories/postgres-managed-device-repository.js';
 import { AdminAuthenticationService } from '../../services/admin-authentication-service.js';
 import { EnrollmentSessionService } from '../../services/enrollment-session-service.js';
+import { DeviceSessionService } from '../../services/device-session-service.js';
+import { CommandService } from '../../services/command-service.js';
 import { createAdminAuthRouter } from './admin-auth.routes.js';
 import { createEnrollmentRouter } from './enrollment.routes.js';
+import { createDeviceCommunicationRouter } from './device-communication.routes.js';
 import { createHealthRouter } from './health.routes.js';
 
 export const createV1Router = (
@@ -36,6 +42,30 @@ export const createV1Router = (
 
   router.use(
     createEnrollmentRouter(authentication, enrollmentService, rateLimit),
+  );
+
+  const managedDevices = new PostgresManagedDeviceRepository(database);
+  const sessionRepository = new PostgresDeviceSessionRepository(database);
+  const commandRepository = new PostgresCommandRepository(database);
+  const deviceSessions = new DeviceSessionService(sessionRepository, {
+    ttlSeconds: security.deviceSessionTtlSeconds,
+  });
+  const commands = new CommandService(
+    commandRepository,
+    managedDevices,
+    {
+      defaultTtlSeconds: security.commandTtlSeconds,
+      maxTtlSeconds: security.commandMaxTtlSeconds,
+    },
+  );
+
+  router.use(
+    createDeviceCommunicationRouter(
+      authentication,
+      deviceSessions,
+      commands,
+      rateLimit,
+    ),
   );
 
   return router;
