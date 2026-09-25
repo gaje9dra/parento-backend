@@ -461,6 +461,7 @@ paths:
         '400': { $ref: '#/components/responses/ApiErrorResponse' }
         '401': { $ref: '#/components/responses/ApiErrorResponse' }
         '403': { $ref: '#/components/responses/ApiErrorResponse' }
+        '409': { $ref: '#/components/responses/ApiErrorResponse' }
         '429': { $ref: '#/components/responses/ApiErrorResponse' }
   /api/v1/devices/{deviceId}/location:
     get:
@@ -485,6 +486,7 @@ paths:
         '401': { $ref: '#/components/responses/ApiErrorResponse' }
         '403': { $ref: '#/components/responses/ApiErrorResponse' }
         '404': { $ref: '#/components/responses/ApiErrorResponse' }
+        '429': { $ref: '#/components/responses/ApiErrorResponse' }
 components:
   securitySchemes:
     bearerAuth:
@@ -829,6 +831,7 @@ components:
                 - INVALID_LOCATION_COORDINATES
                 - INVALID_LOCATION_ACCURACY
                 - INVALID_LOCATION_TIMESTAMP
+                - LOCATION_REPORT_ID_CONFLICT
             message:
               type: string
             metadata:
