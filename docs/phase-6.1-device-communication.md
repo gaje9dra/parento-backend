@@ -70,4 +70,4 @@ No changes were made to either repository in Phase 6.1.
 
 ## Verification status
 
-Repository verification is performed by the existing GitHub verification workflow; the branch must pass formatting, lint, type checking, migrations, tests, build, and dependency audit before merge.
+Repository verification is performed by the existing GitHub verification workflow; the branch must pass formatting, lint, type checking, migrations, tests, build, and dependency audit before merge. The latest verification run must be attached to the final branch head.
