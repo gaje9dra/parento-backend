@@ -13,7 +13,7 @@ export interface MonitoringDevicePageRequest {
   readonly limit?: number;
   readonly cursor?: string | null;
   readonly enrollmentStatus?: ManagedDeviceStatus;
-  readonly communicationState?: 'CONNECTED' | 'STALE' | 'DISCONNECTED' | 'EXPIRED';
+  readonly communicationState?: 'CONNECTING' | 'CONNECTED' | 'STALE' | 'DISCONNECTED' | 'EXPIRED';
   readonly managementMode?: 'NOT_MANAGED' | 'PROFILE_OWNER' | 'DEVICE_OWNER' | 'UNKNOWN';
   readonly freshness?: 'FRESH' | 'STALE' | 'VERY_STALE' | 'NEVER_REPORTED' | 'DISCONNECTED' | 'REVOKED';
   readonly search?: string;
