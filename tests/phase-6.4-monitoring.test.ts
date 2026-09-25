@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import type { DeviceMonitoringSnapshot } from '../src/domain/device-monitoring.js';
 import type { ManagedDevice } from '../src/domain/managed-device.js';
 import type { DeviceMonitoringRepository } from '../src/repositories/device-monitoring-repository.js';
+import type { DeviceConnectionSessionRepository } from '../src/repositories/device-connection-session-repository.js';
+import type { DeviceConnectionSession } from '../src/domain/device-connection-session.js';
 import type { ManagedDeviceRepository } from '../src/repositories/managed-device-repository.js';
 import { DeviceMonitoringService } from '../src/services/device-monitoring-service.js';
 
@@ -42,6 +44,29 @@ class FakeDevices implements ManagedDeviceRepository {
   async updateStatus(): Promise<ManagedDevice | null> {
     return device;
   }
+}
+
+class FakeSessions implements DeviceConnectionSessionRepository {
+  readonly name = 'fake-sessions';
+  session: DeviceConnectionSession | null = {
+    id: randomUUID(),
+    managedDeviceId: deviceId,
+    state: 'CONNECTED',
+    createdAt: new Date(),
+    connectedAt: new Date(),
+    lastActivityAt: new Date(),
+    disconnectedAt: null,
+    expiresAt: new Date(Date.now() + 60_000),
+    lastSeenAt: new Date(),
+    revokedAt: null,
+  };
+  async create(): Promise<DeviceConnectionSession> { return this.session!; }
+  async findByTokenHash(): Promise<DeviceConnectionSession | null> { return this.session; }
+  async findById(): Promise<DeviceConnectionSession | null> { return this.session; }
+  async findActiveByDeviceId(): Promise<DeviceConnectionSession | null> { return this.session; }
+  async touchConnected(): Promise<DeviceConnectionSession | null> { return this.session; }
+  async disconnect(): Promise<DeviceConnectionSession | null> { return this.session; }
+  async revokeForDevice(): Promise<void> {}
 }
 
 class FakeMonitoring implements DeviceMonitoringRepository {
