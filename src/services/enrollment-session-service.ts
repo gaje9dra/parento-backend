@@ -171,7 +171,6 @@ export class EnrollmentSessionService {
       return await this.repository.consume({
         id: input.enrollmentId,
         secretHash: hashOpaqueToken(input.authorizationSecret),
-        adminId: '',
         managedDeviceId: randomUUID(),
         stableIdentifier: input.localInstallationIdentity,
         name,
