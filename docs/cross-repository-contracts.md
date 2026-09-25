@@ -92,32 +92,48 @@ Enrollment, device identity provisioning, commands, and policy enforcement are i
 No fake authentication endpoints, fake device endpoints, QR pairing endpoints, command endpoints, WebSocket endpoints, or surveillance mechanisms are introduced merely to document future integration.
 
 
+
 ## Phase 8 location contract
 
 ### Managed Android reporting
 
-POST /api/v1/device/location requires the existing managed-device communication session bearer token. The authenticated session supplies the ManagedDevice identity; the request does not establish ownership through a client-supplied device ID.
+POST /api/v1/device/location requires the existing managed-device
+communication session bearer token. The authenticated session supplies the
+ManagedDevice identity; the request does not establish ownership through a
+client-supplied device ID.
 
 The request contains:
+
 - reportId — UUID idempotency identifier
 - availability — AVAILABLE or UNAVAILABLE
 - latitude/longitude — required for AVAILABLE, absent for UNAVAILABLE
 - accuracyMeters — optional for AVAILABLE, absent for UNAVAILABLE
 - observedAt — device-observed ISO-8601 timestamp
 
-The backend assigns receivedAt. Reports more than five minutes in the future are rejected. Older reports cannot replace newer current state. Exact retries of an already accepted report are safe no-ops; reuse of a reportId with different report data is rejected.
+The backend assigns receivedAt. Reports more than five minutes in the future
+are rejected. Older reports cannot replace newer current state. Exact retries
+of an already accepted report are safe no-ops; reuse of a reportId with
+different report data is rejected.
 
 ### Admin retrieval
 
-GET /api/v1/devices/{deviceId}/location requires an authenticated active Admin. The backend verifies that the requested ManagedDevice belongs to that Admin before reading its current location.
+GET /api/v1/devices/{deviceId}/location requires an authenticated active Admin.
+The backend verifies that the requested ManagedDevice belongs to that Admin
+before reading its current location.
 
 The response exposes only the current location state and centralized freshness:
 FRESH, STALE, VERY_STALE, UNKNOWN, or NEVER_REPORTED.
 
-Missing/unavailable location is represented with null location data or an UNAVAILABLE state; fake coordinates are never used.
+Missing/unavailable location is represented with null location data or an
+UNAVAILABLE state; fake coordinates are never used.
 
 ### Privacy and retention
 
-Only one current location row is retained per ManagedDevice. The backend does not expose a location-history endpoint and does not log exact coordinates in normal application/security events.
+Only one current location row is retained per ManagedDevice. The backend does
+not expose a location-history endpoint and does not log exact coordinates in
+normal application/security events.
 
-Both location endpoints use the configured location rate limit when RATE_LIMIT_ENABLED is true. The device-report and Admin-retrieval limiters use the existing RATE_LIMIT_WINDOW_MS and RATE_LIMIT_MAX_REQUESTS configuration independently.
+Both location endpoints use the configured location rate limit when
+RATE_LIMIT_ENABLED is true. The device-report and Admin-retrieval limiters use
+the existing RATE_LIMIT_WINDOW_MS and RATE_LIMIT_MAX_REQUESTS configuration
+independently.
