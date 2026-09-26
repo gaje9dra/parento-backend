@@ -106,10 +106,10 @@ export class CommandService {
         keys.length === 1 &&
         payload.schemaVersion === 1;
       if (
-        (!(validCapability && validCapabilityValue) &&
-          !validApplicationPolicy &&
-          !validApplicationPolicyRemoval &&
-          !validInventoryRequest)
+        !(validCapability && validCapabilityValue) &&
+        !validApplicationPolicy &&
+        !validApplicationPolicyRemoval &&
+        !validInventoryRequest
       ) {
         throw new AppError(
           400,
