@@ -159,6 +159,23 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
     expect(sessionTable.rows.map((row) => row.table_name)).toEqual([
       'admin_sessions',
     ]);
+
+    const audioTables = await database.query<{ table_name: string }>(
+      "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('audio_access_sessions','audio_access_session_events') ORDER BY table_name",
+    );
+    expect(audioTables.rows.map((row) => row.table_name)).toEqual([
+      'audio_access_session_events',
+      'audio_access_sessions',
+    ]);
+
+    const audioIndexes = await database.query<{ indexname: string }>(
+      "SELECT indexname FROM pg_indexes WHERE schemaname = 'public' AND indexname IN ('audio_access_one_active_device_idx','audio_access_expiry_idx','audio_access_expired_cleanup_idx') ORDER BY indexname",
+    );
+    expect(audioIndexes.rows.map((row) => row.indexname)).toEqual([
+      'audio_access_expired_cleanup_idx',
+      'audio_access_expiry_idx',
+      'audio_access_one_active_device_idx',
+    ]);
   });
 
   it('upgrades a Phase 2.3 database to the current schema', async () => {
