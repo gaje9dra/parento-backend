@@ -434,15 +434,22 @@ export class ApplicationManagementService {
     }
     const assignment = await this.policies.findAssignment(device.id);
     if (input.status === 'APPLIED') {
-      if (
-        !assignment ||
-        input.policyId !== assignment.policyId ||
-        input.policyVersion !== assignment.policyVersion
-      ) {
+      if (assignment) {
+        if (
+          input.policyId !== assignment.policyId ||
+          input.policyVersion !== assignment.policyVersion
+        ) {
+          throw new AppError(
+            409,
+            'CONFLICT',
+            'A device cannot report an applied policy that is not its current assignment.',
+          );
+        }
+      } else if (input.policyId !== null || input.policyVersion !== null) {
         throw new AppError(
           409,
           'CONFLICT',
-          'A device cannot report an applied policy that is not its current assignment.',
+          'A device without an assigned policy must report a null policy.',
         );
       }
     }
