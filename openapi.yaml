@@ -743,6 +743,255 @@ paths:
         '403': { $ref: '#/components/responses/ApiErrorResponse' }
         '404': { $ref: '#/components/responses/ApiErrorResponse' }
         '429': { $ref: '#/components/responses/ApiErrorResponse' }
+  /api/v1/device/applications/inventory:
+    post:
+      summary: Submit the authenticated device's application inventory
+      operationId: submitApplicationInventory
+      security: [{ deviceSessionBearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ApplicationInventoryRequest' }
+      responses:
+        '200': { description: Inventory accepted or older inventory ignored }
+        '400': { $ref: '#/components/responses/ApiErrorResponse' }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '403': { $ref: '#/components/responses/ApiErrorResponse' }
+        '409': { $ref: '#/components/responses/ApiErrorResponse' }
+        '413': { $ref: '#/components/responses/ApiErrorResponse' }
+  /api/v1/device/application-policy:
+    get:
+      summary: Get the authenticated device's desired application policy
+      operationId: getDeviceApplicationPolicy
+      security: [{ deviceSessionBearer: [] }]
+      responses:
+        '200': { description: Desired application policy and synchronization state }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '403': { $ref: '#/components/responses/ApiErrorResponse' }
+  /api/v1/device/application-policy/status:
+    post:
+      summary: Report the authenticated device's application-policy state
+      operationId: reportDeviceApplicationPolicyStatus
+      security: [{ deviceSessionBearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ApplicationPolicyStatusRequest' }
+      responses:
+        '200': { description: Reported policy synchronization state }
+        '400': { $ref: '#/components/responses/ApiErrorResponse' }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '409': { $ref: '#/components/responses/ApiErrorResponse' }
+  /api/v1/admin/devices/{deviceId}/applications:
+    get:
+      summary: List application inventory for an owned device
+      operationId: listDeviceApplications
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100 }
+        - name: cursor
+          in: query
+          schema: { type: string }
+      responses:
+        '200': { description: Application inventory }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '403': { $ref: '#/components/responses/ApiErrorResponse' }
+        '404': { $ref: '#/components/responses/ApiErrorResponse' }
+  /api/v1/admin/devices/{deviceId}/applications/{packageName}:
+    get:
+      summary: Get one application inventory item
+      operationId: getDeviceApplication
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: packageName
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Application inventory item }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '403': { $ref: '#/components/responses/ApiErrorResponse' }
+        '404': { $ref: '#/components/responses/ApiErrorResponse' }
+  /api/v1/admin/devices/{deviceId}/applications/inventory/request:
+    post:
+      summary: Request a fresh application inventory
+      operationId: requestDeviceApplicationInventory
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '201': { description: Inventory request command created }
+        '200': { description: Existing idempotent inventory request returned }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '403': { $ref: '#/components/responses/ApiErrorResponse' }
+        '409': { $ref: '#/components/responses/ApiErrorResponse' }
+  /api/v1/admin/application-policies:
+    get:
+      summary: List application policies owned by the administrator
+      operationId: listApplicationPolicies
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Application policies }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+    post:
+      summary: Create an application policy
+      operationId: createApplicationPolicy
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ApplicationPolicyWriteRequest' }
+      responses:
+        '201': { description: Application policy created }
+        '400': { $ref: '#/components/responses/ApiErrorResponse' }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '409': { $ref: '#/components/responses/ApiErrorResponse' }
+  /api/v1/admin/application-policies/{policyId}:
+    get:
+      summary: Get an owned application policy
+      operationId: getApplicationPolicy
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: policyId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Application policy }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '404': { $ref: '#/components/responses/ApiErrorResponse' }
+    patch:
+      summary: Update and version an application policy
+      operationId: updateApplicationPolicy
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: policyId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ApplicationPolicyWriteRequest' }
+      responses:
+        '200': { description: Versioned application policy }
+        '400': { $ref: '#/components/responses/ApiErrorResponse' }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '404': { $ref: '#/components/responses/ApiErrorResponse' }
+        '409': { $ref: '#/components/responses/ApiErrorResponse' }
+  /api/v1/admin/devices/{deviceId}/application-policy:
+    get:
+      summary: Get the deterministic effective application policy for a device
+      operationId: getEffectiveApplicationPolicy
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Effective desired application policy }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '403': { $ref: '#/components/responses/ApiErrorResponse' }
+        '404': { $ref: '#/components/responses/ApiErrorResponse' }
+    post:
+      summary: Assign an application policy to a device
+      operationId: assignApplicationPolicy
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [policyId]
+              properties:
+                policyId: { type: string, format: uuid }
+      responses:
+        '200': { description: Policy assignment and synchronization request }
+        '400': { $ref: '#/components/responses/ApiErrorResponse' }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '403': { $ref: '#/components/responses/ApiErrorResponse' }
+        '409': { $ref: '#/components/responses/ApiErrorResponse' }
+    delete:
+      summary: Remove the application policy assignment from a device
+      operationId: removeApplicationPolicy
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [policyId]
+              properties:
+                policyId: { type: string, format: uuid }
+      responses:
+        '200': { description: Policy assignment removed and synchronization requested }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '403': { $ref: '#/components/responses/ApiErrorResponse' }
+        '404': { $ref: '#/components/responses/ApiErrorResponse' }
+  /api/v1/admin/devices/{deviceId}/application-policy/status:
+    get:
+      summary: Get reported application-policy enforcement status
+      operationId: getApplicationPolicyStatus
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Desired versus reported policy synchronization state }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '403': { $ref: '#/components/responses/ApiErrorResponse' }
+        '404': { $ref: '#/components/responses/ApiErrorResponse' }
+  /api/v1/admin/devices/{deviceId}/application-policy/sync:
+    post:
+      summary: Request application-policy synchronization
+      operationId: syncApplicationPolicy
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '201': { description: Synchronization command created }
+        '200': { description: Existing command returned }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '403': { $ref: '#/components/responses/ApiErrorResponse' }
+        '409': { $ref: '#/components/responses/ApiErrorResponse' }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1166,6 +1415,78 @@ components:
               properties:
                 session:
                   $ref: '#/components/schemas/AudioAccessSession'
+    ApplicationInventoryRequest:
+      type: object
+      additionalProperties: false
+      required: [schemaVersion, observedAt, applications]
+      properties:
+        schemaVersion: { type: integer, enum: [1] }
+        observedAt: { type: string, format: date-time }
+        applications:
+          type: array
+          maxItems: 500
+          items: { $ref: '#/components/schemas/ApplicationInventoryItem' }
+    ApplicationInventoryItem:
+      type: object
+      additionalProperties: false
+      required: [packageName, installState]
+      properties:
+        packageName: { type: string, maxLength: 255 }
+        label: { type: string, maxLength: 512, nullable: true }
+        versionName: { type: string, maxLength: 128, nullable: true }
+        versionCode: { type: integer, minimum: 0, format: int64, nullable: true }
+        installState: { type: string, enum: [INSTALLED, UPDATED, UNINSTALLED, UNKNOWN] }
+        enabled: { type: boolean, nullable: true }
+        sourceCategory: { type: string, maxLength: 128, nullable: true }
+    ApplicationPolicyRule:
+      type: object
+      additionalProperties: false
+      required: [packageName, action]
+      properties:
+        packageName: { type: string, maxLength: 255 }
+        action: { type: string, enum: [ALLOW, BLOCK] }
+    ApplicationPolicyWriteRequest:
+      type: object
+      additionalProperties: false
+      required: [name, rules]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 160 }
+        description: { type: string, maxLength: 2000, nullable: true }
+        status: { type: string, enum: [ACTIVE, DISABLED] }
+        expectedVersion: { type: integer, minimum: 1 }
+        rules:
+          type: array
+          maxItems: 500
+          items: { $ref: '#/components/schemas/ApplicationPolicyRule' }
+    ApplicationPolicy:
+      type: object
+      required: [id, adminId, name, description, status, version, createdAt, updatedAt, createdBy, updatedBy, rules]
+      properties:
+        id: { type: string, format: uuid }
+        adminId: { type: string, format: uuid }
+        name: { type: string }
+        description: { type: string, nullable: true }
+        status: { type: string, enum: [ACTIVE, DISABLED] }
+        version: { type: integer, minimum: 1 }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        createdBy: { type: string, format: uuid }
+        updatedBy: { type: string, format: uuid }
+        rules:
+          type: array
+          items: { $ref: '#/components/schemas/ApplicationPolicyRule' }
+    ApplicationPolicyStatusRequest:
+      type: object
+      additionalProperties: false
+      required: [policyId, policyVersion, status, reportedAt, errorCode]
+      properties:
+        policyId: { type: string, format: uuid, nullable: true }
+        policyVersion: { type: integer, minimum: 1, nullable: true }
+        status:
+          type: string
+          enum: [UNKNOWN, PENDING, APPLIED, PARTIALLY_APPLIED, FAILED, STALE]
+        reportedAt: { type: string, format: date-time }
+        errorCode: { type: string, maxLength: 128, nullable: true }
     ApiError:
       type: object
       required: [error, requestId]
@@ -1219,6 +1540,7 @@ components:
                 - AUDIO_SESSION_NOT_FOUND
                 - AUDIO_SESSION_ALREADY_ACTIVE
                 - AUDIO_SESSION_STATE_CONFLICT
+                - RESOURCE_NOT_FOUND
             message:
               type: string
             metadata:
