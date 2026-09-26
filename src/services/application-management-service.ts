@@ -6,7 +6,6 @@ import type {
   ApplicationAction,
   ApplicationEnforcementStatus,
   ApplicationInventoryItem,
-  ApplicationPolicy,
 } from '../domain/application-management.js';
 import {
   calculateInventoryFreshness,
@@ -14,7 +13,6 @@ import {
 } from '../domain/application-management.js';
 import type { ApplicationManagementRepository } from '../repositories/application-management-repository.js';
 import { AppError } from '../types/errors.js';
-import { PersistenceError } from '../domain/persistence-errors.js';
 import { logger } from '../logging/logger.js';
 
 export interface ApplicationManagementServiceOptions {
