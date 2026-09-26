@@ -275,6 +275,110 @@ paths:
           $ref: '#/components/responses/ApiErrorResponse'
         '429':
           $ref: '#/components/responses/ApiErrorResponse'
+  /api/v1/devices/{deviceId}/screen-sessions:
+    post:
+      summary: Request an authorized screen-sharing session for an owned device
+      operationId: createScreenSharingSession
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                correlationId:
+                  { type: string, minLength: 1, maxLength: 128, nullable: true }
+      responses:
+        '201': { description: Screen-sharing session created }
+        '200':
+          { description: Existing session returned for an idempotent retry }
+        '400': { $ref: '#/components/responses/ApiErrorResponse' }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '403': { $ref: '#/components/responses/ApiErrorResponse' }
+        '404': { $ref: '#/components/responses/ApiErrorResponse' }
+        '409': { $ref: '#/components/responses/ApiErrorResponse' }
+        '429': { $ref: '#/components/responses/ApiErrorResponse' }
+  /api/v1/screen-sessions/{sessionId}:
+    get:
+      summary: Get an owned screen-sharing session
+      operationId: getScreenSharingSession
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Screen-sharing session }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '404': { $ref: '#/components/responses/ApiErrorResponse' }
+        '429': { $ref: '#/components/responses/ApiErrorResponse' }
+  /api/v1/screen-sessions/{sessionId}/stop:
+    post:
+      summary: Stop an owned screen-sharing session
+      operationId: stopScreenSharingSession
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Screen-sharing session after stop request }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '404': { $ref: '#/components/responses/ApiErrorResponse' }
+        '409': { $ref: '#/components/responses/ApiErrorResponse' }
+        '429': { $ref: '#/components/responses/ApiErrorResponse' }
+  /api/v1/device/screen-sessions/{sessionId}/started:
+    post:
+      summary: Acknowledge screen capture start from the authenticated managed device
+      operationId: markScreenSharingStarted
+      security: [{ deviceSessionBearer: [] }]
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                transportState:
+                  { type: object, additionalProperties: false, nullable: true }
+      responses:
+        '200': { description: Active screen-sharing session }
+        '400': { $ref: '#/components/responses/ApiErrorResponse' }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '403': { $ref: '#/components/responses/ApiErrorResponse' }
+        '404': { $ref: '#/components/responses/ApiErrorResponse' }
+        '409': { $ref: '#/components/responses/ApiErrorResponse' }
+  /api/v1/device/screen-sessions/{sessionId}/stopped:
+    post:
+      summary: Acknowledge screen capture stop from the authenticated managed device
+      operationId: markScreenSharingStopped
+      security: [{ deviceSessionBearer: [] }]
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Stopped screen-sharing session }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '403': { $ref: '#/components/responses/ApiErrorResponse' }
+        '404': { $ref: '#/components/responses/ApiErrorResponse' }
+        '409': { $ref: '#/components/responses/ApiErrorResponse' }
   /api/v1/devices/{deviceId}/commands:
     post:
       summary: Create an allowlisted command envelope for an owned device
@@ -950,6 +1054,9 @@ components:
                 - INVALID_LOCATION_ACCURACY
                 - INVALID_LOCATION_TIMESTAMP
                 - LOCATION_REPORT_ID_CONFLICT
+                - SCREEN_SESSION_NOT_FOUND
+                - SCREEN_SESSION_ALREADY_ACTIVE
+                - SCREEN_SESSION_STATE_CONFLICT
             message:
               type: string
             metadata:

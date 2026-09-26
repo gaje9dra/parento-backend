@@ -96,6 +96,7 @@ export const createV1Router = (
       maxPayloadBytes: security.commandMaxPayloadBytes,
     },
     commandDelivery,
+    screenSessions,
   );
 
   router.use(createCommandRouter(authentication, commandService));

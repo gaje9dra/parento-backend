@@ -11,6 +11,7 @@ import type { CommandService } from './command-service.js';
 import { PersistenceError } from '../domain/persistence-errors.js';
 import { AppError } from '../types/errors.js';
 
+// Phase 9.4: all screen-session authorization remains server authoritative.
 export interface ScreenSharingServiceOptions {
   readonly maxDurationSeconds: number;
   readonly retentionSeconds?: number | undefined;
@@ -24,6 +25,17 @@ const sanitizeTransportState = (
 ): Record<string, string> | null => {
   if (value === null) return null;
   const allowed = new Set(['state', 'transport', 'connectionId']);
+  const allowedStates = new Set([
+    'AUTHORIZATION_PENDING',
+    'AUTHORIZED',
+    'STARTING',
+    'ACTIVE',
+    'STOPPING',
+    'STOPPED',
+    'EXPIRED',
+    'FAILED',
+    'DISCONNECTED',
+  ]);
   const result: Record<string, string> = {};
   for (const [key, raw] of Object.entries(value)) {
     if (!allowed.has(key) || typeof raw !== 'string' || raw.length > 128) {
@@ -31,6 +43,13 @@ const sanitizeTransportState = (
         400,
         'INVALID_REQUEST',
         'Transport state contains unsupported or invalid metadata.',
+      );
+    }
+    if (key === 'state' && !allowedStates.has(raw)) {
+      throw new AppError(
+        400,
+        'INVALID_REQUEST',
+        'Transport state contains an unsupported lifecycle state.',
       );
     }
     result[key] = raw;
@@ -118,6 +137,14 @@ export class ScreenSharingService {
     });
 
     if (!result.created) {
+      if (
+        result.session.adminId === adminId &&
+        correlationId !== null &&
+        correlationId !== undefined &&
+        result.session.correlationId === correlationId
+      ) {
+        return { session: result.session, created: false };
+      }
       throw new AppError(
         409,
         'SCREEN_SESSION_ALREADY_ACTIVE',
@@ -168,13 +195,7 @@ export class ScreenSharingService {
 
   async stop(id: string, adminId: string): Promise<ScreenSharingSession> {
     let session = await this.getOwned(id, adminId);
-    if (this.isTerminal(session.status)) {
-      throw new AppError(
-        409,
-        'SCREEN_SESSION_STATE_CONFLICT',
-        'The screen-sharing session is already terminated.',
-      );
-    }
+    if (this.isTerminal(session.status)) return session;
     if (session.status === 'STOPPING') return session;
 
     session = await this.transition(session, 'STOPPING', 'ADMIN_STOP', {
@@ -355,7 +376,7 @@ export class ScreenSharingService {
   ): void {
     if (
       session.expiresAt.getTime() <= Date.now() ||
-      !['CONNECTED', 'STALE'].includes(session.state)
+      session.state !== 'CONNECTED'
     ) {
       throw new AppError(
         401,
