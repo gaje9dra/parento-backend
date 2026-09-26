@@ -23,23 +23,23 @@ export interface MonitoringIngestionInput {
   readonly schemaVersion: number;
   readonly observedAt: Date;
   readonly now: Date;
-  readonly androidVersion?: string | null;
-  readonly apiLevel?: number | null;
-  readonly appVersion?: string | null;
-  readonly appVersionCode?: number | null;
-  readonly batteryPercentage?: number | null;
-  readonly batteryChargingState?: BatteryChargingState | null;
-  readonly batteryStatus?: BatteryStatus | null;
-  readonly networkState?: NetworkState | null;
-  readonly storageTotalBytes?: number | null;
-  readonly storageAvailableBytes?: number | null;
-  readonly storageUsedBytes?: number | null;
-  readonly memoryTotalBytes?: number | null;
-  readonly memoryAvailableBytes?: number | null;
-  readonly memoryLow?: boolean | null;
-  readonly managementMode?: ManagementMode | null;
-  readonly lastSuccessfulInitializationAt?: Date | null;
-  readonly lastSuccessfulCommunicationAt?: Date | null;
+  readonly androidVersion?: string | null | undefined;
+  readonly apiLevel?: number | null | undefined;
+  readonly appVersion?: string | null | undefined;
+  readonly appVersionCode?: number | null | undefined;
+  readonly batteryPercentage?: number | null | undefined;
+  readonly batteryChargingState?: BatteryChargingState | null | undefined;
+  readonly batteryStatus?: BatteryStatus | null | undefined;
+  readonly networkState?: NetworkState | null | undefined;
+  readonly storageTotalBytes?: number | null | undefined;
+  readonly storageAvailableBytes?: number | null | undefined;
+  readonly storageUsedBytes?: number | null | undefined;
+  readonly memoryTotalBytes?: number | null | undefined;
+  readonly memoryAvailableBytes?: number | null | undefined;
+  readonly memoryLow?: boolean | null | undefined;
+  readonly managementMode?: ManagementMode | null | undefined;
+  readonly lastSuccessfulInitializationAt?: Date | null | undefined;
+  readonly lastSuccessfulCommunicationAt?: Date | null | undefined;
 }
 
 export class DeviceMonitoringService {
@@ -114,7 +114,7 @@ export class DeviceMonitoringService {
 
   async listForAdmin(
     adminId: string,
-    page?: { limit?: number; cursor?: string | null },
+    page?: { limit?: number | undefined; cursor?: string | null | undefined },
   ) {
     try {
       const result = await this.repository.listForAdmin(adminId, page);
