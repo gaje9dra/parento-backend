@@ -39,7 +39,7 @@ export const createCommandController = (service: CommandService) => ({
         return;
       }
       const b = createSchema.safeParse(req.body);
-      if (!b.success) {
+      if (!b.success || b.data.type !== 'FUTURE_COMMAND') {
         res.status(400).json({
           error: {
             code: 'INVALID_REQUEST',
