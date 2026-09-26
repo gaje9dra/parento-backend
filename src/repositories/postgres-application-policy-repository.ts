@@ -62,6 +62,27 @@ const loadRules = async (
   return result.rows;
 };
 
+const encodePolicyCursor = (row: PolicyRow): string =>
+  Buffer.from(
+    JSON.stringify({ updatedAt: row.updated_at.toISOString(), id: row.id }),
+  ).toString('base64url');
+
+const decodePolicyCursor = (cursor: string): { updatedAt: Date; id: string } => {
+  try {
+    const parsed = JSON.parse(
+      Buffer.from(cursor, 'base64url').toString('utf8'),
+    ) as { updatedAt?: unknown; id?: unknown };
+    if (typeof parsed.updatedAt !== 'string' || typeof parsed.id !== 'string') {
+      throw new Error('Invalid cursor.');
+    }
+    const updatedAt = new Date(parsed.updatedAt);
+    if (Number.isNaN(updatedAt.getTime())) throw new Error('Invalid cursor.');
+    return { updatedAt, id: parsed.id };
+  } catch {
+    throw new PersistenceError('INVALID_STATE', 'The application policy page cursor is invalid.');
+  }
+};
+
 const toAssignment = (row: AssignmentRow): ApplicationPolicyAssignment => ({
   managedDeviceId: row.managed_device_id,
   policyId: row.policy_id,
@@ -143,10 +164,15 @@ export class PostgresApplicationPolicyRepository
     page: { limit?: number; cursor?: string | null } = {},
   ) {
     const limit = Math.min(Math.max(page.limit ?? 50, 1), 100);
-    const cursor = page.cursor == null ? null : decodeURIComponent(page.cursor);
+    const cursor = page.cursor == null ? null : decodePolicyCursor(page.cursor);
     const params: unknown[] = [adminId];
-    const where = cursor === null ? '' : ' AND p.updated_at < $2';
-    if (cursor !== null) params.push(new Date(cursor));
+    const where =
+      cursor === null
+        ? ''
+        : ' AND (p.updated_at, p.id) < ($2, $3)';
+    if (cursor !== null) {
+      params.push(cursor.updatedAt, cursor.id);
+    }
     params.push(limit + 1);
     const result = await this.query<PolicyRow>(
       'SELECT ' +
@@ -167,9 +193,7 @@ export class PostgresApplicationPolicyRepository
     );
     return {
       items: policies,
-      nextCursor: hasMore
-        ? encodeURIComponent(rows[limit - 1]!.updated_at.toISOString())
-        : null,
+      nextCursor: hasMore ? encodePolicyCursor(rows[limit - 1]!) : null,
     };
   }
 
