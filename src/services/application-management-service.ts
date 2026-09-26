@@ -4,7 +4,6 @@ import type {
   ApplicationInventoryItem,
   ApplicationPolicy,
   ApplicationPolicyAssignment,
-  ApplicationPolicySyncState,
   ApplicationRuleAction,
 } from '../domain/application-management.js';
 import { isValidAndroidPackageName } from '../domain/application-management.js';
@@ -289,8 +288,14 @@ export class ApplicationManagementService {
     validateRules(input.rules, this.options.maxPolicyRules);
     try {
       const policy = await this.policies.updateOwned({
-        ...input,
+        id: input.policyId,
+        adminId: input.adminId,
+        name: input.name,
+        description: input.description,
+        status: input.status,
+        expectedVersion: input.expectedVersion,
         updatedBy: input.adminId,
+        rules: input.rules,
       });
       await this.events.record({
         id: randomUUID(),
@@ -364,7 +369,7 @@ export class ApplicationManagementService {
       managedDeviceId: device.id,
       policyId: policy.id,
       policyVersion: policy.version,
-      metadata: { commandId: sync.command.id },
+      metadata: { commandId: sync.command.command.id },
     });
     return { assignment, sync };
   }
@@ -507,7 +512,11 @@ export class ApplicationManagementService {
     }
     const current = await this.policies.findSyncState(device.id);
     const result = await this.policies.reportSync({
-      ...input,
+      managedDeviceId: input.deviceId,
+      policyId: input.policyId,
+      policyVersion: input.policyVersion,
+      status: input.status,
+      reportedAt: input.reportedAt,
       errorCode: input.errorCode?.slice(0, 128) ?? null,
     });
     if (
