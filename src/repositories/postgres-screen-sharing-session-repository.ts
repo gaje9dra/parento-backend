@@ -91,7 +91,7 @@ export class PostgresScreenSharingSessionRepository
           ],
         );
         const session = map(result.rows[0]!);
-        await insertEvent(client, session.id, null, 'REQUESTED', input.now ?? new Date(), null);
+        await insertEvent(client, session.id, null, 'REQUESTED', new Date(), null);
         return { session, created: true };
       });
     } catch (error) {
