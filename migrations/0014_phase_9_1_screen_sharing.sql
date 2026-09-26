@@ -65,3 +65,50 @@ ALTER TABLE commands
   ADD CONSTRAINT commands_type_check CHECK (
     type IN ('FUTURE_COMMAND','START_SCREEN_SHARE','STOP_SCREEN_SHARE')
   );
+
+
+CREATE OR REPLACE FUNCTION terminate_screen_sessions_for_device_connection()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.state IN ('DISCONNECTED','EXPIRED') THEN
+    UPDATE screen_sharing_sessions
+      SET status='STOPPED',
+          stopped_at=COALESCE(stopped_at, NOW()),
+          last_activity_at=NOW(),
+          termination_reason='DEVICE_DISCONNECTED',
+          transport_state='{"state":"STOPPED","reason":"DEVICE_DISCONNECTED"}'::jsonb
+      WHERE managed_device_id=NEW.managed_device_id
+        AND status IN ('REQUESTED','AUTHORIZED','STARTING','ACTIVE','STOPPING');
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER device_connection_screen_session_termination
+AFTER UPDATE OF state ON device_connection_sessions
+FOR EACH ROW
+WHEN (NEW.state IN ('DISCONNECTED','EXPIRED'))
+EXECUTE FUNCTION terminate_screen_sessions_for_device_connection();
+
+CREATE OR REPLACE FUNCTION terminate_screen_sessions_for_device_revocation()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.enrollment_status = 'REVOKED' OR NEW.operational_status = 'REVOKED' THEN
+    UPDATE screen_sharing_sessions
+      SET status='EXPIRED',
+          stopped_at=COALESCE(stopped_at, NOW()),
+          last_activity_at=NOW(),
+          termination_reason='DEVICE_REVOKED',
+          transport_state='{"state":"EXPIRED","reason":"DEVICE_REVOKED"}'::jsonb
+      WHERE managed_device_id=NEW.id
+        AND status IN ('REQUESTED','AUTHORIZED','STARTING','ACTIVE','STOPPING');
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER managed_device_screen_session_revocation
+AFTER UPDATE OF enrollment_status, operational_status ON managed_devices
+FOR EACH ROW
+WHEN (NEW.enrollment_status = 'REVOKED' OR NEW.operational_status = 'REVOKED')
+EXECUTE FUNCTION terminate_screen_sessions_for_device_revocation();
