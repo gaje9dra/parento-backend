@@ -23,23 +23,23 @@ export interface DeviceMonitoringSnapshot {
   readonly schemaVersion: number;
   readonly observedAt: Date;
   readonly receivedAt: Date;
-  readonly androidVersion: string | null;
-  readonly apiLevel: number | null;
-  readonly appVersion: string | null;
-  readonly appVersionCode: number | null;
-  readonly batteryPercentage: number | null;
-  readonly batteryChargingState: BatteryChargingState | null;
-  readonly batteryStatus: BatteryStatus | null;
-  readonly networkState: NetworkState | null;
-  readonly storageTotalBytes: number | null;
-  readonly storageAvailableBytes: number | null;
-  readonly storageUsedBytes: number | null;
-  readonly memoryTotalBytes: number | null;
-  readonly memoryAvailableBytes: number | null;
-  readonly memoryLow: boolean | null;
-  readonly managementMode: ManagementMode | null;
-  readonly lastSuccessfulInitializationAt: Date | null;
-  readonly lastSuccessfulCommunicationAt: Date | null;
+  readonly androidVersion?: string | null;
+  readonly apiLevel?: number | null;
+  readonly appVersion?: string | null;
+  readonly appVersionCode?: number | null;
+  readonly batteryPercentage?: number | null;
+  readonly batteryChargingState?: BatteryChargingState | null;
+  readonly batteryStatus?: BatteryStatus | null;
+  readonly networkState?: NetworkState | null;
+  readonly storageTotalBytes?: number | null;
+  readonly storageAvailableBytes?: number | null;
+  readonly storageUsedBytes?: number | null;
+  readonly memoryTotalBytes?: number | null;
+  readonly memoryAvailableBytes?: number | null;
+  readonly memoryLow?: boolean | null;
+  readonly managementMode?: ManagementMode | null;
+  readonly lastSuccessfulInitializationAt?: Date | null;
+  readonly lastSuccessfulCommunicationAt?: Date | null;
 }
 
 export interface DeviceMonitoringState extends DeviceMonitoringSnapshot {
