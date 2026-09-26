@@ -25,9 +25,6 @@ import { SseDeviceTransport } from '../../realtime/sse-device-transport.js';
 import { CommandDeliveryService } from '../../services/command-delivery-service.js';
 import { ScreenSharingService } from '../../services/screen-sharing-service.js';
 import { PostgresScreenSharingSessionRepository } from '../../repositories/postgres-screen-sharing-session-repository.js';
-  const locations = new PostgresLocationRepository(database);
-  const locationService = new LocationService(locations, managedDevices);
-    createLocationRouter(
 import { DeviceMonitoringService } from '../../services/device-monitoring-service.js';
 import { PostgresDeviceMonitoringRepository } from '../../repositories/postgres-device-monitoring-repository.js';
 import { createDeviceMonitoringRouter } from './device-monitoring.routes.js';
@@ -136,8 +133,6 @@ const monitoringRepository = new PostgresDeviceMonitoringRepository(database);
       locationService,
       deviceSessions,
       rateLimit,
-      realtimeTransport,
-      commandDelivery,
     ),
   );
 
