@@ -76,5 +76,5 @@ export interface ApplicationPolicySyncState {
 }
 
 export const isValidAndroidPackageName = (value: string): boolean =>
-  /^[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)+$/.test(value) &&
+  /^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)+$/.test(value) &&
   value.length <= 255;
