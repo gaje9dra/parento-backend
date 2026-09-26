@@ -22,7 +22,7 @@ export interface MonitoringDevicePage {
 }
 
 export interface DeviceMonitoringRepository extends Repository {
-  findCurrent(managedDeviceId: string): Promise<MonitoringDeviceState | null>;
+  findCurrent(managedDeviceId: string): Promise<DeviceMonitoringState | null>;
   upsertIfNewer(
     snapshot: DeviceMonitoringSnapshot,
   ): Promise<'updated' | 'ignored'>;
