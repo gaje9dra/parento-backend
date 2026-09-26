@@ -114,7 +114,7 @@ BEGIN
     INSERT INTO audio_access_session_events
       (id, audio_session_id, from_status, to_status, occurred_at, termination_reason)
     VALUES
-      (gen_random_uuid(), NEW.id, OLD.status, NEW.status,
+      (md5(NEW.id::text || clock_timestamp()::text)::uuid, NEW.id, OLD.status, NEW.status,
        COALESCE(NEW.last_activity_at, NOW()), NEW.termination_reason);
   END IF;
   RETURN NEW;
