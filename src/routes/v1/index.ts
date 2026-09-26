@@ -16,6 +16,12 @@ import { createCommandRouter } from './command.routes.js';
 import { createDeviceCommunicationRouter } from './device-communication.routes.js';
 import { DeviceCommunicationService } from '../../services/device-communication-service.js';
 import { CommandService } from '../../services/command-service.js';
+import { PostgresLocationRepository } from '../../repositories/postgres-location-repository.js';
+import { LocationService } from '../../services/location-service.js';
+import { createLocationRouter } from './location.routes.js';
+  const locations = new PostgresLocationRepository(database);
+  const locationService = new LocationService(locations, managedDevices);
+    createLocationRouter(
 import { DeviceMonitoringService } from '../../services/device-monitoring-service.js';
 import { PostgresDeviceMonitoringRepository } from '../../repositories/postgres-device-monitoring-repository.js';
 import { createDeviceMonitoringRouter } from './device-monitoring.routes.js';
@@ -97,6 +103,18 @@ const monitoringRepository = new PostgresDeviceMonitoringRepository(database);
       rateLimit,
     ),
   );
+
+  const locations = new PostgresLocationRepository(database);
+  const locationService = new LocationService(locations, managedDevices);
+  router.use(
+    createLocationRouter(
+      authentication,
+      locationService,
+      deviceSessions,
+      rateLimit,
+    ),
+  );
+
 
   return router;
 };
