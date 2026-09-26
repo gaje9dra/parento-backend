@@ -379,6 +379,109 @@ paths:
         '403': { $ref: '#/components/responses/ApiErrorResponse' }
         '404': { $ref: '#/components/responses/ApiErrorResponse' }
         '409': { $ref: '#/components/responses/ApiErrorResponse' }
+  /api/v1/devices/{deviceId}/audio-sessions:
+    post:
+      summary: Request an authorized audio-access session for an owned device
+      operationId: createAudioAccessSession
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                correlationId:
+                  { type: string, minLength: 1, maxLength: 128, nullable: true }
+      responses:
+        '201': { description: Audio-access session created }
+        '200': { description: Existing session returned for an idempotent retry }
+        '400': { $ref: '#/components/responses/ApiErrorResponse' }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '403': { $ref: '#/components/responses/ApiErrorResponse' }
+        '404': { $ref: '#/components/responses/ApiErrorResponse' }
+        '409': { $ref: '#/components/responses/ApiErrorResponse' }
+        '429': { $ref: '#/components/responses/ApiErrorResponse' }
+  /api/v1/audio-sessions/{sessionId}:
+    get:
+      summary: Get an owned audio-access session
+      operationId: getAudioAccessSession
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Audio-access session }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '404': { $ref: '#/components/responses/ApiErrorResponse' }
+        '429': { $ref: '#/components/responses/ApiErrorResponse' }
+  /api/v1/audio-sessions/{sessionId}/stop:
+    post:
+      summary: Stop an owned audio-access session
+      operationId: stopAudioAccessSession
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Audio-access session after stop request }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '404': { $ref: '#/components/responses/ApiErrorResponse' }
+        '409': { $ref: '#/components/responses/ApiErrorResponse' }
+        '429': { $ref: '#/components/responses/ApiErrorResponse' }
+  /api/v1/device/audio-sessions/{sessionId}/started:
+    post:
+      summary: Acknowledge authorized audio access start from the authenticated managed device
+      operationId: markAudioAccessStarted
+      security: [{ deviceSessionBearer: [] }]
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                transportState:
+                  { type: object, additionalProperties: false, nullable: true }
+      responses:
+        '200': { description: Active audio-access session }
+        '400': { $ref: '#/components/responses/ApiErrorResponse' }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '403': { $ref: '#/components/responses/ApiErrorResponse' }
+        '404': { $ref: '#/components/responses/ApiErrorResponse' }
+        '409': { $ref: '#/components/responses/ApiErrorResponse' }
+  /api/v1/device/audio-sessions/{sessionId}/stopped:
+    post:
+      summary: Acknowledge authorized audio access stop from the authenticated managed device
+      operationId: markAudioAccessStopped
+      security: [{ deviceSessionBearer: [] }]
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Stopped audio-access session }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '403': { $ref: '#/components/responses/ApiErrorResponse' }
+        '404': { $ref: '#/components/responses/ApiErrorResponse' }
+        '409': { $ref: '#/components/responses/ApiErrorResponse' }
   /api/v1/devices/{deviceId}/commands:
     post:
       summary: Create an allowlisted command envelope for an owned device
@@ -1007,6 +1110,37 @@ components:
                 freshness:
                   type: string
                   enum: [FRESH, STALE, VERY_STALE, UNKNOWN, NEVER_REPORTED]
+    AudioAccessSession:
+      type: object
+      required:
+        [sessionId, deviceId, status, createdAt, authorizedAt, startedAt, stoppedAt, expiresAt, lastActivityAt, terminationReason, correlationId, transportState]
+      properties:
+        sessionId: { type: string, format: uuid }
+        deviceId: { type: string, format: uuid }
+        status:
+          type: string
+          enum: [REQUESTED, AUTHORIZED, STARTING, ACTIVE, STOPPING, STOPPED, EXPIRED, FAILED, REJECTED]
+        createdAt: { type: string, format: date-time }
+        authorizedAt: { type: string, format: date-time, nullable: true }
+        startedAt: { type: string, format: date-time, nullable: true }
+        stoppedAt: { type: string, format: date-time, nullable: true }
+        expiresAt: { type: string, format: date-time }
+        lastActivityAt: { type: string, format: date-time }
+        terminationReason: { type: string, nullable: true }
+        correlationId: { type: string }
+        transportState:
+          { type: object, additionalProperties: true, nullable: true }
+    AudioAccessSessionResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccess'
+        - type: object
+          properties:
+            data:
+              type: object
+              required: [session]
+              properties:
+                session:
+                  $ref: '#/components/schemas/AudioAccessSession'
     ApiError:
       type: object
       required: [error, requestId]
@@ -1057,6 +1191,9 @@ components:
                 - SCREEN_SESSION_NOT_FOUND
                 - SCREEN_SESSION_ALREADY_ACTIVE
                 - SCREEN_SESSION_STATE_CONFLICT
+                - AUDIO_SESSION_NOT_FOUND
+                - AUDIO_SESSION_ALREADY_ACTIVE
+                - AUDIO_SESSION_STATE_CONFLICT
             message:
               type: string
             metadata:
