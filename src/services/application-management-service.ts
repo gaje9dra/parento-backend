@@ -15,6 +15,7 @@ import {
 import type { ApplicationManagementRepository } from '../repositories/application-management-repository.js';
 import { AppError } from '../types/errors.js';
 import { PersistenceError } from '../domain/persistence-errors.js';
+import { logger } from '../logging/logger.js';
 
 export interface ApplicationManagementServiceOptions {
   readonly staleSeconds: number;
@@ -88,6 +89,7 @@ export class ApplicationManagementService {
       receivedAt: new Date(),
       applications: input.applications,
     });
+    logger.info({event:'application_inventory_synchronized',managedDeviceId:session.managedDeviceId,accepted:result.applied},'Application inventory synchronized');
     return result;
   }
 
@@ -125,10 +127,12 @@ export class ApplicationManagementService {
     rules: { packageName: string; action: ApplicationAction }[];
   }) {
     this.validateRules(input.rules);
-    return this.repository.createPolicy({
+    const policy = await this.repository.createPolicy({
       id: randomUUID(),adminId,name: input.name,description: input.description,createdBy: adminId,
       rules: input.rules.map((rule) => ({id: randomUUID(),...rule})),
     });
+    logger.info({event:'application_policy_created',adminId,policyId:policy.id,version:policy.version},'Application policy created');
+    return policy;
   }
 
   async updatePolicy(adminId: string, policyId: string, input: {
@@ -145,6 +149,7 @@ export class ApplicationManagementService {
     if (!policy) throw new AppError(404,'APPLICATION_POLICY_NOT_FOUND','Application policy was not found.');
     const assignments = await this.repository.listAssignmentsForPolicy(policy.id, adminId);
     await Promise.all(assignments.map((assignment) => this.enqueuePolicySync(adminId, assignment.managedDeviceId, policy.id, policy.version)));
+    logger.info({event:'application_policy_updated',adminId,policyId:policy.id,version:policy.version},'Application policy updated');
     return policy;
   }
 
@@ -152,6 +157,7 @@ export class ApplicationManagementService {
     if (!UUID.test(policyId)) throw new AppError(400,'INVALID_POLICY_ID','Application policy identifier is invalid.');
     const policy = await this.repository.disablePolicy(policyId,adminId,adminId);
     if (!policy) throw new AppError(404,'APPLICATION_POLICY_NOT_FOUND','Application policy was not found.');
+    logger.info({event:'application_policy_disabled',adminId,policyId:policy.id,version:policy.version},'Application policy disabled');
     return policy;
   }
 
@@ -174,6 +180,7 @@ export class ApplicationManagementService {
       managedDeviceId: device.id,policyId: policy.id,policyVersion: policy.version,assignedBy: adminId,
     });
     await this.enqueuePolicySync(adminId,device.id,policy.id,policy.version);
+    logger.info({event:'application_policy_assigned',adminId,managedDeviceId:device.id,policyId:policy.id,policyVersion:policy.version},'Application policy assigned');
     return assignment;
   }
 
@@ -181,6 +188,7 @@ export class ApplicationManagementService {
     await this.requireOwnedDevice(adminId,deviceId);
     const removed = await this.repository.removeAssignment(deviceId,adminId);
     if (!removed) throw new AppError(404,'APPLICATION_POLICY_ASSIGNMENT_NOT_FOUND','Application policy assignment was not found.');
+    logger.info({event:'application_policy_assignment_removed',adminId,managedDeviceId:deviceId},'Application policy assignment removed');
     return { removed: true };
   }
 
@@ -236,6 +244,7 @@ export class ApplicationManagementService {
       reportedAt: new Date(),
     });
     if (!result) throw new AppError(409,'APPLICATION_POLICY_STATE_UNAVAILABLE','Application policy state is not initialized.');
+    logger.info({event:'application_enforcement_status_changed',managedDeviceId:device.id,status:result.status},'Application enforcement status changed');
     return result;
   }
 
