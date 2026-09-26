@@ -403,7 +403,10 @@ export const createApplicationManagementController = (
         ...(limit === undefined ? {} : { limit }),
         cursor: typeof cursor === 'string' ? cursor : null,
       };
-      const result = await service.listPolicies(req.authenticatedAdmin.id, page);
+      const result = await service.listPolicies(
+        req.authenticatedAdmin.id,
+        page,
+      );
       res.status(200).json({
         data: {
           policies: result.items.map(toPolicy),
