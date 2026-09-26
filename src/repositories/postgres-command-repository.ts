@@ -72,7 +72,7 @@ export class PostgresCommandRepository
     id: string;
     managedDeviceId: string;
     adminId: string;
-    type: 'FUTURE_COMMAND';
+    type: CommandType;
     version: number;
     payload: Record<string, unknown>;
     correlationId: string | null;
