@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { DeviceCommunicationService } from '../services/device-communication-service.js';
 import type { CommandService } from '../services/command-service.js';
 import type { Command } from '../domain/command.js';
+import type { SseDeviceTransport } from '../realtime/sse-device-transport.js';
 
 const idSchema = z.object({ commandId: z.string().uuid() }).strict();
 const resultSchema = z
@@ -17,6 +18,8 @@ const resultSchema = z
 export const createDeviceCommunicationController = (
   communication: DeviceCommunicationService,
   commands: CommandService,
+  transport?: SseDeviceTransport,
+  delivery?: import('../services/command-delivery-service.js').CommandDeliveryService,
 ) => ({
   connect: (async (req, res, next) => {
     try {
@@ -40,6 +43,41 @@ export const createDeviceCommunicationController = (
         },
         requestId: res.locals.requestId,
       });
+    } catch (e) {
+      next(e);
+    }
+  }) as RequestHandler,
+  stream: (async (req, res, next) => {
+    try {
+      if (transport === undefined || !req.authenticatedDeviceSession) {
+        res.status(503).json({
+          error: {
+            code: 'REALTIME_UNAVAILABLE',
+            message: 'Realtime device transport is not configured.',
+          },
+          requestId: res.locals.requestId,
+        });
+        return;
+      }
+      const session = await communication.getSession(
+        req.authenticatedDeviceSession.id,
+      );
+      if (
+        session === null ||
+        session.expiresAt.getTime() <= Date.now() ||
+        !['CONNECTED', 'STALE'].includes(session.state)
+      ) {
+        res.status(401).json({
+          error: {
+            code: 'DEVICE_SESSION_INVALID',
+            message: 'Managed-device session is no longer valid.',
+          },
+          requestId: res.locals.requestId,
+        });
+        return;
+      }
+      transport.open(res, session, () => undefined);
+      await delivery?.deliverPending(session);
     } catch (e) {
       next(e);
     }
@@ -213,6 +251,8 @@ const toSession = (s: {
   lastActivityAt: Date;
   disconnectedAt: Date | null;
   expiresAt: Date;
+  lastSeenAt: Date;
+  revokedAt: Date | null;
 }) => ({
   id: s.id,
   managedDeviceId: s.managedDeviceId,
@@ -220,7 +260,9 @@ const toSession = (s: {
   createdAt: s.createdAt.toISOString(),
   connectedAt: s.connectedAt?.toISOString() ?? null,
   lastActivityAt: s.lastActivityAt.toISOString(),
+  lastSeenAt: s.lastSeenAt.toISOString(),
   disconnectedAt: s.disconnectedAt?.toISOString() ?? null,
+  revokedAt: s.revokedAt?.toISOString() ?? null,
   expiresAt: s.expiresAt.toISOString(),
 });
 const toCommand = (c: Command) => ({

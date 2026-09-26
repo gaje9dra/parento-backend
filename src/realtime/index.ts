@@ -1,13 +1,13 @@
 /**
- * Realtime boundary for future secure device communication.
+ * Realtime transport boundary.
  *
- * Phase 1.1 exposes architecture only. No commands, device control, or session
- * signaling are implemented here.
+ * Phase 6.4 provides an authenticated SSE adapter and an in-process connection
+ * registry. Business services depend on CommandDeliveryPort rather than SSE.
  */
-export interface RealtimeTransport {
-  readonly kind: 'not-configured';
-}
-
-export const realtimeTransport: RealtimeTransport = {
-  kind: 'not-configured',
-};
+export { InMemoryDeviceConnectionRegistry } from './device-connection-registry.js';
+export type {
+  DeviceConnectionRegistry,
+  ActiveDeviceConnection,
+} from './device-connection-registry.js';
+export { SseDeviceTransport } from './sse-device-transport.js';
+export type { CommandDeliveryPort } from './command-delivery-port.js';

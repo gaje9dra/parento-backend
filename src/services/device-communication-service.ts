@@ -66,7 +66,12 @@ export class DeviceCommunicationService {
         'SERVICE_UNAVAILABLE',
         'Device session could not be established.',
       );
+    await this.devices.touchLastSeen?.(device.id, now);
     return { session: connected, sessionToken };
+  }
+
+  getSession(id: string): Promise<DeviceConnectionSession | null> {
+    return this.sessions.findById?.(id) ?? Promise.resolve(null);
   }
 
   async heartbeat(
@@ -88,6 +93,7 @@ export class DeviceCommunicationService {
         'DEVICE_SESSION_INVALID',
         'Device session is no longer valid.',
       );
+    await this.devices.touchLastSeen?.(session.managedDeviceId, now);
     return updated;
   }
 

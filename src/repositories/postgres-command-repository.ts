@@ -146,6 +146,21 @@ export class PostgresCommandRepository
     );
     return result.rows[0] === undefined ? null : map(result.rows[0]);
   }
+  async findPendingForDevice(
+    managedDeviceId: string,
+    limit: number,
+  ): Promise<Command[]> {
+    const boundedLimit = Math.min(Math.max(Math.trunc(limit), 1), 100);
+    const result = await this.query<Row>(
+      'SELECT ' +
+        columns +
+        " FROM commands WHERE managed_device_id=$1 AND status IN ('QUEUED','DELIVERING') " +
+        'ORDER BY created_at ASC, id ASC LIMIT $2',
+      [managedDeviceId, boundedLimit],
+    );
+    return result.rows.map(map);
+  }
+
   async findById(id: string): Promise<Command | null> {
     const r = await this.query<Row>(
       'SELECT ' + columns + ' FROM commands WHERE id=$1',

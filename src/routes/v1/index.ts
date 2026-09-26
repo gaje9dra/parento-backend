@@ -16,11 +16,18 @@ import { createCommandRouter } from './command.routes.js';
 import { createDeviceCommunicationRouter } from './device-communication.routes.js';
 import { DeviceCommunicationService } from '../../services/device-communication-service.js';
 import { CommandService } from '../../services/command-service.js';
+import { PostgresDeviceMonitoringRepository } from '../../repositories/postgres-device-monitoring-repository.js';
+import { DeviceMonitoringService } from '../../services/device-monitoring-service.js';
+import { createDeviceMonitoringRouter } from './device-monitoring.routes.js';
+import { InMemoryDeviceConnectionRegistry } from '../../realtime/device-connection-registry.js';
+import { SseDeviceTransport } from '../../realtime/sse-device-transport.js';
+import { CommandDeliveryService } from '../../services/command-delivery-service.js';
 
 export const createV1Router = (
   database: Database,
   security: AppConfig['security'],
   rateLimit: AppConfig['rateLimit'],
+  realtime: AppConfig['realtime'] = { enabled: false },
 ): Router => {
   const router = Router();
   const adminRepository = new PostgresAdminRepository(database);
@@ -58,10 +65,33 @@ export const createV1Router = (
     managedDevices,
     { sessionTtlSeconds: security.deviceSessionTtlSeconds },
   );
-  const commandService = new CommandService(commands, managedDevices, {
-    ttlSeconds: security.commandTtlSeconds,
-    maxPayloadBytes: security.commandMaxPayloadBytes,
-  });
+  const registry = new InMemoryDeviceConnectionRegistry();
+  const transport = realtime.enabled
+    ? new SseDeviceTransport(registry)
+    : undefined;
+  const delivery =
+    realtime.enabled && transport !== undefined
+      ? new CommandDeliveryService(
+          commands,
+          transport,
+          deviceSessions,
+          registry,
+        )
+      : undefined;
+  const commandService = new CommandService(
+    commands,
+    managedDevices,
+    {
+      ttlSeconds: security.commandTtlSeconds,
+      maxPayloadBytes: security.commandMaxPayloadBytes,
+    },
+    delivery,
+  );
+  const monitoringRepository = new PostgresDeviceMonitoringRepository(database);
+  const monitoring = new DeviceMonitoringService(
+    monitoringRepository,
+    managedDevices,
+  );
 
   router.use(createCommandRouter(authentication, commandService));
   router.use(
@@ -70,6 +100,17 @@ export const createV1Router = (
       commandService,
       deviceCredentials,
       deviceSessions,
+      rateLimit,
+      transport,
+      delivery,
+    ),
+  );
+  router.use(
+    createDeviceMonitoringRouter(
+      monitoring,
+      managedDevices,
+      deviceSessions,
+      authentication,
       rateLimit,
     ),
   );

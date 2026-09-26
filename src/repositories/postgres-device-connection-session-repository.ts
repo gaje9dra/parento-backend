@@ -17,9 +17,11 @@ interface Row {
   last_activity_at: Date;
   disconnected_at: Date | null;
   expires_at: Date;
+  last_seen_at: Date;
+  revoked_at: Date | null;
 }
 const columns =
-  'id, managed_device_id, state, created_at, connected_at, last_activity_at, disconnected_at, expires_at';
+  'id, managed_device_id, state, created_at, connected_at, last_activity_at, disconnected_at, expires_at, last_seen_at, revoked_at';
 const map = (r: Row): DeviceConnectionSession => ({
   id: r.id,
   managedDeviceId: r.managed_device_id,
@@ -29,6 +31,8 @@ const map = (r: Row): DeviceConnectionSession => ({
   lastActivityAt: r.last_activity_at,
   disconnectedAt: r.disconnected_at,
   expiresAt: r.expires_at,
+  lastSeenAt: r.last_seen_at,
+  revokedAt: r.revoked_at,
 });
 
 export class PostgresDeviceConnectionSessionRepository
@@ -44,23 +48,50 @@ export class PostgresDeviceConnectionSessionRepository
     expiresAt: Date;
   }): Promise<DeviceConnectionSession> {
     try {
-      const result = await this.query<Row>(
-        'INSERT INTO device_connection_sessions (id, managed_device_id, session_token_hash, expires_at) VALUES ($1,$2,$3,$4) RETURNING ' +
-          columns,
-        [
-          input.id,
-          input.managedDeviceId,
-          input.sessionTokenHash,
-          input.expiresAt,
-        ],
-      );
-      return map(result.rows[0]!);
+      return await this.transaction(async (client) => {
+        await client.query(
+          'SELECT pg_advisory_xact_lock(hashtextextended($1, 0))',
+          [input.managedDeviceId],
+        );
+        await client.query(
+          "SELECT id FROM device_connection_sessions WHERE managed_device_id=$1 AND state IN ('CONNECTING','CONNECTED','STALE') FOR UPDATE",
+          [input.managedDeviceId],
+        );
+        await client.query(
+          "UPDATE device_connection_sessions SET state='EXPIRED', disconnected_at=NOW(), last_activity_at=NOW(), last_seen_at=NOW(), revoked_at=NULL WHERE managed_device_id=$1 AND state IN ('CONNECTING','CONNECTED','STALE')",
+          [input.managedDeviceId],
+        );
+        const result = await client.query<Row>(
+          'INSERT INTO device_connection_sessions (id, managed_device_id, session_token_hash, expires_at, last_seen_at) VALUES ($1,$2,$3,$4,$5) RETURNING ' +
+            columns,
+          [
+            input.id,
+            input.managedDeviceId,
+            input.sessionTokenHash,
+            input.expiresAt,
+            new Date(),
+          ],
+        );
+        return map(result.rows[0]!);
+      });
     } catch (error) {
       throw mapPostgresPersistenceError(
         error,
         'Unable to create device connection session.',
       );
     }
+  }
+
+  async findActiveByDeviceId(
+    managedDeviceId: string,
+  ): Promise<DeviceConnectionSession | null> {
+    const result = await this.query<Row>(
+      'SELECT ' +
+        columns +
+        " FROM device_connection_sessions WHERE managed_device_id=$1 AND state IN ('CONNECTING','CONNECTED','STALE') ORDER BY last_seen_at DESC LIMIT 1",
+      [managedDeviceId],
+    );
+    return result.rows[0] === undefined ? null : map(result.rows[0]);
   }
 
   async findByTokenHash(
@@ -89,7 +120,7 @@ export class PostgresDeviceConnectionSessionRepository
       );
     }
     const result = await this.query<Row>(
-      "UPDATE device_connection_sessions SET state='CONNECTED', connected_at=COALESCE(connected_at,$2), last_activity_at=$2, expires_at=$3, disconnected_at=NULL WHERE id=$1 RETURNING " +
+      "UPDATE device_connection_sessions SET state='CONNECTED', connected_at=COALESCE(connected_at,$2), last_activity_at=$2, last_seen_at=$2, expires_at=$3, disconnected_at=NULL, revoked_at=NULL WHERE id=$1 RETURNING " +
         columns,
       [id, now, expiresAt],
     );
@@ -110,7 +141,7 @@ export class PostgresDeviceConnectionSessionRepository
       );
     }
     const result = await this.query<Row>(
-      'UPDATE device_connection_sessions SET state=$2, disconnected_at=$3, last_activity_at=$3 WHERE id=$1 RETURNING ' +
+      'UPDATE device_connection_sessions SET state=$2, disconnected_at=$3, last_activity_at=$3, last_seen_at=$3 WHERE id=$1 RETURNING ' +
         columns,
       [id, state, now],
     );
@@ -119,12 +150,12 @@ export class PostgresDeviceConnectionSessionRepository
 
   async revokeForDevice(managedDeviceId: string, now: Date): Promise<void> {
     await this.query(
-      "UPDATE device_connection_sessions SET state='EXPIRED', disconnected_at=$2, last_activity_at=$2 WHERE managed_device_id=$1 AND state IN ('CONNECTING','CONNECTED','STALE')",
+      "UPDATE device_connection_sessions SET state='EXPIRED', disconnected_at=$2, last_activity_at=$2, last_seen_at=$2, revoked_at=$2 WHERE managed_device_id=$1 AND state IN ('CONNECTING','CONNECTED','STALE')",
       [managedDeviceId, now],
     );
   }
 
-  private async findById(id: string): Promise<DeviceConnectionSession | null> {
+  async findById(id: string): Promise<DeviceConnectionSession | null> {
     const result = await this.query<Row>(
       'SELECT ' + columns + ' FROM device_connection_sessions WHERE id=$1',
       [id],

@@ -8,6 +8,8 @@ import type { DeviceConnectionSessionRepository } from '../../repositories/devic
 import type { DeviceCommunicationService } from '../../services/device-communication-service.js';
 import type { CommandService } from '../../services/command-service.js';
 import { createDeviceCommunicationController } from '../../controllers/device-communication.controller.js';
+import type { SseDeviceTransport } from '../../realtime/sse-device-transport.js';
+import type { CommandDeliveryService } from '../../services/command-delivery-service.js';
 
 const methodNotAllowed =
   (allow: string): RequestHandler =>
@@ -28,11 +30,15 @@ export const createDeviceCommunicationRouter = (
   credentials: DeviceCredentialRepository,
   sessions: DeviceConnectionSessionRepository,
   rateLimitConfig: AppConfig['rateLimit'],
+  transport?: SseDeviceTransport,
+  delivery?: CommandDeliveryService,
 ): Router => {
   const router = Router();
   const controller = createDeviceCommunicationController(
     communication,
     commands,
+    transport,
+    delivery,
   );
   const limiter = createDeviceCommunicationRateLimiter({
     enabled: rateLimitConfig.enabled,
@@ -45,6 +51,12 @@ export const createDeviceCommunicationRouter = (
     ...limited,
     requireDeviceCredential(credentials),
     controller.connect,
+  );
+  router.get(
+    '/device/stream',
+    ...limited,
+    requireDeviceSession(sessions),
+    controller.stream,
   );
   router.post(
     '/device/sessions/heartbeat',
@@ -77,6 +89,7 @@ export const createDeviceCommunicationRouter = (
     controller.result,
   );
   router.all('/device/sessions', methodNotAllowed('POST, OPTIONS'));
+  router.all('/device/stream', methodNotAllowed('GET, OPTIONS'));
   router.all('/device/sessions/heartbeat', methodNotAllowed('POST, OPTIONS'));
   router.all('/device/sessions/disconnect', methodNotAllowed('POST, OPTIONS'));
   router.all(

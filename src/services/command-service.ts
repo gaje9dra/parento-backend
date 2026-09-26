@@ -4,6 +4,7 @@ import { PersistenceError } from '../domain/persistence-errors.js';
 import type { CommandRepository } from '../repositories/command-repository.js';
 import type { ManagedDeviceRepository } from '../repositories/managed-device-repository.js';
 import { AppError } from '../types/errors.js';
+import type { CommandDeliveryService } from './command-delivery-service.js';
 
 export interface CommandServiceOptions {
   readonly ttlSeconds: number;
@@ -18,6 +19,7 @@ export class CommandService {
     private readonly commands: CommandRepository,
     private readonly devices: ManagedDeviceRepository,
     private readonly options: CommandServiceOptions,
+    private readonly delivery?: CommandDeliveryService,
   ) {}
   async create(
     adminId: string,
@@ -106,7 +108,12 @@ export class CommandService {
         idempotencyKey: input.idempotencyKey,
         expiresAt: new Date(now.getTime() + this.options.ttlSeconds * 1000),
       });
-      if (!created.created) return created;
+      if (!created.created) {
+        if (this.delivery !== undefined)
+          await this.delivery.deliverQueuedForDevice(device.id);
+        const existing = await this.commands.findById(created.command.id);
+        return { command: existing ?? created.command, created: false };
+      }
       const queued = await this.commands.transition({
         id: created.command.id,
         from: 'CREATED',
@@ -116,7 +123,11 @@ export class CommandService {
         now: new Date(),
         correlationId: created.command.correlationId,
       });
-      return { command: queued, created: true };
+      if (this.delivery !== undefined) {
+        await this.delivery.deliverQueuedForDevice(device.id);
+      }
+      const latest = await this.commands.findById(queued.id);
+      return { command: latest ?? queued, created: true };
     } catch (error) {
       if (error instanceof PersistenceError && error.code === 'CONFLICT')
         throw new AppError(
@@ -199,6 +210,16 @@ export class CommandService {
   ): Promise<Command> {
     const command = await this.commands.findById(id);
     this.assertDevice(command, session.managedDeviceId);
+    if (resultMetadata !== null) {
+      const bytes = Buffer.byteLength(JSON.stringify(resultMetadata), 'utf8');
+      if (bytes > this.options.maxPayloadBytes) {
+        throw new AppError(
+          413,
+          'COMMAND_PAYLOAD_TOO_LARGE',
+          'Command result metadata is too large.',
+        );
+      }
+    }
     if (command!.status !== 'RUNNING')
       throw new AppError(
         409,
