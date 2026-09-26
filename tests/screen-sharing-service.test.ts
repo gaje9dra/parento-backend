@@ -148,8 +148,12 @@ describe('Phase 9.1 screen-sharing service', () => {
     } as unknown as ScreenSharingSessionRepository;
     const service = new ScreenSharingService(
       screenSessions,
-      { findById: vi.fn().mockResolvedValue(device) } as unknown as ManagedDeviceRepository,
-      { findActiveByDeviceId: vi.fn().mockResolvedValue(connection) } as unknown as DeviceConnectionSessionRepository,
+      {
+        findById: vi.fn().mockResolvedValue(device),
+      } as unknown as ManagedDeviceRepository,
+      {
+        findActiveByDeviceId: vi.fn().mockResolvedValue(connection),
+      } as unknown as DeviceConnectionSessionRepository,
       {} as CommandService,
       { maxDurationSeconds: 900 },
     );
@@ -178,7 +182,9 @@ describe('Phase 9.1 screen-sharing service', () => {
       { maxDurationSeconds: 900 },
     );
 
-    await expect(service.stop(stopped.id, stopped.adminId)).resolves.toEqual(stopped);
+    await expect(
+      service.stop(stopped.id, stopped.adminId),
+    ).resolves.toEqual(stopped);
   });
 
   it('rejects stale device sessions for managed lifecycle acknowledgements', async () => {
@@ -204,7 +210,10 @@ describe('Phase 9.1 screen-sharing service', () => {
         },
         null,
       ),
-    ).rejects.toMatchObject({ code: 'DEVICE_SESSION_INVALID', statusCode: 401 });
+    ).rejects.toMatchObject({
+      code: 'DEVICE_SESSION_INVALID',
+      statusCode: 401,
+    });
   });
 
   it('rejects unsupported transport lifecycle metadata', async () => {
@@ -230,7 +239,10 @@ describe('Phase 9.1 screen-sharing service', () => {
         },
         { state: 'EVIL_STATE' },
       ),
-    ).rejects.toMatchObject({ code: 'INVALID_REQUEST', statusCode: 400 });
+    ).rejects.toMatchObject({
+      code: 'INVALID_REQUEST',
+      statusCode: 400,
+    });
   });
 
   it('transitions an owned active session to STOPPING and queues a stop command', async () => {
