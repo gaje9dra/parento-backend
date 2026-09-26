@@ -88,3 +88,4 @@ The backend only coordinates authorization, command delivery, lifecycle, expirat
 ## Verification note
 
 Terminated session metadata is cleaned opportunistically when new screen-sharing requests are processed, using the configured retention window. This keeps retention bounded without introducing a separate scheduler in Phase 9.1.
+
