@@ -2,6 +2,7 @@ import type {
   Command,
   CommandActorType,
   CommandStatus,
+  CommandType,
 } from '../domain/command.js';
 import type { Repository } from './repository.js';
 
