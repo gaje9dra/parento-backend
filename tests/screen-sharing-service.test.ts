@@ -118,6 +118,8 @@ describe('Phase 9.1 screen-sharing service', () => {
     const screenSessions = {
       name: 'screen-sharing-session',
       create: vi.fn().mockResolvedValue({ session: existing, created: false }),
+      expireDue: vi.fn().mockResolvedValue(0),
+      deleteTerminatedBefore: vi.fn().mockResolvedValue(0),
     } as unknown as ScreenSharingSessionRepository;
     const commands = {} as CommandService;
     const service = new ScreenSharingService(
