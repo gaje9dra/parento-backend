@@ -5,6 +5,7 @@ import type { CommandRepository } from '../repositories/command-repository.js';
 import type { ManagedDeviceRepository } from '../repositories/managed-device-repository.js';
 import { AppError } from '../types/errors.js';
 import type { CommandDeliveryService } from './command-delivery-service.js';
+import type { ScreenSharingSessionRepository } from '../repositories/screen-sharing-session-repository.js';
 
 export interface CommandServiceOptions {
   readonly ttlSeconds: number;
@@ -20,6 +21,7 @@ export class CommandService {
     private readonly devices: ManagedDeviceRepository,
     private readonly options: CommandServiceOptions,
     private readonly delivery?: CommandDeliveryService,
+    private readonly screenSessions?: ScreenSharingSessionRepository,
   ) {}
   async create(
     adminId: string,
@@ -167,6 +169,43 @@ export class CommandService {
       correlationId: string;
     },
   ): Promise<{ command: Command; created: boolean }> {
+    if (this.screenSessions === undefined) {
+      throw new AppError(
+        503,
+        'SERVICE_UNAVAILABLE',
+        'Screen-sharing command security is not configured.',
+      );
+    }
+    const screenSession = await this.screenSessions.findById(
+      input.screenSessionId,
+    );
+    if (
+      screenSession === null ||
+      screenSession.managedDeviceId !== input.deviceId ||
+      screenSession.adminId !== adminId
+    ) {
+      throw new AppError(
+        404,
+        'SCREEN_SESSION_NOT_FOUND',
+        'Screen-sharing session was not found.',
+      );
+    }
+
+    const startAllowed =
+      input.type === 'START_SCREEN_SHARE' &&
+      screenSession.status === 'AUTHORIZED';
+    const stopAllowed =
+      input.type === 'STOP_SCREEN_SHARE' &&
+      ['AUTHORIZED', 'STARTING', 'ACTIVE'].includes(screenSession.status);
+
+    if (!startAllowed && !stopAllowed) {
+      throw new AppError(
+        409,
+        'SCREEN_SESSION_STATE_CONFLICT',
+        'The screen-sharing command is not valid for the current session state.',
+      );
+    }
+
     const idempotencyKey =
       'screen-session:' + input.screenSessionId + ':' + input.type;
     return this.create(adminId, {
