@@ -19,6 +19,25 @@ export interface ScreenSharingServiceOptions {
 const UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+const sanitizeTransportState = (
+  value: Record<string, unknown> | null,
+): Record<string, string> | null => {
+  if (value === null) return null;
+  const allowed = new Set(['state', 'transport', 'connectionId']);
+  const result: Record<string, string> = {};
+  for (const [key, raw] of Object.entries(value)) {
+    if (!allowed.has(key) || typeof raw !== 'string' || raw.length > 128) {
+      throw new AppError(
+        400,
+        'INVALID_REQUEST',
+        'Transport state contains unsupported or invalid metadata.',
+      );
+    }
+    result[key] = raw;
+  }
+  return result;
+};
+
 export class ScreenSharingService {
   constructor(
     private readonly sessions: ScreenSharingSessionRepository,
@@ -154,7 +173,7 @@ export class ScreenSharingService {
     if (session.status !== 'STARTING') {
       throw new AppError(409, 'SCREEN_SESSION_STATE_CONFLICT', 'The screen-sharing session is not starting.');
     }
-    return this.transition(session, 'ACTIVE', null, transportState);
+    return this.transition(session, 'ACTIVE', null, sanitizeTransportState(transportState));
   }
 
   async markStopped(
