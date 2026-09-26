@@ -163,7 +163,7 @@ export class ScreenSharingService {
       throw new AppError(403, 'AUTHORIZATION_DENIED', 'The screen-sharing session is not assigned to this device.');
     }
     if (this.isTerminal(session.status)) return session;
-    if (!['STOPPING', 'ACTIVE', 'STARTING', 'AUTHORIZED'].includes(session.status)) {
+    if (session.status !== 'STOPPING') {
       throw new AppError(409, 'SCREEN_SESSION_STATE_CONFLICT', 'The screen-sharing session cannot be stopped from its current state.');
     }
     return this.transition(
