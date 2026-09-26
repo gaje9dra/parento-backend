@@ -93,27 +93,23 @@ export const createDeviceMonitoringController = (
     const parsed = monitoringSchema.safeParse(req.body);
     const session = req.authenticatedDeviceSession;
     if (!session) {
-      res
-        .status(401)
-        .json({
-          error: {
-            code: 'DEVICE_SESSION_INVALID',
-            message: 'Managed-device session is required.',
-          },
-          requestId: res.locals.requestId,
-        });
+      res.status(401).json({
+        error: {
+          code: 'DEVICE_SESSION_INVALID',
+          message: 'Managed-device session is required.',
+        },
+        requestId: res.locals.requestId,
+      });
       return;
     }
     if (!parsed.success) {
-      res
-        .status(400)
-        .json({
-          error: {
-            code: 'INVALID_REQUEST',
-            message: 'Invalid monitoring payload.',
-          },
-          requestId: res.locals.requestId,
-        });
+      res.status(400).json({
+        error: {
+          code: 'INVALID_REQUEST',
+          message: 'Invalid monitoring payload.',
+        },
+        requestId: res.locals.requestId,
+      });
       return;
     }
     try {
@@ -137,15 +133,13 @@ export const createDeviceMonitoringController = (
   list: (async (req, res, next) => {
     const admin = req.authenticatedAdmin;
     if (!admin) {
-      res
-        .status(401)
-        .json({
-          error: {
-            code: 'AUTHENTICATION_REQUIRED',
-            message: 'Administrator authentication is required.',
-          },
-          requestId: res.locals.requestId,
-        });
+      res.status(401).json({
+        error: {
+          code: 'AUTHENTICATION_REQUIRED',
+          message: 'Administrator authentication is required.',
+        },
+        requestId: res.locals.requestId,
+      });
       return;
     }
     const limitRaw = Array.isArray(req.query.limit)
@@ -159,27 +153,23 @@ export const createDeviceMonitoringController = (
       limit !== undefined &&
       (!Number.isInteger(limit) || limit < 1 || limit > 100)
     ) {
-      res
-        .status(400)
-        .json({
-          error: {
-            code: 'INVALID_REQUEST',
-            message: 'Device page limit must be between 1 and 100.',
-          },
-          requestId: res.locals.requestId,
-        });
+      res.status(400).json({
+        error: {
+          code: 'INVALID_REQUEST',
+          message: 'Device page limit must be between 1 and 100.',
+        },
+        requestId: res.locals.requestId,
+      });
       return;
     }
     if (cursorRaw !== undefined && typeof cursorRaw !== 'string') {
-      res
-        .status(400)
-        .json({
-          error: {
-            code: 'INVALID_REQUEST',
-            message: 'Invalid device page cursor.',
-          },
-          requestId: res.locals.requestId,
-        });
+      res.status(400).json({
+        error: {
+          code: 'INVALID_REQUEST',
+          message: 'Invalid device page cursor.',
+        },
+        requestId: res.locals.requestId,
+      });
       return;
     }
     try {
@@ -209,45 +199,39 @@ export const createDeviceMonitoringController = (
     const parsed = deviceIdSchema.safeParse(req.params);
     const admin = req.authenticatedAdmin;
     if (!admin) {
-      res
-        .status(401)
-        .json({
-          error: {
-            code: 'AUTHENTICATION_REQUIRED',
-            message: 'Administrator authentication is required.',
-          },
-          requestId: res.locals.requestId,
-        });
+      res.status(401).json({
+        error: {
+          code: 'AUTHENTICATION_REQUIRED',
+          message: 'Administrator authentication is required.',
+        },
+        requestId: res.locals.requestId,
+      });
       return;
     }
     if (!parsed.success) {
-      res
-        .status(400)
-        .json({
-          error: {
-            code: 'INVALID_REQUEST',
-            message: 'Invalid device identifier.',
-          },
-          requestId: res.locals.requestId,
-        });
+      res.status(400).json({
+        error: {
+          code: 'INVALID_REQUEST',
+          message: 'Invalid device identifier.',
+        },
+        requestId: res.locals.requestId,
+      });
       return;
     }
     try {
       const item = await service.getForAdmin(admin.id, parsed.data.deviceId);
-      res
-        .status(200)
-        .json({
-          data: {
-            device: {
-              monitoring: toState(item.state),
-              enrollmentStatus: item.enrollmentStatus,
-              operationalStatus: item.operationalStatus,
-              communicationState: item.communicationState,
-              freshness: item.freshness,
-            },
+      res.status(200).json({
+        data: {
+          device: {
+            monitoring: toState(item.state),
+            enrollmentStatus: item.enrollmentStatus,
+            operationalStatus: item.operationalStatus,
+            communicationState: item.communicationState,
+            freshness: item.freshness,
           },
-          requestId: res.locals.requestId,
-        });
+        },
+        requestId: res.locals.requestId,
+      });
     } catch (error) {
       next(error);
     }
@@ -263,15 +247,13 @@ export const monitoringContentLengthLimit =
       Number.isFinite(Number(value)) &&
       Number(value) > maxBytes
     ) {
-      res
-        .status(413)
-        .json({
-          error: {
-            code: 'REQUEST_TOO_LARGE',
-            message: 'Monitoring payload exceeds the configured limit.',
-          },
-          requestId: res.locals.requestId,
-        });
+      res.status(413).json({
+        error: {
+          code: 'REQUEST_TOO_LARGE',
+          message: 'Monitoring payload exceeds the configured limit.',
+        },
+        requestId: res.locals.requestId,
+      });
       return;
     }
     next();
