@@ -132,6 +132,7 @@ export class AudioAccessService {
       id: randomUUID(),
       managedDeviceId: deviceId,
       adminId,
+      deviceConnectionSessionId: connection.id,
       correlationId:
         correlationId && /^[A-Za-z0-9._:-]{1,128}$/.test(correlationId)
           ? correlationId
@@ -225,7 +226,7 @@ export class AudioAccessService {
     sessionId: string,
     deviceSession: Pick<
       DeviceConnectionSession,
-      'managedDeviceId' | 'state' | 'expiresAt'
+      'id' | 'managedDeviceId' | 'state' | 'expiresAt'
     >,
     transportState: Record<string, unknown> | null,
   ): Promise<AudioAccessSession> {
@@ -238,7 +239,10 @@ export class AudioAccessService {
         'Audio-access session was not found.',
       );
     }
-    if (session.managedDeviceId !== deviceSession.managedDeviceId) {
+    if (
+      session.managedDeviceId !== deviceSession.managedDeviceId ||
+      session.deviceConnectionSessionId !== deviceSession.id
+    ) {
       throw new AppError(
         403,
         'AUTHORIZATION_DENIED',
@@ -266,7 +270,7 @@ export class AudioAccessService {
     sessionId: string,
     deviceSession: Pick<
       DeviceConnectionSession,
-      'managedDeviceId' | 'state' | 'expiresAt'
+      'id' | 'managedDeviceId' | 'state' | 'expiresAt'
     >,
   ): Promise<AudioAccessSession> {
     this.assertConnectedDeviceSession(deviceSession);
@@ -278,7 +282,10 @@ export class AudioAccessService {
         'Audio-access session was not found.',
       );
     }
-    if (session.managedDeviceId !== deviceSession.managedDeviceId) {
+    if (
+      session.managedDeviceId !== deviceSession.managedDeviceId ||
+      session.deviceConnectionSessionId !== deviceSession.id
+    ) {
       throw new AppError(
         403,
         'AUTHORIZATION_DENIED',
