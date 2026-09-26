@@ -43,9 +43,7 @@ jobs:
         run: npm install
 
       - name: Format check
-        run: npm run format
-      - name: Show formatter diff
-        run: git diff -- src/repositories/postgres-screen-sharing-session-repository.ts
+        run: npm run format:check
 
       - name: Lint
         run: npm run lint
