@@ -1540,7 +1540,6 @@ components:
                 - AUDIO_SESSION_NOT_FOUND
                 - AUDIO_SESSION_ALREADY_ACTIVE
                 - AUDIO_SESSION_STATE_CONFLICT
-                - RESOURCE_NOT_FOUND
             message:
               type: string
             metadata:
