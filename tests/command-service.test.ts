@@ -276,4 +276,51 @@ describe('Phase 10.1 audio-access command binding', () => {
       code: 'AUDIO_SESSION_STATE_CONFLICT',
     });
   });
+  it('creates only the allowlisted application policy command payload', async () => {
+    const owner = randomUUID();
+    const devices = new FakeDevices();
+    devices.item = device(owner);
+    const service = new CommandService(new FakeCommands(), devices, {
+      ttlSeconds: 300,
+      maxPayloadBytes: 4096,
+    });
+
+    await expect(
+      service.createApplicationPolicyCommand(owner, {
+        deviceId: devices.item.id,
+        policyId: randomUUID(),
+        policyVersion: 3,
+        correlationId: 'policy-sync-test',
+      }),
+    ).resolves.toMatchObject({ created: true });
+
+    await expect(
+      service.create(owner, {
+        deviceId: devices.item.id,
+        type: 'SYNC_APPLICATION_POLICY',
+        version: 1,
+        payload: { arbitrary: 'code' },
+        idempotencyKey: 'bad',
+        correlationId: null,
+      }),
+    ).rejects.toMatchObject({ code: 'INVALID_COMMAND_PAYLOAD' });
+  });
+
+  it('creates a bounded inventory-request command', async () => {
+    const owner = randomUUID();
+    const devices = new FakeDevices();
+    devices.item = device(owner);
+    const service = new CommandService(new FakeCommands(), devices, {
+      ttlSeconds: 300,
+      maxPayloadBytes: 4096,
+    });
+
+    await expect(
+      service.createApplicationInventoryRequest(owner, {
+        deviceId: devices.item.id,
+        correlationId: 'inventory-test',
+      }),
+    ).resolves.toMatchObject({ created: true });
+  });
+
 });
