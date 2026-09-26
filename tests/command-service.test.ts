@@ -5,6 +5,7 @@ import type { ManagedDevice } from '../src/domain/managed-device.js';
 import type { ManagedDeviceRepository } from '../src/repositories/managed-device-repository.js';
 import type { Command } from '../src/domain/command.js';
 import type { CommandRepository } from '../src/repositories/command-repository.js';
+import type { ScreenSharingSessionRepository } from '../src/repositories/screen-sharing-session-repository.js';
 
 const device = (adminId: string): ManagedDevice => ({
   id: randomUUID(),
@@ -126,6 +127,77 @@ describe('Phase 6.1 command authorization', () => {
     ).rejects.toMatchObject({
       statusCode: 400,
       code: 'INVALID_COMMAND_PAYLOAD',
+    });
+  });
+});
+
+
+describe('Phase 9.4 screen-sharing command binding', () => {
+  it('rejects a screen command whose session belongs to another device', async () => {
+    const owner = randomUUID();
+    const managed = device(owner);
+    const foreignDevice = randomUUID();
+    const sessionId = randomUUID();
+    const screenSessions = {
+      findById: async () => ({
+        id: sessionId,
+        managedDeviceId: foreignDevice,
+        adminId: owner,
+        status: 'AUTHORIZED',
+      }),
+    } as unknown as ScreenSharingSessionRepository;
+    const devices = new FakeDevices();
+    devices.item = managed;
+    const service = new CommandService(
+      new FakeCommands(),
+      devices,
+      { ttlSeconds: 300, maxPayloadBytes: 4096 },
+      undefined,
+      screenSessions,
+    );
+
+    await expect(
+      service.createScreenShareCommand(owner, {
+        deviceId: managed.id,
+        type: 'START_SCREEN_SHARE',
+        screenSessionId: sessionId,
+        correlationId: randomUUID(),
+      }),
+    ).rejects.toMatchObject({ statusCode: 404, code: 'SCREEN_SESSION_NOT_FOUND' });
+  });
+
+  it('rejects replayed screen start against an ACTIVE session', async () => {
+    const owner = randomUUID();
+    const managed = device(owner);
+    const sessionId = randomUUID();
+    const screenSessions = {
+      findById: async () => ({
+        id: sessionId,
+        managedDeviceId: managed.id,
+        adminId: owner,
+        status: 'ACTIVE',
+      }),
+    } as unknown as ScreenSharingSessionRepository;
+    const devices = new FakeDevices();
+    devices.item = managed;
+    const service = new CommandService(
+      new FakeCommands(),
+      devices,
+      { ttlSeconds: 300, maxPayloadBytes: 4096 },
+      undefined,
+      screenSessions,
+    );
+
+    await expect(
+      service.createScreenShareCommand(owner, {
+        deviceId: managed.id,
+        type: 'START_SCREEN_SHARE',
+        screenSessionId: sessionId,
+        correlationId: randomUUID(),
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      code: 'SCREEN_SESSION_STATE_CONFLICT',
     });
   });
 });
