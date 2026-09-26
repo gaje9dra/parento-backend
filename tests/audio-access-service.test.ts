@@ -81,7 +81,9 @@ describe('Phase 10.1 audio-access service', () => {
     } as unknown as ManagedDeviceRepository;
     const service = buildService({} as AudioAccessSessionRepository, devices);
 
-    await expect(service.request(device.adminId, device.id)).rejects.toMatchObject({
+    await expect(
+      service.request(device.adminId, device.id),
+    ).rejects.toMatchObject({
       code: 'AUTHORIZATION_DENIED',
       statusCode: 403,
     });
