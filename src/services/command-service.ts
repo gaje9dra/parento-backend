@@ -43,7 +43,7 @@ export class CommandService {
         'Managed-device identifier is invalid.',
       );
     if (
-      !['FUTURE_COMMAND', 'START_SCREEN_SHARE', 'STOP_SCREEN_SHARE'].includes(
+      !['FUTURE_COMMAND', 'START_SCREEN_SHARE', 'STOP_SCREEN_SHARE', 'START_AUDIO_ACCESS', 'STOP_AUDIO_ACCESS'].includes(
         input.type,
       ) ||
       input.version !== 1
@@ -72,12 +72,18 @@ export class CommandService {
       );
     if (input.type !== 'FUTURE_COMMAND') {
       const keys = Object.keys(payload);
-      if (
-        keys.length !== 1 ||
-        keys[0] !== 'screenSessionId' && keys[0] !== 'audioSessionId' ||
-        (keys[0] === 'screenSessionId' && (typeof payload.screenSessionId !== 'string' || !UUID.test(payload.screenSessionId))) ||
-        (keys[0] === 'audioSessionId' && (typeof payload.audioSessionId !== 'string' || !UUID.test(payload.audioSessionId)))
-      ) {
+      const key = keys[0];
+      const validKey =
+        keys.length === 1 &&
+        (key === 'screenSessionId' || key === 'audioSessionId');
+      const validValue =
+        (key === 'screenSessionId' &&
+          typeof payload.screenSessionId === 'string' &&
+          UUID.test(payload.screenSessionId)) ||
+        (key === 'audioSessionId' &&
+          typeof payload.audioSessionId === 'string' &&
+          UUID.test(payload.audioSessionId));
+      if (!validKey || !validValue) {
         throw new AppError(
           400,
           'INVALID_COMMAND_PAYLOAD',
