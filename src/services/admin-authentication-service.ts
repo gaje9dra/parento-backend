@@ -33,6 +33,7 @@ export class AdminAuthenticationService {
     private readonly passwordHasher = new PasswordHasher(),
     private readonly accessTokenTtlSeconds = 900,
     private readonly sessionTtlSeconds = 86400,
+    private readonly onLogout?: (adminId: string) => Promise<void>,
   ) {}
 
   async login(
@@ -177,5 +178,6 @@ export class AdminAuthenticationService {
     );
     if (session === null || session.revokedAt !== null) return;
     await this.repository.revokeSession(session.id, new Date());
+    await this.onLogout?.(session.adminId);
   }
 }
