@@ -31,6 +31,9 @@ import { PostgresDeviceMonitoringRepository } from '../../repositories/postgres-
 import { createDeviceMonitoringRouter } from './device-monitoring.routes.js';
 import { createAudioAccessRouter } from './audio-access.routes.js';
 import { AudioAccessService } from '../../services/audio-access-service.js';
+import { PostgresApplicationManagementRepository } from '../../repositories/postgres-application-management-repository.js';
+import { ApplicationManagementService } from '../../services/application-management-service.js';
+import { createApplicationManagementRouter } from './application-management.routes.js';
 
 export const createV1Router = (
   database: Database,
@@ -106,6 +109,22 @@ export const createV1Router = (
   );
 
   router.use(createCommandRouter(authentication, commandService));
+  const applicationManagementRepository = new PostgresApplicationManagementRepository(database);
+  const applicationManagementService = new ApplicationManagementService(
+    applicationManagementRepository,
+    managedDevices,
+    deviceSessions,
+    commandService,
+    {
+      staleSeconds: security.monitoringStaleSeconds,
+      veryStaleSeconds: security.monitoringVeryStaleSeconds,
+      maxInventoryItems: 1000,
+      maxRuleCount: 500,
+      maxInventoryPayloadBytes: Math.min(security.monitoringMaxPayloadBytes, 131072),
+      maxFutureSkewSeconds: security.monitoringMaxFutureSkewSeconds,
+    },
+  );
+  router.use(createApplicationManagementRouter(authentication, applicationManagementService, deviceSessions));
   const monitoringRepository = new PostgresDeviceMonitoringRepository(database);
   const monitoringService = new DeviceMonitoringService(
     monitoringRepository,
