@@ -9,6 +9,7 @@ import { mapPostgresPersistenceError } from '../db/errors.js';
 import type { ScreenSharingSessionRepository } from './screen-sharing-session-repository.js';
 import { PostgresRepository } from './postgres-repository.js';
 import { randomUUID } from 'node:crypto';
+import type { PoolClient } from 'pg';
 
 interface Row {
   id: string;
@@ -250,3 +251,25 @@ export class PostgresScreenSharingSessionRepository
   }
 }
 
+
+
+const insertEvent = async (
+  client: PoolClient,
+  sessionId: string,
+  fromStatus: ScreenSharingSessionStatus | null,
+  toStatus: ScreenSharingSessionStatus,
+  occurredAt: Date,
+  terminationReason: ScreenSharingTerminationReason | null,
+): Promise<void> => {
+  await client.query(
+    'INSERT INTO screen_sharing_session_events (id,screen_session_id,from_status,to_status,occurred_at,termination_reason) VALUES ($1,$2,$3,$4,$5,$6)',
+    [
+      randomUUID(),
+      sessionId,
+      fromStatus,
+      toStatus,
+      occurredAt,
+      terminationReason,
+    ],
+  );
+};
