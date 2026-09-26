@@ -1,17 +1,11 @@
 export type ManagementMode =
-  | 'UNMANAGED'
-  | 'PROFILE_OWNER'
-  | 'DEVICE_OWNER'
-  | 'UNKNOWN';
+  'UNMANAGED' | 'PROFILE_OWNER' | 'DEVICE_OWNER' | 'UNKNOWN';
 
-export type NetworkState = 'UNKNOWN' | 'OFFLINE' | 'WIFI' | 'CELLULAR' | 'OTHER';
+export type NetworkState =
+  'UNKNOWN' | 'OFFLINE' | 'WIFI' | 'CELLULAR' | 'OTHER';
 
 export type BatteryChargingState =
-  | 'CHARGING'
-  | 'DISCHARGING'
-  | 'FULL'
-  | 'NOT_CHARGING'
-  | 'UNKNOWN';
+  'CHARGING' | 'DISCHARGING' | 'FULL' | 'NOT_CHARGING' | 'UNKNOWN';
 
 export type BatteryStatus = 'NORMAL' | 'LOW' | 'CRITICAL' | 'FULL' | 'UNKNOWN';
 
@@ -63,14 +57,21 @@ export const getMonitoringFreshness = (
   thresholds: { staleSeconds: number; veryStaleSeconds: number },
   now: Date,
 ): MonitoringFreshness => {
-  if (input.enrollmentStatus === 'REVOKED' || input.operationalStatus === 'REVOKED') {
+  if (
+    input.enrollmentStatus === 'REVOKED' ||
+    input.operationalStatus === 'REVOKED'
+  ) {
     return 'REVOKED';
   }
   if (input.observedAt === null) return 'NEVER_REPORTED';
-  if (input.sessionState === 'DISCONNECTED' || input.sessionState === 'EXPIRED') {
+  if (
+    input.sessionState === 'DISCONNECTED' ||
+    input.sessionState === 'EXPIRED'
+  ) {
     return 'OFFLINE';
   }
-  const ageSeconds = Math.max(0, now.getTime() - input.observedAt.getTime()) / 1000;
+  const ageSeconds =
+    Math.max(0, now.getTime() - input.observedAt.getTime()) / 1000;
   if (ageSeconds >= thresholds.veryStaleSeconds) return 'VERY_STALE';
   if (ageSeconds >= thresholds.staleSeconds) return 'STALE';
   if (input.sessionState === null) return 'UNKNOWN';

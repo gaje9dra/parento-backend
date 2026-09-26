@@ -126,9 +126,9 @@ const mapState = (row: Row): DeviceMonitoringState => ({
 });
 
 const cursorEncode = (createdAt: Date, id: string): string =>
-  Buffer.from(JSON.stringify({ createdAt: createdAt.toISOString(), id })).toString(
-    'base64url',
-  );
+  Buffer.from(
+    JSON.stringify({ createdAt: createdAt.toISOString(), id }),
+  ).toString('base64url');
 
 const cursorDecode = (cursor: string): { createdAt: Date; id: string } => {
   try {

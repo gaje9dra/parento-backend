@@ -1,4 +1,7 @@
-import type { DeviceMonitoringState, DeviceMonitoringSnapshot } from '../domain/device-monitoring.js';
+import type {
+  DeviceMonitoringState,
+  DeviceMonitoringSnapshot,
+} from '../domain/device-monitoring.js';
 import type { Repository } from './repository.js';
 
 export interface MonitoringDevicePageRequest {
@@ -20,7 +23,15 @@ export interface MonitoringDevicePage {
 
 export interface DeviceMonitoringRepository extends Repository {
   findCurrent(managedDeviceId: string): Promise<MonitoringDeviceState | null>;
-  upsertIfNewer(snapshot: DeviceMonitoringSnapshot): Promise<'updated' | 'ignored'>;
-  listForAdmin(adminId: string, page?: MonitoringDevicePageRequest): Promise<MonitoringDevicePage>;
-  findForAdmin(adminId: string, managedDeviceId: string): Promise<MonitoringDevicePageItem | null>;
+  upsertIfNewer(
+    snapshot: DeviceMonitoringSnapshot,
+  ): Promise<'updated' | 'ignored'>;
+  listForAdmin(
+    adminId: string,
+    page?: MonitoringDevicePageRequest,
+  ): Promise<MonitoringDevicePage>;
+  findForAdmin(
+    adminId: string,
+    managedDeviceId: string,
+  ): Promise<MonitoringDevicePageItem | null>;
 }
