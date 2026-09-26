@@ -43,9 +43,13 @@ export class CommandService {
         'Managed-device identifier is invalid.',
       );
     if (
-      !['FUTURE_COMMAND', 'START_SCREEN_SHARE', 'STOP_SCREEN_SHARE', 'START_AUDIO_ACCESS', 'STOP_AUDIO_ACCESS'].includes(
-        input.type,
-      ) ||
+      ![
+        'FUTURE_COMMAND',
+        'START_SCREEN_SHARE',
+        'STOP_SCREEN_SHARE',
+        'START_AUDIO_ACCESS',
+        'STOP_AUDIO_ACCESS',
+      ].includes(input.type) ||
       input.version !== 1
     )
       throw new AppError(
@@ -273,7 +277,8 @@ export class CommandService {
       type: input.type,
       version: 1,
       payload: { audioSessionId: input.audioSessionId },
-      idempotencyKey: 'audio-session:' + input.audioSessionId + ':' + input.type,
+      idempotencyKey:
+        'audio-session:' + input.audioSessionId + ':' + input.type,
       correlationId: input.correlationId,
     });
   }
