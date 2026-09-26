@@ -7,7 +7,7 @@ import { requireAdminAuthentication } from '../../middleware/admin-auth.js';
 import { requireAdminAuthorization } from '../../middleware/admin-authorization.js';
 import { requireDeviceSession } from '../../middleware/device-session-auth.js';
 import { createScreenSharingController } from '../../controllers/screen-sharing.controller.js';
-import { createLocationRateLimiter } from '../../middleware/location-rate-limit.js';
+import { createScreenSharingRateLimiter } from '../../middleware/screen-sharing-rate-limit.js';
 
 const methodNotAllowed =
   (allow: string): RequestHandler =>
@@ -31,7 +31,7 @@ export const createScreenSharingRouter = (
   const router = Router();
   const controller = createScreenSharingController(service);
   const adminAuth = requireAdminAuthentication(authentication);
-  const limiter = createLocationRateLimiter({
+  const limiter = createScreenSharingRateLimiter({
     enabled: rateLimitConfig.enabled,
     windowMs: rateLimitConfig.windowMs,
     maxRequests: rateLimitConfig.maxRequests,
