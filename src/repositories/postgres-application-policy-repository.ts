@@ -264,6 +264,14 @@ export class PostgresApplicationPolicyRepository
     });
   }
 
+  async listAssignmentsForPolicy(policyId: string) {
+    const result = await this.query<AssignmentRow>(
+      'SELECT managed_device_id,policy_id,policy_version,assigned_at,updated_at,assigned_by FROM application_policy_assignments WHERE policy_id=$1',
+      [policyId],
+    );
+    return result.rows.map(toAssignment);
+  }
+
   async assign(input: {
     managedDeviceId: string;
     policyId: string;
