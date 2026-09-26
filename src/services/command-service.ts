@@ -196,7 +196,7 @@ export class CommandService {
       screenSession.status === 'AUTHORIZED';
     const stopAllowed =
       input.type === 'STOP_SCREEN_SHARE' &&
-      ['AUTHORIZED', 'STARTING', 'ACTIVE'].includes(screenSession.status);
+      ['AUTHORIZED', 'STARTING', 'ACTIVE', 'STOPPING'].includes(screenSession.status);
 
     if (!startAllowed && !stopAllowed) {
       throw new AppError(
