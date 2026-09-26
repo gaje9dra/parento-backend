@@ -36,12 +36,16 @@ export const createV1Router = (
   realtime: AppConfig['realtime'] = { enabled: false },
 ): Router => {
   const router = Router();
+  const screenSessions = new PostgresScreenSharingSessionRepository(database);
   const adminRepository = new PostgresAdminRepository(database);
   const authentication = new AdminAuthenticationService(
     adminRepository,
     undefined,
     security.accessTokenTtlSeconds,
     security.sessionTtlSeconds,
+    async (adminId) => {
+      await screenSessions.expireForAdmin(adminId, new Date());
+    },
   );
 
   router.use(createHealthRouter(database));
@@ -138,7 +142,6 @@ const monitoringRepository = new PostgresDeviceMonitoringRepository(database);
     ),
   );
 
-  const screenSessions = new PostgresScreenSharingSessionRepository(database);
   const screenSharing = new ScreenSharingService(
     screenSessions,
     managedDevices,
