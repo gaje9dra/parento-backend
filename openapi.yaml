@@ -297,7 +297,8 @@ paths:
                   { type: string, minLength: 1, maxLength: 128, nullable: true }
       responses:
         '201': { description: Screen-sharing session created }
-        '200': { description: Existing session returned for an idempotent retry }
+        '200':
+          { description: Existing session returned for an idempotent retry }
         '400': { $ref: '#/components/responses/ApiErrorResponse' }
         '401': { $ref: '#/components/responses/ApiErrorResponse' }
         '403': { $ref: '#/components/responses/ApiErrorResponse' }
