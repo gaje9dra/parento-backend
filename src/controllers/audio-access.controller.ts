@@ -175,6 +175,7 @@ export const createAudioAccessController = (service: AudioAccessService) => ({
       const session = await service.markStarted(
         p.data.sessionId,
         {
+          id: deviceSession.id,
           managedDeviceId: deviceSession.managedDeviceId,
           state: deviceSession.state as 'CONNECTED',
           expiresAt: deviceSession.expiresAt,
@@ -215,6 +216,7 @@ export const createAudioAccessController = (service: AudioAccessService) => ({
         return;
       }
       const session = await service.markStopped(p.data.sessionId, {
+        id: deviceSession.id,
         managedDeviceId: deviceSession.managedDeviceId,
         state: deviceSession.state as 'CONNECTED',
         expiresAt: deviceSession.expiresAt,
