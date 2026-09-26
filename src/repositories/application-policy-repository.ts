@@ -36,6 +36,7 @@ export interface ApplicationPolicyRepository extends Repository {
     expectedVersion: number,
     updatedBy: string,
   ): Promise<ApplicationPolicy>;
+  listAssignmentsForPolicy(policyId: string): Promise<ApplicationPolicyAssignment[]>;
   assign(input: {
     managedDeviceId: string;
     policyId: string;
