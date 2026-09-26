@@ -209,7 +209,7 @@ AFTER UPDATE OF version, status ON application_policies
 FOR EACH ROW EXECUTE FUNCTION propagate_application_policy_change();
 
 CREATE OR REPLACE FUNCTION invalidate_application_management_on_revoke()
-RETURNS TRIGGER AS $
+RETURNS TRIGGER AS $$
 DECLARE
   command_row RECORD;
 BEGIN
