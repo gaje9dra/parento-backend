@@ -519,8 +519,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
         parsed.data.SCREEN_SHARING_RETENTION_SECONDS,
       audioAccessMaxDurationSeconds:
         parsed.data.AUDIO_ACCESS_MAX_DURATION_SECONDS,
-      audioAccessRetentionSeconds:
-        parsed.data.AUDIO_ACCESS_RETENTION_SECONDS,
+      audioAccessRetentionSeconds: parsed.data.AUDIO_ACCESS_RETENTION_SECONDS,
       requestBodyLimit: parsed.data.REQUEST_BODY_LIMIT,
       requestTimeoutMs: parsed.data.REQUEST_TIMEOUT_MS,
       headersTimeoutMs: parsed.data.HEADERS_TIMEOUT_MS,
