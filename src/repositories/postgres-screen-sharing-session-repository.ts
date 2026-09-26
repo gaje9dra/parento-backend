@@ -194,6 +194,14 @@ export class PostgresScreenSharingSessionRepository
     });
   }
 
+  async expireForAdmin(adminId: string, now: Date): Promise<number> {
+    const result = await this.query(
+      "UPDATE screen_sharing_sessions SET status='EXPIRED', stopped_at=COALESCE(stopped_at,$2), last_activity_at=$2, termination_reason='ADMIN_DISABLED', transport_state='{\"state\":\"EXPIRED\",\"reason\":\"ADMIN_LOGOUT\"}'::jsonb WHERE admin_id=$1 AND status IN ('REQUESTED','AUTHORIZED','STARTING','ACTIVE','STOPPING')",
+      [adminId, now],
+    );
+    return result.rowCount ?? 0;
+  }
+
   async expireDue(now: Date, limit: number): Promise<number> {
     const boundedLimit = Math.min(Math.max(Math.trunc(limit), 1), 1000);
     return this.transaction(async (client) => {
