@@ -351,12 +351,18 @@ export class PostgresApplicationPolicyRepository
       ],
     );
     if (result.rows[0] === undefined) {
-      return this.setSyncRequested({
-        managedDeviceId: input.managedDeviceId,
-        policyId: input.policyId,
-        policyVersion: input.policyVersion,
-        requestedAt: input.reportedAt,
-      });
+      const created = await this.query<SyncRow>(
+        'INSERT INTO application_policy_sync_state(managed_device_id,desired_policy_id,desired_policy_version,reported_policy_id,reported_policy_version,status,last_reported_at,last_error_code,updated_at) VALUES($1,NULL,NULL,$2,$3,$4,$5,$6,NOW()) RETURNING managed_device_id,desired_policy_id,desired_policy_version,reported_policy_id,reported_policy_version,status,last_requested_at,last_reported_at,last_error_code,updated_at',
+        [
+          input.managedDeviceId,
+          input.policyId,
+          input.policyVersion,
+          input.status,
+          input.reportedAt,
+          input.errorCode,
+        ],
+      );
+      return toSync(created.rows[0]!);
     }
     return toSync(result.rows[0]);
   }
