@@ -2,7 +2,7 @@ name: Temporary Prettier Helper
 
 on:
   push:
-    branches: [phase-3-3-verification-3]
+    branches: [phase-10.1-audio-access-foundation]
 
 jobs:
   format:
@@ -13,4 +13,5 @@ jobs:
         with:
           node-version: 24.21.0
       - run: npm install --ignore-scripts
-      - run: npx prettier src/repositories/postgres-admin-repository.ts
+      - run: npx prettier --write openapi.yaml src/config/env.ts src/controllers/audio-access.controller.ts src/repositories/postgres-audio-access-session-repository.ts src/services/audio-access-service.ts src/services/command-service.ts tests/audio-access-domain.test.ts tests/audio-access-service.test.ts tests/command-service.test.ts
+      - run: git diff -- openapi.yaml src/config/env.ts src/controllers/audio-access.controller.ts src/repositories/postgres-audio-access-session-repository.ts src/services/audio-access-service.ts src/services/command-service.ts tests/audio-access-domain.test.ts tests/audio-access-service.test.ts tests/command-service.test.ts
