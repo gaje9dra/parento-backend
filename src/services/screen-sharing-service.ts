@@ -13,6 +13,7 @@ import { AppError } from '../types/errors.js';
 
 export interface ScreenSharingServiceOptions {
   readonly maxDurationSeconds: number;
+  readonly retentionSeconds: number;
 }
 
 const UUID =
@@ -53,6 +54,10 @@ export class ScreenSharingService {
     }
 
     await this.expireDue();
+    await this.sessions.deleteTerminatedBefore(
+      new Date(Date.now() - this.options.retentionSeconds * 1000),
+      100,
+    );
 
     const now = new Date();
     const result = await this.sessions.create({
