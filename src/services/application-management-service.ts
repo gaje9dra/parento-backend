@@ -143,6 +143,8 @@ export class ApplicationManagementService {
       rules: input.rules.map((rule) => ({id: randomUUID(),...rule})),
     });
     if (!policy) throw new AppError(404,'APPLICATION_POLICY_NOT_FOUND','Application policy was not found.');
+    const assignments = await this.repository.listAssignmentsForPolicy(policy.id, adminId);
+    await Promise.all(assignments.map((assignment) => this.enqueuePolicySync(adminId, assignment.managedDeviceId, policy.id, policy.version)));
     return policy;
   }
 
