@@ -11,6 +11,7 @@ import type { CommandService } from './command-service.js';
 import { PersistenceError } from '../domain/persistence-errors.js';
 import { AppError } from '../types/errors.js';
 
+// Phase 9.4: all screen-session authorization remains server authoritative.
 export interface ScreenSharingServiceOptions {
   readonly maxDurationSeconds: number;
   readonly retentionSeconds?: number | undefined;
