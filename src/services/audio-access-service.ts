@@ -24,7 +24,7 @@ const sanitizeTransportState = (
 ): Record<string, string> | null => {
   if (value === null) return null;
 
-  const allowed = new Set(['state', 'transport', 'connectionId']);
+  const allowed = new Set(['state', 'transport']);
   const allowedStates = new Set([
     'AUTHORIZATION_PENDING',
     'AUTHORIZED',
@@ -37,8 +37,19 @@ const sanitizeTransportState = (
     'DISCONNECTED',
   ]);
   const result: Record<string, string> = {};
+  const forbidden = new Set([
+    'token', 'credential', 'secret', 'authorization', 'accessToken',
+    'refreshToken', 'audio', 'media', 'bytes', 'payload',
+  ]);
 
   for (const [key, raw] of Object.entries(value)) {
+    if (forbidden.has(key)) {
+      throw new AppError(
+        400,
+        'INVALID_REQUEST',
+        'Audio transport state cannot contain credentials or media data.',
+      );
+    }
     if (!allowed.has(key) || typeof raw !== 'string' || raw.length > 128) {
       throw new AppError(
         400,
