@@ -75,6 +75,7 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
         applied: true,
         name: 'phase_9_4_screen_sharing_hardening',
       },
+      { id: '0016', applied: true, name: 'phase_10_1_audio_access' },
     ]);
   });
 
