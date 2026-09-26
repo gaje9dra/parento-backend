@@ -243,7 +243,19 @@ export const createApplicationManagementController = (
     }
     try {
       const cursor = Array.isArray(req.query.cursor) ? req.query.cursor[0] : req.query.cursor;
-      const result = await service.listPolicies(req.authenticatedAdmin.id, { cursor: typeof cursor === 'string' ? cursor : null });
+      const limitRaw = Array.isArray(req.query.limit) ? req.query.limit[0] : req.query.limit;
+      const limit = limitRaw === undefined ? undefined : Number(limitRaw);
+      if (limit !== undefined && (!Number.isInteger(limit) || limit < 1 || limit > 100)) {
+        res.status(400).json({
+          error: { code: 'INVALID_REQUEST', message: 'Application policy page limit must be between 1 and 100.' },
+          requestId: res.locals.requestId,
+        });
+        return;
+      }
+      const result = await service.listPolicies(req.authenticatedAdmin.id, {
+        limit,
+        cursor: typeof cursor === 'string' ? cursor : null,
+      });
       res.status(200).json({ data: { policies: result.items.map(toPolicy), nextCursor: result.nextCursor }, requestId: res.locals.requestId });
     } catch (error) { next(error); }
   }) as RequestHandler,
