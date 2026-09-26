@@ -6,6 +6,7 @@ import type { ManagedDeviceRepository } from '../repositories/managed-device-rep
 import { AppError } from '../types/errors.js';
 import type { CommandDeliveryService } from './command-delivery-service.js';
 import type { ScreenSharingSessionRepository } from '../repositories/screen-sharing-session-repository.js';
+import type { AudioAccessSessionRepository } from '../repositories/audio-access-session-repository.js';
 
 export interface CommandServiceOptions {
   readonly ttlSeconds: number;
@@ -22,6 +23,7 @@ export class CommandService {
     private readonly options: CommandServiceOptions,
     private readonly delivery?: CommandDeliveryService,
     private readonly screenSessions?: ScreenSharingSessionRepository,
+    private readonly audioSessions?: AudioAccessSessionRepository,
   ) {}
   async create(
     adminId: string,
@@ -41,9 +43,13 @@ export class CommandService {
         'Managed-device identifier is invalid.',
       );
     if (
-      !['FUTURE_COMMAND', 'START_SCREEN_SHARE', 'STOP_SCREEN_SHARE'].includes(
-        input.type,
-      ) ||
+      ![
+        'FUTURE_COMMAND',
+        'START_SCREEN_SHARE',
+        'STOP_SCREEN_SHARE',
+        'START_AUDIO_ACCESS',
+        'STOP_AUDIO_ACCESS',
+      ].includes(input.type) ||
       input.version !== 1
     )
       throw new AppError(
@@ -70,16 +76,22 @@ export class CommandService {
       );
     if (input.type !== 'FUTURE_COMMAND') {
       const keys = Object.keys(payload);
-      if (
-        keys.length !== 1 ||
-        keys[0] !== 'screenSessionId' ||
-        typeof payload.screenSessionId !== 'string' ||
-        !UUID.test(payload.screenSessionId)
-      ) {
+      const key = keys[0];
+      const validKey =
+        keys.length === 1 &&
+        (key === 'screenSessionId' || key === 'audioSessionId');
+      const validValue =
+        (key === 'screenSessionId' &&
+          typeof payload.screenSessionId === 'string' &&
+          UUID.test(payload.screenSessionId)) ||
+        (key === 'audioSessionId' &&
+          typeof payload.audioSessionId === 'string' &&
+          UUID.test(payload.audioSessionId));
+      if (!validKey || !validValue) {
         throw new AppError(
           400,
           'INVALID_COMMAND_PAYLOAD',
-          'Screen-sharing commands require only a valid screenSessionId.',
+          'Capability commands require only a valid session identifier.',
         );
       }
     }
@@ -216,6 +228,57 @@ export class CommandService {
       version: 1,
       payload: { screenSessionId: input.screenSessionId },
       idempotencyKey,
+      correlationId: input.correlationId,
+    });
+  }
+
+  async createAudioAccessCommand(
+    adminId: string,
+    input: {
+      deviceId: string;
+      type: 'START_AUDIO_ACCESS' | 'STOP_AUDIO_ACCESS';
+      audioSessionId: string;
+      correlationId: string;
+    },
+  ): Promise<{ command: Command; created: boolean }> {
+    if (this.audioSessions === undefined) {
+      throw new AppError(
+        503,
+        'SERVICE_UNAVAILABLE',
+        'Audio-access command security is not configured.',
+      );
+    }
+    const session = await this.audioSessions.findById(input.audioSessionId);
+    if (
+      session === null ||
+      session.managedDeviceId !== input.deviceId ||
+      session.adminId !== adminId
+    ) {
+      throw new AppError(
+        404,
+        'AUDIO_SESSION_NOT_FOUND',
+        'Audio-access session was not found.',
+      );
+    }
+    const startAllowed =
+      input.type === 'START_AUDIO_ACCESS' && session.status === 'AUTHORIZED';
+    const stopAllowed =
+      input.type === 'STOP_AUDIO_ACCESS' &&
+      ['AUTHORIZED', 'STARTING', 'ACTIVE', 'STOPPING'].includes(session.status);
+    if (!startAllowed && !stopAllowed) {
+      throw new AppError(
+        409,
+        'AUDIO_SESSION_STATE_CONFLICT',
+        'The audio-access command is not valid for the current session state.',
+      );
+    }
+    return this.create(adminId, {
+      deviceId: input.deviceId,
+      type: input.type,
+      version: 1,
+      payload: { audioSessionId: input.audioSessionId },
+      idempotencyKey:
+        'audio-session:' + input.audioSessionId + ':' + input.type,
       correlationId: input.correlationId,
     });
   }

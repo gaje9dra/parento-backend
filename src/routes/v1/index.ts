@@ -25,9 +25,12 @@ import { SseDeviceTransport } from '../../realtime/sse-device-transport.js';
 import { CommandDeliveryService } from '../../services/command-delivery-service.js';
 import { ScreenSharingService } from '../../services/screen-sharing-service.js';
 import { PostgresScreenSharingSessionRepository } from '../../repositories/postgres-screen-sharing-session-repository.js';
+import { PostgresAudioAccessSessionRepository } from '../../repositories/postgres-audio-access-session-repository.js';
 import { DeviceMonitoringService } from '../../services/device-monitoring-service.js';
 import { PostgresDeviceMonitoringRepository } from '../../repositories/postgres-device-monitoring-repository.js';
 import { createDeviceMonitoringRouter } from './device-monitoring.routes.js';
+import { createAudioAccessRouter } from './audio-access.routes.js';
+import { AudioAccessService } from '../../services/audio-access-service.js';
 
 export const createV1Router = (
   database: Database,
@@ -37,6 +40,7 @@ export const createV1Router = (
 ): Router => {
   const router = Router();
   const screenSessions = new PostgresScreenSharingSessionRepository(database);
+  const audioSessions = new PostgresAudioAccessSessionRepository(database);
   const adminRepository = new PostgresAdminRepository(database);
   const authentication = new AdminAuthenticationService(
     adminRepository,
@@ -45,6 +49,7 @@ export const createV1Router = (
     security.sessionTtlSeconds,
     async (adminId) => {
       await screenSessions.expireForAdmin(adminId, new Date());
+      await audioSessions.expireForAdmin(adminId, new Date());
     },
   );
 
@@ -97,6 +102,7 @@ export const createV1Router = (
     },
     commandDelivery,
     screenSessions,
+    audioSessions,
   );
 
   router.use(createCommandRouter(authentication, commandService));
@@ -158,6 +164,25 @@ export const createV1Router = (
     createScreenSharingRouter(
       authentication,
       screenSharing,
+      deviceSessions,
+      rateLimit,
+    ),
+  );
+
+  const audioAccess = new AudioAccessService(
+    audioSessions,
+    managedDevices,
+    deviceSessions,
+    commandService,
+    {
+      maxDurationSeconds: security.audioAccessMaxDurationSeconds,
+      retentionSeconds: security.audioAccessRetentionSeconds,
+    },
+  );
+  router.use(
+    createAudioAccessRouter(
+      authentication,
+      audioAccess,
       deviceSessions,
       rateLimit,
     ),
