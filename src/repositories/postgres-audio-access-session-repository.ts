@@ -33,7 +33,7 @@ const columns =
 const map = (row: Row): AudioAccessSession => ({
   id: row.id,
   managedDeviceId: row.managed_device_id,
-  deviceConnectionSessionId: row.device_connection_session_id!,
+  deviceConnectionSessionId: row.device_connection_session_id,
   adminId: row.admin_id,
   status: row.status,
   createdAt: row.created_at,
