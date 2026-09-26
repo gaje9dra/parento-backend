@@ -206,7 +206,7 @@ export class PostgresAudioAccessSessionRepository
 
   async expireForAdmin(adminId: string, now: Date): Promise<number> {
     const result = await this.query(
-      "UPDATE audio_access_sessions SET status='EXPIRED', stopped_at=COALESCE(stopped_at,$2), last_activity_at=$2, termination_reason='ADMIN_DISABLED', transport_state='{"state":"EXPIRED","reason":"ADMIN_LOGOUT"}'::jsonb WHERE admin_id=$1 AND status IN ('REQUESTED','AUTHORIZED','STARTING','ACTIVE','STOPPING')",
+      `UPDATE audio_access_sessions SET status='EXPIRED', stopped_at=COALESCE(stopped_at,$2), last_activity_at=$2, termination_reason='ADMIN_DISABLED', transport_state=jsonb_build_object('state','EXPIRED','reason','ADMIN_LOGOUT') WHERE admin_id=$1 AND status IN ('REQUESTED','AUTHORIZED','STARTING','ACTIVE','STOPPING')`,
       [adminId, now],
     );
     return result.rowCount ?? 0;
@@ -233,7 +233,7 @@ export class PostgresAudioAccessSessionRepository
       );
       for (const row of rows.rows) {
         await client.query(
-          "UPDATE audio_access_sessions SET status='EXPIRED', stopped_at=$2, last_activity_at=$2, termination_reason='EXPIRED', transport_state='{"state":"EXPIRED"}'::jsonb WHERE id=$1",
+          `UPDATE audio_access_sessions SET status='EXPIRED', stopped_at=$2, last_activity_at=$2, termination_reason='EXPIRED', transport_state=jsonb_build_object('state','EXPIRED') WHERE id=$1`,
           [row.id, now],
         );
       }
