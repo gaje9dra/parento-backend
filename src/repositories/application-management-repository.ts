@@ -56,6 +56,7 @@ export interface ApplicationManagementRepository extends Repository {
     policyVersion: number;
     assignedBy: string;
   }): Promise<ApplicationPolicyAssignment>;
+  listAssignmentsForPolicy(policyId: string, adminId: string): Promise<ApplicationPolicyAssignment[]>;
   removeAssignment(managedDeviceId: string, adminId: string): Promise<boolean>;
   getAssignment(managedDeviceId: string, adminId: string): Promise<ApplicationPolicyAssignment | null>;
   getEffectivePolicy(
