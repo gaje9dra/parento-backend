@@ -15,7 +15,7 @@ CREATE TABLE application_inventory (
   source_category TEXT,
   PRIMARY KEY (managed_device_id, package_name),
   CONSTRAINT application_inventory_package_check CHECK (
-    package_name ~ '^[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)+$'
+    package_name ~ '^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)+$'
     AND length(package_name) <= 255
   ),
   CONSTRAINT application_inventory_version_code_check CHECK (
@@ -35,7 +35,7 @@ CREATE TABLE application_inventory (
   ),
   CONSTRAINT application_inventory_observation_order_check CHECK (
     last_observed_at >= first_observed_at
-  ),
+  )
 );
 
 CREATE INDEX application_inventory_device_observed_idx
@@ -73,7 +73,7 @@ CREATE TABLE application_policy_rules (
   action TEXT NOT NULL,
   PRIMARY KEY (policy_id, package_name),
   CONSTRAINT application_policy_rule_package_check CHECK (
-    package_name ~ '^[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)+$'
+    package_name ~ '^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)+$'
     AND length(package_name) <= 255
   ),
   CONSTRAINT application_policy_rule_action_check CHECK (action IN ('ALLOW','BLOCK'))
