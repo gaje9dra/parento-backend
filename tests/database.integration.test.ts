@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { loadConfig } from '../src/config/env.js';
@@ -183,6 +184,76 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
       'audio_access_expiry_idx',
       'audio_access_one_active_device_idx',
     ]);
+  });
+
+  it('enforces audio ownership and command binding at the database boundary', async () => {
+    const adminId = randomUUID();
+    const foreignAdminId = randomUUID();
+    const deviceId = randomUUID();
+    const connectionId = randomUUID();
+    const audioSessionId = randomUUID();
+    const commandId = randomUUID();
+
+    await database.query(
+      'INSERT INTO admins (id,email,status) VALUES ($1,$2,$3),($4,$5,$6)',
+      [
+        adminId,
+        `audio-${adminId}@example.test`,
+        'ACTIVE',
+        foreignAdminId,
+        `audio-${foreignAdminId}@example.test`,
+        'ACTIVE',
+      ],
+    );
+    await database.query(
+      "INSERT INTO managed_devices (id,admin_id,stable_identifier,name,platform,enrollment_status,operational_status) VALUES ($1,$2,$3,$4,$5,'ACTIVE','ACTIVE')",
+      [deviceId, adminId, `audio-${deviceId}`, 'Audio Test', 'android'],
+    );
+    await database.query(
+      "INSERT INTO device_connection_sessions (id,managed_device_id,session_token_hash,expires_at,last_seen_at) VALUES ($1,$2,$3,NOW()+INTERVAL '1 hour',NOW())",
+      [connectionId, deviceId, `hash-${connectionId}`],
+    );
+    await database.query(
+      "INSERT INTO audio_access_sessions (id,managed_device_id,device_connection_session_id,admin_id,expires_at) VALUES ($1,$2,$3,$4,NOW()+INTERVAL '15 minutes')",
+      [audioSessionId, deviceId, connectionId, adminId],
+    );
+
+    await expect(
+      database.query(
+        'UPDATE audio_access_sessions SET admin_id=$2 WHERE id=$1',
+        [audioSessionId, foreignAdminId],
+      ),
+    ).rejects.toThrow(/ownership|mismatch/i);
+
+    await expect(
+      database.query(
+        "INSERT INTO commands (id,managed_device_id,admin_id,type,payload,correlation_id,idempotency_key,expires_at) VALUES ($1,$2,$3,'START_AUDIO_ACCESS',$4,$5,$6,NOW()+INTERVAL '5 minutes')",
+        [
+          commandId,
+          deviceId,
+          foreignAdminId,
+          JSON.stringify({ audioSessionId }),
+          randomUUID(),
+          `audio-session:${audioSessionId}:START_AUDIO_ACCESS`,
+        ],
+      ),
+    ).rejects.toThrow(/bound|owner/i);
+
+    await database.query(
+      "UPDATE audio_access_sessions SET status='AUTHORIZED' WHERE id=$1",
+      [audioSessionId],
+    );
+    await database.query(
+      "INSERT INTO commands (id,managed_device_id,admin_id,type,payload,correlation_id,idempotency_key,expires_at) VALUES ($1,$2,$3,'START_AUDIO_ACCESS',$4,$5,$6,NOW()+INTERVAL '5 minutes')",
+      [
+        randomUUID(),
+        deviceId,
+        adminId,
+        JSON.stringify({ audioSessionId }),
+        randomUUID(),
+        `audio-session:${audioSessionId}:START_AUDIO_ACCESS`,
+      ],
+    );
   });
 
   it('upgrades a Phase 2.3 database to the current schema', async () => {
