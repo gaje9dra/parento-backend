@@ -66,7 +66,7 @@ describe('Phase 9.1 screen-sharing service', () => {
       devices,
       sessions,
       commands,
-      { maxDurationSeconds: 900 },
+      { maxDurationSeconds: 900, retentionSeconds: 2592000 },
     );
 
     await expect(
