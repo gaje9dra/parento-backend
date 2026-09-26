@@ -75,6 +75,10 @@ const rawEnvSchema = z.object({
     .min(2)
     .max(65536)
     .default(4096),
+  MONITORING_STALE_SECONDS: z.coerce.number().int().min(1).max(86400).default(300),
+  MONITORING_VERY_STALE_SECONDS: z.coerce.number().int().min(60).max(604800).default(86400),
+  MONITORING_MAX_FUTURE_SKEW_SECONDS: z.coerce.number().int().min(0).max(86400).default(300),
+  MONITORING_MAX_PAYLOAD_BYTES: z.coerce.number().int().min(1024).max(1048576).default(32768),
   SCREEN_SHARING_MAX_DURATION_SECONDS: z.coerce
     .number()
     .int()
@@ -174,6 +178,10 @@ export interface AppConfig {
     readonly deviceSessionTtlSeconds: number;
     readonly commandTtlSeconds: number;
     readonly commandMaxPayloadBytes: number;
+    readonly monitoringStaleSeconds: number;
+    readonly monitoringVeryStaleSeconds: number;
+    readonly monitoringMaxFutureSkewSeconds: number;
+    readonly monitoringMaxPayloadBytes: number;
     readonly screenSharingMaxDurationSeconds: number;
     readonly screenSharingRetentionSeconds: number;
     readonly jwtAudience?: string;
@@ -466,6 +474,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       deviceSessionTtlSeconds: parsed.data.DEVICE_SESSION_TTL_SECONDS,
       commandTtlSeconds: parsed.data.COMMAND_TTL_SECONDS,
       commandMaxPayloadBytes: parsed.data.COMMAND_MAX_PAYLOAD_BYTES,
+      monitoringStaleSeconds: parsed.data.MONITORING_STALE_SECONDS,
+      monitoringVeryStaleSeconds: parsed.data.MONITORING_VERY_STALE_SECONDS,
+      monitoringMaxFutureSkewSeconds: parsed.data.MONITORING_MAX_FUTURE_SKEW_SECONDS,
+      monitoringMaxPayloadBytes: parsed.data.MONITORING_MAX_PAYLOAD_BYTES,
       screenSharingMaxDurationSeconds:
         parsed.data.SCREEN_SHARING_MAX_DURATION_SECONDS,
       screenSharingRetentionSeconds:
