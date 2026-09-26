@@ -766,7 +766,8 @@ paths:
       operationId: getDeviceApplicationPolicy
       security: [{ deviceSessionBearer: [] }]
       responses:
-        '200': { description: Desired application policy and synchronization state }
+        '200':
+          { description: Desired application policy and synchronization state }
         '401': { $ref: '#/components/responses/ApiErrorResponse' }
         '403': { $ref: '#/components/responses/ApiErrorResponse' }
   /api/v1/device/application-policy/status:
@@ -778,7 +779,8 @@ paths:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/ApplicationPolicyStatusRequest' }
+            schema:
+              { $ref: '#/components/schemas/ApplicationPolicyStatusRequest' }
       responses:
         '200': { description: Reported policy synchronization state }
         '400': { $ref: '#/components/responses/ApiErrorResponse' }
@@ -856,7 +858,8 @@ paths:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/ApplicationPolicyWriteRequest' }
+            schema:
+              { $ref: '#/components/schemas/ApplicationPolicyWriteRequest' }
       responses:
         '201': { description: Application policy created }
         '400': { $ref: '#/components/responses/ApiErrorResponse' }
@@ -889,7 +892,8 @@ paths:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/ApplicationPolicyWriteRequest' }
+            schema:
+              { $ref: '#/components/schemas/ApplicationPolicyWriteRequest' }
       responses:
         '200': { description: Versioned application policy }
         '400': { $ref: '#/components/responses/ApiErrorResponse' }
@@ -956,7 +960,10 @@ paths:
               properties:
                 policyId: { type: string, format: uuid }
       responses:
-        '200': { description: Policy assignment removed and synchronization requested }
+        '200':
+          {
+            description: Policy assignment removed and synchronization requested,
+          }
         '401': { $ref: '#/components/responses/ApiErrorResponse' }
         '403': { $ref: '#/components/responses/ApiErrorResponse' }
         '404': { $ref: '#/components/responses/ApiErrorResponse' }
@@ -971,7 +978,8 @@ paths:
           required: true
           schema: { type: string, format: uuid }
       responses:
-        '200': { description: Desired versus reported policy synchronization state }
+        '200':
+          { description: Desired versus reported policy synchronization state }
         '401': { $ref: '#/components/responses/ApiErrorResponse' }
         '403': { $ref: '#/components/responses/ApiErrorResponse' }
         '404': { $ref: '#/components/responses/ApiErrorResponse' }
@@ -1434,8 +1442,10 @@ components:
         packageName: { type: string, maxLength: 255 }
         label: { type: string, maxLength: 512, nullable: true }
         versionName: { type: string, maxLength: 128, nullable: true }
-        versionCode: { type: integer, minimum: 0, format: int64, nullable: true }
-        installState: { type: string, enum: [INSTALLED, UPDATED, UNINSTALLED, UNKNOWN] }
+        versionCode:
+          { type: integer, minimum: 0, format: int64, nullable: true }
+        installState:
+          { type: string, enum: [INSTALLED, UPDATED, UNINSTALLED, UNKNOWN] }
         enabled: { type: boolean, nullable: true }
         sourceCategory: { type: string, maxLength: 128, nullable: true }
     ApplicationPolicyRule:
@@ -1460,7 +1470,20 @@ components:
           items: { $ref: '#/components/schemas/ApplicationPolicyRule' }
     ApplicationPolicy:
       type: object
-      required: [id, adminId, name, description, status, version, createdAt, updatedAt, createdBy, updatedBy, rules]
+      required:
+        [
+          id,
+          adminId,
+          name,
+          description,
+          status,
+          version,
+          createdAt,
+          updatedAt,
+          createdBy,
+          updatedBy,
+          rules,
+        ]
       properties:
         id: { type: string, format: uuid }
         adminId: { type: string, format: uuid }

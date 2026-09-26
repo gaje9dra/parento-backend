@@ -199,12 +199,10 @@ export const createApplicationManagementController = (
         deviceId: session.managedDeviceId,
         ...parsed.data,
       });
-      res
-        .status(200)
-        .json({
-          data: { synchronization: toSync(result) },
-          requestId: res.locals.requestId,
-        });
+      res.status(200).json({
+        data: { synchronization: toSync(result) },
+        requestId: res.locals.requestId,
+      });
     } catch (error) {
       next(error);
     }
@@ -236,15 +234,13 @@ export const createApplicationManagementController = (
         limit !== undefined &&
         (!Number.isInteger(limit) || limit < 1 || limit > 100)
       ) {
-        res
-          .status(400)
-          .json({
-            error: {
-              code: 'INVALID_REQUEST',
-              message: 'Application page limit must be between 1 and 100.',
-            },
-            requestId: res.locals.requestId,
-          });
+        res.status(400).json({
+          error: {
+            code: 'INVALID_REQUEST',
+            message: 'Application page limit must be between 1 and 100.',
+          },
+          requestId: res.locals.requestId,
+        });
         return;
       }
       const result = await service.listInventory(
@@ -288,23 +284,19 @@ export const createApplicationManagementController = (
         p.data.packageName,
       );
       if (!item) {
-        res
-          .status(404)
-          .json({
-            error: {
-              code: 'RESOURCE_NOT_FOUND',
-              message: 'Application inventory item was not found.',
-            },
-            requestId: res.locals.requestId,
-          });
-        return;
-      }
-      res
-        .status(200)
-        .json({
-          data: { application: toInventory(item) },
+        res.status(404).json({
+          error: {
+            code: 'RESOURCE_NOT_FOUND',
+            message: 'Application inventory item was not found.',
+          },
           requestId: res.locals.requestId,
         });
+        return;
+      }
+      res.status(200).json({
+        data: { application: toInventory(item) },
+        requestId: res.locals.requestId,
+      });
     } catch (error) {
       next(error);
     }
@@ -313,17 +305,15 @@ export const createApplicationManagementController = (
   requestInventory: (async (req, res, next) => {
     const p = deviceParam.safeParse(req.params);
     if (!p.success || !req.authenticatedAdmin) {
-      res
-        .status(p.success ? 401 : 400)
-        .json({
-          error: {
-            code: p.success ? 'AUTHENTICATION_REQUIRED' : 'INVALID_REQUEST',
-            message: p.success
-              ? 'Administrator authentication is required.'
-              : 'Invalid device identifier.',
-          },
-          requestId: res.locals.requestId,
-        });
+      res.status(p.success ? 401 : 400).json({
+        error: {
+          code: p.success ? 'AUTHENTICATION_REQUIRED' : 'INVALID_REQUEST',
+          message: p.success
+            ? 'Administrator authentication is required.'
+            : 'Invalid device identifier.',
+        },
+        requestId: res.locals.requestId,
+      });
       return;
     }
     try {
@@ -331,12 +321,10 @@ export const createApplicationManagementController = (
         req.authenticatedAdmin.id,
         p.data.deviceId,
       );
-      res
-        .status(result.created ? 201 : 200)
-        .json({
-          data: { command: result.command, created: result.created },
-          requestId: res.locals.requestId,
-        });
+      res.status(result.created ? 201 : 200).json({
+        data: { command: result.command, created: result.created },
+        requestId: res.locals.requestId,
+      });
     } catch (error) {
       next(error);
     }
@@ -352,19 +340,15 @@ export const createApplicationManagementController = (
       .strict();
     const parsed = schema.safeParse(req.body);
     if (!parsed.success || !req.authenticatedAdmin) {
-      res
-        .status(parsed.success ? 401 : 400)
-        .json({
-          error: {
-            code: parsed.success
-              ? 'AUTHENTICATION_REQUIRED'
-              : 'INVALID_REQUEST',
-            message: parsed.success
-              ? 'Administrator authentication is required.'
-              : 'Invalid application policy payload.',
-          },
-          requestId: res.locals.requestId,
-        });
+      res.status(parsed.success ? 401 : 400).json({
+        error: {
+          code: parsed.success ? 'AUTHENTICATION_REQUIRED' : 'INVALID_REQUEST',
+          message: parsed.success
+            ? 'Administrator authentication is required.'
+            : 'Invalid application policy payload.',
+        },
+        requestId: res.locals.requestId,
+      });
       return;
     }
     try {
@@ -374,12 +358,10 @@ export const createApplicationManagementController = (
         description: parsed.data.description ?? null,
         rules: parsed.data.rules,
       });
-      res
-        .status(201)
-        .json({
-          data: { policy: toPolicy(policy) },
-          requestId: res.locals.requestId,
-        });
+      res.status(201).json({
+        data: { policy: toPolicy(policy) },
+        requestId: res.locals.requestId,
+      });
     } catch (error) {
       next(error);
     }
@@ -387,15 +369,13 @@ export const createApplicationManagementController = (
 
   listPolicies: (async (req, res, next) => {
     if (!req.authenticatedAdmin) {
-      res
-        .status(401)
-        .json({
-          error: {
-            code: 'AUTHENTICATION_REQUIRED',
-            message: 'Administrator authentication is required.',
-          },
-          requestId: res.locals.requestId,
-        });
+      res.status(401).json({
+        error: {
+          code: 'AUTHENTICATION_REQUIRED',
+          message: 'Administrator authentication is required.',
+        },
+        requestId: res.locals.requestId,
+      });
       return;
     }
     try {
@@ -423,15 +403,13 @@ export const createApplicationManagementController = (
         limit,
         cursor: typeof cursor === 'string' ? cursor : null,
       });
-      res
-        .status(200)
-        .json({
-          data: {
-            policies: result.items.map(toPolicy),
-            nextCursor: result.nextCursor,
-          },
-          requestId: res.locals.requestId,
-        });
+      res.status(200).json({
+        data: {
+          policies: result.items.map(toPolicy),
+          nextCursor: result.nextCursor,
+        },
+        requestId: res.locals.requestId,
+      });
     } catch (error) {
       next(error);
     }
@@ -440,17 +418,15 @@ export const createApplicationManagementController = (
   getPolicy: (async (req, res, next) => {
     const p = policyParam.safeParse(req.params);
     if (!p.success || !req.authenticatedAdmin) {
-      res
-        .status(p.success ? 401 : 400)
-        .json({
-          error: {
-            code: p.success ? 'AUTHENTICATION_REQUIRED' : 'INVALID_REQUEST',
-            message: p.success
-              ? 'Administrator authentication is required.'
-              : 'Invalid policy identifier.',
-          },
-          requestId: res.locals.requestId,
-        });
+      res.status(p.success ? 401 : 400).json({
+        error: {
+          code: p.success ? 'AUTHENTICATION_REQUIRED' : 'INVALID_REQUEST',
+          message: p.success
+            ? 'Administrator authentication is required.'
+            : 'Invalid policy identifier.',
+        },
+        requestId: res.locals.requestId,
+      });
       return;
     }
     try {
@@ -458,12 +434,10 @@ export const createApplicationManagementController = (
         req.authenticatedAdmin.id,
         p.data.policyId,
       );
-      res
-        .status(200)
-        .json({
-          data: { policy: toPolicy(policy) },
-          requestId: res.locals.requestId,
-        });
+      res.status(200).json({
+        data: { policy: toPolicy(policy) },
+        requestId: res.locals.requestId,
+      });
     } catch (error) {
       next(error);
     }
@@ -482,21 +456,19 @@ export const createApplicationManagementController = (
       .strict();
     const parsed = schema.safeParse(req.body);
     if (!p.success || !parsed.success || !req.authenticatedAdmin) {
-      res
-        .status(p.success && parsed.success ? 401 : 400)
-        .json({
-          error: {
-            code:
-              p.success && parsed.success
-                ? 'AUTHENTICATION_REQUIRED'
-                : 'INVALID_REQUEST',
-            message:
-              p.success && parsed.success
-                ? 'Administrator authentication is required.'
-                : 'Invalid application policy update.',
-          },
-          requestId: res.locals.requestId,
-        });
+      res.status(p.success && parsed.success ? 401 : 400).json({
+        error: {
+          code:
+            p.success && parsed.success
+              ? 'AUTHENTICATION_REQUIRED'
+              : 'INVALID_REQUEST',
+          message:
+            p.success && parsed.success
+              ? 'Administrator authentication is required.'
+              : 'Invalid application policy update.',
+        },
+        requestId: res.locals.requestId,
+      });
       return;
     }
     try {
@@ -509,12 +481,10 @@ export const createApplicationManagementController = (
         expectedVersion: parsed.data.expectedVersion,
         rules: parsed.data.rules,
       });
-      res
-        .status(200)
-        .json({
-          data: { policy: toPolicy(policy) },
-          requestId: res.locals.requestId,
-        });
+      res.status(200).json({
+        data: { policy: toPolicy(policy) },
+        requestId: res.locals.requestId,
+      });
     } catch (error) {
       next(error);
     }
@@ -524,21 +494,19 @@ export const createApplicationManagementController = (
     const p = deviceParam.safeParse(req.params);
     const b = z.object({ policyId }).strict().safeParse(req.body);
     if (!p.success || !b.success || !req.authenticatedAdmin) {
-      res
-        .status(p.success && b.success ? 401 : 400)
-        .json({
-          error: {
-            code:
-              p.success && b.success
-                ? 'AUTHENTICATION_REQUIRED'
-                : 'INVALID_REQUEST',
-            message:
-              p.success && b.success
-                ? 'Administrator authentication is required.'
-                : 'Invalid policy assignment.',
-          },
-          requestId: res.locals.requestId,
-        });
+      res.status(p.success && b.success ? 401 : 400).json({
+        error: {
+          code:
+            p.success && b.success
+              ? 'AUTHENTICATION_REQUIRED'
+              : 'INVALID_REQUEST',
+          message:
+            p.success && b.success
+              ? 'Administrator authentication is required.'
+              : 'Invalid policy assignment.',
+        },
+        requestId: res.locals.requestId,
+      });
       return;
     }
     try {
@@ -547,18 +515,16 @@ export const createApplicationManagementController = (
         p.data.deviceId,
         b.data.policyId,
       );
-      res
-        .status(200)
-        .json({
-          data: {
-            assignment: toAssignment(result.assignment),
-            synchronization: {
-              command: result.sync.command,
-              state: toSync(result.sync.sync),
-            },
+      res.status(200).json({
+        data: {
+          assignment: toAssignment(result.assignment),
+          synchronization: {
+            command: result.sync.command,
+            state: toSync(result.sync.sync),
           },
-          requestId: res.locals.requestId,
-        });
+        },
+        requestId: res.locals.requestId,
+      });
     } catch (error) {
       next(error);
     }
@@ -568,21 +534,19 @@ export const createApplicationManagementController = (
     const p = deviceParam.safeParse(req.params);
     const b = z.object({ policyId }).strict().safeParse(req.body);
     if (!p.success || !b.success || !req.authenticatedAdmin) {
-      res
-        .status(p.success && b.success ? 401 : 400)
-        .json({
-          error: {
-            code:
-              p.success && b.success
-                ? 'AUTHENTICATION_REQUIRED'
-                : 'INVALID_REQUEST',
-            message:
-              p.success && b.success
-                ? 'Administrator authentication is required.'
-                : 'Invalid policy removal.',
-          },
-          requestId: res.locals.requestId,
-        });
+      res.status(p.success && b.success ? 401 : 400).json({
+        error: {
+          code:
+            p.success && b.success
+              ? 'AUTHENTICATION_REQUIRED'
+              : 'INVALID_REQUEST',
+          message:
+            p.success && b.success
+              ? 'Administrator authentication is required.'
+              : 'Invalid policy removal.',
+        },
+        requestId: res.locals.requestId,
+      });
       return;
     }
     try {
@@ -591,18 +555,16 @@ export const createApplicationManagementController = (
         p.data.deviceId,
         b.data.policyId,
       );
-      res
-        .status(200)
-        .json({
-          data: {
-            removed: result.removed,
-            synchronization: {
-              command: result.sync.command,
-              state: toSync(result.sync.sync),
-            },
+      res.status(200).json({
+        data: {
+          removed: result.removed,
+          synchronization: {
+            command: result.sync.command,
+            state: toSync(result.sync.sync),
           },
-          requestId: res.locals.requestId,
-        });
+        },
+        requestId: res.locals.requestId,
+      });
     } catch (error) {
       next(error);
     }
@@ -611,29 +573,25 @@ export const createApplicationManagementController = (
   effectivePolicy: (async (req, res, next) => {
     const p = deviceParam.safeParse(req.params);
     if (!p.success || !req.authenticatedAdmin) {
-      res
-        .status(p.success ? 401 : 400)
-        .json({
-          error: {
-            code: p.success ? 'AUTHENTICATION_REQUIRED' : 'INVALID_REQUEST',
-            message: p.success
-              ? 'Administrator authentication is required.'
-              : 'Invalid device identifier.',
-          },
-          requestId: res.locals.requestId,
-        });
+      res.status(p.success ? 401 : 400).json({
+        error: {
+          code: p.success ? 'AUTHENTICATION_REQUIRED' : 'INVALID_REQUEST',
+          message: p.success
+            ? 'Administrator authentication is required.'
+            : 'Invalid device identifier.',
+        },
+        requestId: res.locals.requestId,
+      });
       return;
     }
     try {
-      res
-        .status(200)
-        .json({
-          data: await service.getEffectivePolicy(
-            req.authenticatedAdmin.id,
-            p.data.deviceId,
-          ),
-          requestId: res.locals.requestId,
-        });
+      res.status(200).json({
+        data: await service.getEffectivePolicy(
+          req.authenticatedAdmin.id,
+          p.data.deviceId,
+        ),
+        requestId: res.locals.requestId,
+      });
     } catch (error) {
       next(error);
     }
@@ -642,33 +600,29 @@ export const createApplicationManagementController = (
   enforcementStatus: (async (req, res, next) => {
     const p = deviceParam.safeParse(req.params);
     if (!p.success || !req.authenticatedAdmin) {
-      res
-        .status(p.success ? 401 : 400)
-        .json({
-          error: {
-            code: p.success ? 'AUTHENTICATION_REQUIRED' : 'INVALID_REQUEST',
-            message: p.success
-              ? 'Administrator authentication is required.'
-              : 'Invalid device identifier.',
-          },
-          requestId: res.locals.requestId,
-        });
+      res.status(p.success ? 401 : 400).json({
+        error: {
+          code: p.success ? 'AUTHENTICATION_REQUIRED' : 'INVALID_REQUEST',
+          message: p.success
+            ? 'Administrator authentication is required.'
+            : 'Invalid device identifier.',
+        },
+        requestId: res.locals.requestId,
+      });
       return;
     }
     try {
-      res
-        .status(200)
-        .json({
-          data: {
-            synchronization: toSync(
-              await service.getEnforcementStatus(
-                req.authenticatedAdmin.id,
-                p.data.deviceId,
-              ),
+      res.status(200).json({
+        data: {
+          synchronization: toSync(
+            await service.getEnforcementStatus(
+              req.authenticatedAdmin.id,
+              p.data.deviceId,
             ),
-          },
-          requestId: res.locals.requestId,
-        });
+          ),
+        },
+        requestId: res.locals.requestId,
+      });
     } catch (error) {
       next(error);
     }
@@ -677,17 +631,15 @@ export const createApplicationManagementController = (
   syncPolicy: (async (req, res, next) => {
     const p = deviceParam.safeParse(req.params);
     if (!p.success || !req.authenticatedAdmin) {
-      res
-        .status(p.success ? 401 : 400)
-        .json({
-          error: {
-            code: p.success ? 'AUTHENTICATION_REQUIRED' : 'INVALID_REQUEST',
-            message: p.success
-              ? 'Administrator authentication is required.'
-              : 'Invalid device identifier.',
-          },
-          requestId: res.locals.requestId,
-        });
+      res.status(p.success ? 401 : 400).json({
+        error: {
+          code: p.success ? 'AUTHENTICATION_REQUIRED' : 'INVALID_REQUEST',
+          message: p.success
+            ? 'Administrator authentication is required.'
+            : 'Invalid device identifier.',
+        },
+        requestId: res.locals.requestId,
+      });
       return;
     }
     try {
@@ -701,15 +653,13 @@ export const createApplicationManagementController = (
         effective.policy?.id ?? null,
         effective.policy?.version ?? null,
       );
-      res
-        .status(result.command.created ? 201 : 200)
-        .json({
-          data: {
-            command: result.command.command,
-            synchronization: toSync(result.sync),
-          },
-          requestId: res.locals.requestId,
-        });
+      res.status(result.command.created ? 201 : 200).json({
+        data: {
+          command: result.command.command,
+          synchronization: toSync(result.sync),
+        },
+        requestId: res.locals.requestId,
+      });
     } catch (error) {
       next(error);
     }
