@@ -106,15 +106,13 @@ export const createApplicationManagementController = (
     try {
       const session = req.authenticatedDeviceSession;
       if (!session)
-        return res
-          .status(401)
-          .json({
-            error: {
-              code: 'DEVICE_SESSION_INVALID',
-              message: 'Managed-device session is required.',
-            },
-            requestId: res.locals.requestId,
-          });
+        return res.status(401).json({
+          error: {
+            code: 'DEVICE_SESSION_INVALID',
+            message: 'Managed-device session is required.',
+          },
+          requestId: res.locals.requestId,
+        });
       const parsed = inventoryBody.safeParse(req.body);
       if (!parsed.success)
         return invalid(res, 'Invalid application inventory payload.');
@@ -140,25 +138,21 @@ export const createApplicationManagementController = (
     try {
       const session = req.authenticatedDeviceSession;
       if (!session)
-        return res
-          .status(401)
-          .json({
-            error: {
-              code: 'DEVICE_SESSION_INVALID',
-              message: 'Managed-device session is required.',
-            },
-            requestId: res.locals.requestId,
-          });
+        return res.status(401).json({
+          error: {
+            code: 'DEVICE_SESSION_INVALID',
+            message: 'Managed-device session is required.',
+          },
+          requestId: res.locals.requestId,
+        });
       const parsed = enforcementBody.safeParse(req.body);
       if (!parsed.success)
         return invalid(res, 'Invalid application enforcement status.');
       const result = await service.reportEnforcement(session, parsed.data);
-      return res
-        .status(200)
-        .json({
-          data: { enforcement: serializeDates(result) },
-          requestId: res.locals.requestId,
-        });
+      return res.status(200).json({
+        data: { enforcement: serializeDates(result) },
+        requestId: res.locals.requestId,
+      });
     } catch (error) {
       next(error);
     }
@@ -192,17 +186,15 @@ export const createApplicationManagementController = (
         parsed.data.deviceId,
         { limit, cursor: cursorRaw },
       );
-      return res
-        .status(200)
-        .json({
-          data: {
-            applications: serializeDates(result.items),
-            freshness: result.freshness,
-            synchronization: serializeDates(result.synchronization),
-            nextCursor: result.nextCursor,
-          },
-          requestId: res.locals.requestId,
-        });
+      return res.status(200).json({
+        data: {
+          applications: serializeDates(result.items),
+          freshness: result.freshness,
+          synchronization: serializeDates(result.synchronization),
+          nextCursor: result.nextCursor,
+        },
+        requestId: res.locals.requestId,
+      });
     } catch (error) {
       next(error);
     }
@@ -221,12 +213,10 @@ export const createApplicationManagementController = (
         parsed.data.deviceId,
         parsed.data.packageName,
       );
-      return res
-        .status(200)
-        .json({
-          data: { application: serializeDates(result) },
-          requestId: res.locals.requestId,
-        });
+      return res.status(200).json({
+        data: { application: serializeDates(result) },
+        requestId: res.locals.requestId,
+      });
     } catch (error) {
       next(error);
     }
@@ -236,12 +226,10 @@ export const createApplicationManagementController = (
     try {
       if (!req.authenticatedAdmin) return adminRequired(res);
       const result = await service.listPolicies(req.authenticatedAdmin.id);
-      return res
-        .status(200)
-        .json({
-          data: { policies: serializeDates(result) },
-          requestId: res.locals.requestId,
-        });
+      return res.status(200).json({
+        data: { policies: serializeDates(result) },
+        requestId: res.locals.requestId,
+      });
     } catch (error) {
       next(error);
     }
@@ -256,12 +244,10 @@ export const createApplicationManagementController = (
         req.authenticatedAdmin.id,
         parsed.data,
       );
-      return res
-        .status(201)
-        .json({
-          data: { policy: serializeDates(result) },
-          requestId: res.locals.requestId,
-        });
+      return res.status(201).json({
+        data: { policy: serializeDates(result) },
+        requestId: res.locals.requestId,
+      });
     } catch (error) {
       next(error);
     }
@@ -277,12 +263,10 @@ export const createApplicationManagementController = (
         req.authenticatedAdmin.id,
         parsed.data.policyId,
       );
-      return res
-        .status(200)
-        .json({
-          data: { policy: serializeDates(result) },
-          requestId: res.locals.requestId,
-        });
+      return res.status(200).json({
+        data: { policy: serializeDates(result) },
+        requestId: res.locals.requestId,
+      });
     } catch (error) {
       next(error);
     }
@@ -300,12 +284,10 @@ export const createApplicationManagementController = (
         p.data.policyId,
         b.data,
       );
-      return res
-        .status(200)
-        .json({
-          data: { policy: serializeDates(result) },
-          requestId: res.locals.requestId,
-        });
+      return res.status(200).json({
+        data: { policy: serializeDates(result) },
+        requestId: res.locals.requestId,
+      });
     } catch (error) {
       next(error);
     }
@@ -321,12 +303,10 @@ export const createApplicationManagementController = (
         req.authenticatedAdmin.id,
         parsed.data.policyId,
       );
-      return res
-        .status(200)
-        .json({
-          data: { policy: serializeDates(result) },
-          requestId: res.locals.requestId,
-        });
+      return res.status(200).json({
+        data: { policy: serializeDates(result) },
+        requestId: res.locals.requestId,
+      });
     } catch (error) {
       next(error);
     }
@@ -347,12 +327,10 @@ export const createApplicationManagementController = (
         p.data.deviceId,
         b.data.policyId,
       );
-      return res
-        .status(200)
-        .json({
-          data: { assignment: serializeDates(result) },
-          requestId: res.locals.requestId,
-        });
+      return res.status(200).json({
+        data: { assignment: serializeDates(result) },
+        requestId: res.locals.requestId,
+      });
     } catch (error) {
       next(error);
     }
@@ -384,12 +362,10 @@ export const createApplicationManagementController = (
         req.authenticatedAdmin.id,
         p.data.deviceId,
       );
-      return res
-        .status(200)
-        .json({
-          data: { policy: serializeDates(result) },
-          requestId: res.locals.requestId,
-        });
+      return res.status(200).json({
+        data: { policy: serializeDates(result) },
+        requestId: res.locals.requestId,
+      });
     } catch (error) {
       next(error);
     }
@@ -404,12 +380,10 @@ export const createApplicationManagementController = (
         req.authenticatedAdmin.id,
         p.data.deviceId,
       );
-      return res
-        .status(200)
-        .json({
-          data: { enforcement: serializeDates(result) },
-          requestId: res.locals.requestId,
-        });
+      return res.status(200).json({
+        data: { enforcement: serializeDates(result) },
+        requestId: res.locals.requestId,
+      });
     } catch (error) {
       next(error);
     }
@@ -424,15 +398,13 @@ export const createApplicationManagementController = (
         req.authenticatedAdmin.id,
         p.data.deviceId,
       );
-      return res
-        .status(result.created ? 201 : 200)
-        .json({
-          data: {
-            command: serializeDates(result.command),
-            created: result.created,
-          },
-          requestId: res.locals.requestId,
-        });
+      return res.status(result.created ? 201 : 200).json({
+        data: {
+          command: serializeDates(result.command),
+          created: result.created,
+        },
+        requestId: res.locals.requestId,
+      });
     } catch (error) {
       next(error);
     }
