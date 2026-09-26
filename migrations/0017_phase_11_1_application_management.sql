@@ -36,9 +36,6 @@ CREATE TABLE application_inventory (
   CONSTRAINT application_inventory_observation_order_check CHECK (
     last_observed_at >= first_observed_at
   ),
-  CONSTRAINT application_inventory_receive_order_check CHECK (
-    last_received_at >= first_observed_at
-  )
 );
 
 CREATE INDEX application_inventory_device_observed_idx
