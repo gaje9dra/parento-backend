@@ -150,7 +150,7 @@ CREATE INDEX application_events_admin_time_idx
   ON application_management_events (admin_id, occurred_at DESC);
 
 CREATE OR REPLACE FUNCTION validate_application_policy_assignment()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER AS $app_assignment$
 DECLARE
   device_admin UUID;
   policy_admin UUID;
@@ -179,14 +179,14 @@ BEGIN
 
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$app_assignment$ LANGUAGE plpgsql;
 
 CREATE TRIGGER application_policy_assignment_validate
 BEFORE INSERT OR UPDATE ON application_policy_assignments
 FOR EACH ROW EXECUTE FUNCTION validate_application_policy_assignment();
 
 CREATE OR REPLACE FUNCTION propagate_application_policy_change()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER AS $app_policy_change$
 BEGIN
   IF OLD.version <> NEW.version OR OLD.status <> NEW.status THEN
     UPDATE application_policy_assignments
@@ -202,14 +202,14 @@ BEGIN
   END IF;
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$app_policy_change$ LANGUAGE plpgsql;
 
 CREATE TRIGGER application_policy_change_propagation
 AFTER UPDATE OF version, status ON application_policies
 FOR EACH ROW EXECUTE FUNCTION propagate_application_policy_change();
 
 CREATE OR REPLACE FUNCTION invalidate_application_management_on_revoke()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER AS $app_revoke$
 DECLARE
   command_row RECORD;
 BEGIN
@@ -242,7 +242,7 @@ BEGIN
   END IF;
   RETURN NEW;
 END;
-$ LANGUAGE plpgsql;
+$app_revoke$ LANGUAGE plpgsql;
 
 CREATE TRIGGER managed_device_application_management_revocation
 AFTER UPDATE OF enrollment_status, operational_status ON managed_devices
@@ -272,7 +272,7 @@ ALTER TABLE commands
   );
 
 CREATE OR REPLACE FUNCTION validate_application_management_command()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER AS $app_command$
 DECLARE
   device_admin UUID;
   policy_admin UUID;
@@ -351,7 +351,7 @@ BEGIN
 
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$app_command$ LANGUAGE plpgsql;
 
 CREATE TRIGGER application_management_command_validate
 BEFORE INSERT OR UPDATE ON commands
