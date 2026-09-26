@@ -6,6 +6,7 @@ import type { ManagedDeviceRepository } from '../repositories/managed-device-rep
 import { AppError } from '../types/errors.js';
 import type { CommandDeliveryService } from './command-delivery-service.js';
 import type { ScreenSharingSessionRepository } from '../repositories/screen-sharing-session-repository.js';
+import type { AudioAccessSessionRepository } from '../repositories/audio-access-session-repository.js';
 
 export interface CommandServiceOptions {
   readonly ttlSeconds: number;
@@ -22,6 +23,7 @@ export class CommandService {
     private readonly options: CommandServiceOptions,
     private readonly delivery?: CommandDeliveryService,
     private readonly screenSessions?: ScreenSharingSessionRepository,
+    private readonly audioSessions?: AudioAccessSessionRepository,
   ) {}
   async create(
     adminId: string,
@@ -229,22 +231,14 @@ export class CommandService {
       correlationId: string;
     },
   ): Promise<{ command: Command; created: boolean }> {
-    if (this.screenSessions === undefined) {
+    if (this.audioSessions === undefined) {
       throw new AppError(
         503,
         'SERVICE_UNAVAILABLE',
         'Audio-access command security is not configured.',
       );
     }
-    const audioSessions = this.screenSessions as unknown as {
-      findById(id: string): Promise<{
-        id: string;
-        managedDeviceId: string;
-        adminId: string;
-        status: string;
-      } | null>;
-    };
-    const session = await audioSessions.findById(input.audioSessionId);
+    const session = await this.audioSessions.findById(input.audioSessionId);
     if (
       session === null ||
       session.managedDeviceId !== input.deviceId ||
