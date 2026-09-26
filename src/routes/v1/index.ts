@@ -109,7 +109,8 @@ export const createV1Router = (
   );
 
   router.use(createCommandRouter(authentication, commandService));
-  const applicationManagementRepository = new PostgresApplicationManagementRepository(database);
+  const applicationManagementRepository =
+    new PostgresApplicationManagementRepository(database);
   const applicationManagementService = new ApplicationManagementService(
     applicationManagementRepository,
     managedDevices,
@@ -124,7 +125,14 @@ export const createV1Router = (
       maxFutureSkewSeconds: security.monitoringMaxFutureSkewSeconds,
     },
   );
-  router.use(createApplicationManagementRouter(authentication, applicationManagementService, deviceSessions, rateLimit));
+  router.use(
+    createApplicationManagementRouter(
+      authentication,
+      applicationManagementService,
+      deviceSessions,
+      rateLimit,
+    ),
+  );
   const monitoringRepository = new PostgresDeviceMonitoringRepository(database);
   const monitoringService = new DeviceMonitoringService(
     monitoringRepository,

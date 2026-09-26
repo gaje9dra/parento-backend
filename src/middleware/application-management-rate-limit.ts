@@ -16,13 +16,14 @@ export const createApplicationManagementRateLimiter = (input: {
     identifier: input.identifier,
     keyGenerator: (req) =>
       ipKeyGenerator(req.ip ?? req.socket.remoteAddress ?? 'unknown-client'),
-    handler: (_req,res) =>
+    handler: (_req, res) =>
       res.status(429).json({
-        error:{
-          code:'RATE_LIMITED',
-          message:'Too many application-management requests. Please try again later.',
+        error: {
+          code: 'RATE_LIMITED',
+          message:
+            'Too many application-management requests. Please try again later.',
         },
-        requestId:res.locals.requestId,
+        requestId: res.locals.requestId,
       }),
   });
 };

@@ -18,9 +18,14 @@ export interface ApplicationManagementRepository extends Repository {
     synchronizationId: string;
     observedAt: Date;
     receivedAt: Date;
-    applications: Omit<ApplicationInventoryItem, 'managedDeviceId' | 'firstObservedAt' | 'lastObservedAt' | 'receivedAt'>[];
+    applications: Omit<
+      ApplicationInventoryItem,
+      'managedDeviceId' | 'firstObservedAt' | 'lastObservedAt' | 'receivedAt'
+    >[];
   }): Promise<{ applied: boolean; state: ApplicationInventoryState }>;
-  getInventoryState(managedDeviceId: string): Promise<ApplicationInventoryState | null>;
+  getInventoryState(
+    managedDeviceId: string,
+  ): Promise<ApplicationInventoryState | null>;
   listInventory(
     managedDeviceId: string,
     page?: { limit?: number; cursor?: string | null },
@@ -46,7 +51,11 @@ export interface ApplicationManagementRepository extends Repository {
     updatedBy: string;
     rules: { id: string; packageName: string; action: string }[];
   }): Promise<ApplicationPolicy | null>;
-  disablePolicy(id: string, adminId: string, updatedBy: string): Promise<ApplicationPolicy | null>;
+  disablePolicy(
+    id: string,
+    adminId: string,
+    updatedBy: string,
+  ): Promise<ApplicationPolicy | null>;
   getPolicy(id: string, adminId: string): Promise<ApplicationPolicy | null>;
   listPolicies(adminId: string): Promise<ApplicationPolicy[]>;
 
@@ -56,9 +65,15 @@ export interface ApplicationManagementRepository extends Repository {
     policyVersion: number;
     assignedBy: string;
   }): Promise<ApplicationPolicyAssignment>;
-  listAssignmentsForPolicy(policyId: string, adminId: string): Promise<ApplicationPolicyAssignment[]>;
+  listAssignmentsForPolicy(
+    policyId: string,
+    adminId: string,
+  ): Promise<ApplicationPolicyAssignment[]>;
   removeAssignment(managedDeviceId: string, adminId: string): Promise<boolean>;
-  getAssignment(managedDeviceId: string, adminId: string): Promise<ApplicationPolicyAssignment | null>;
+  getAssignment(
+    managedDeviceId: string,
+    adminId: string,
+  ): Promise<ApplicationPolicyAssignment | null>;
   getEffectivePolicy(
     managedDeviceId: string,
     adminId: string,

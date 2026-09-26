@@ -16,10 +16,12 @@ Inventory full synchronization is transactional. Device observation time is reta
 ## API
 
 Managed device:
+
 - POST /api/v1/device/applications/inventory
 - POST /api/v1/device/applications/enforcement-status
 
 Admin:
+
 - GET /api/v1/devices/{deviceId}/applications
 - GET /api/v1/devices/{deviceId}/applications/{packageName}
 - POST /api/v1/devices/{deviceId}/applications/inventory-request

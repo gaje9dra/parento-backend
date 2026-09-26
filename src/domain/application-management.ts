@@ -1,11 +1,17 @@
 export const APPLICATION_ACTIONS = ['ALLOW', 'BLOCK'] as const;
 export type ApplicationAction = (typeof APPLICATION_ACTIONS)[number];
 
-export const APPLICATION_INSTALL_STATES = ['INSTALLED', 'UNINSTALLED', 'UNKNOWN'] as const;
-export type ApplicationInstallState = (typeof APPLICATION_INSTALL_STATES)[number];
+export const APPLICATION_INSTALL_STATES = [
+  'INSTALLED',
+  'UNINSTALLED',
+  'UNKNOWN',
+] as const;
+export type ApplicationInstallState =
+  (typeof APPLICATION_INSTALL_STATES)[number];
 
 export const APPLICATION_POLICY_STATUSES = ['ACTIVE', 'DISABLED'] as const;
-export type ApplicationPolicyStatus = (typeof APPLICATION_POLICY_STATUSES)[number];
+export type ApplicationPolicyStatus =
+  (typeof APPLICATION_POLICY_STATUSES)[number];
 
 export const APPLICATION_ENFORCEMENT_STATUSES = [
   'UNKNOWN',
@@ -15,7 +21,8 @@ export const APPLICATION_ENFORCEMENT_STATUSES = [
   'FAILED',
   'STALE',
 ] as const;
-export type ApplicationEnforcementStatus = (typeof APPLICATION_ENFORCEMENT_STATUSES)[number];
+export type ApplicationEnforcementStatus =
+  (typeof APPLICATION_ENFORCEMENT_STATUSES)[number];
 
 export const APPLICATION_INVENTORY_FRESHNESS = [
   'FRESH',
@@ -25,7 +32,8 @@ export const APPLICATION_INVENTORY_FRESHNESS = [
   'DISCONNECTED',
   'REVOKED',
 ] as const;
-export type ApplicationInventoryFreshness = (typeof APPLICATION_INVENTORY_FRESHNESS)[number];
+export type ApplicationInventoryFreshness =
+  (typeof APPLICATION_INVENTORY_FRESHNESS)[number];
 
 export const APPLICATION_PACKAGE_NAME_PATTERN =
   /^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+$/;

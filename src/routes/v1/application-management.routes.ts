@@ -11,11 +11,14 @@ import { createApplicationManagementRateLimiter } from '../../middleware/applica
 
 const methodNotAllowed =
   (allow: string): RequestHandler =>
-  (_req,res) => {
-    res.setHeader('Allow',allow);
+  (_req, res) => {
+    res.setHeader('Allow', allow);
     res.status(405).json({
-      error:{code:'METHOD_NOT_ALLOWED',message:'HTTP method is not allowed for this endpoint.'},
-      requestId:res.locals.requestId,
+      error: {
+        code: 'METHOD_NOT_ALLOWED',
+        message: 'HTTP method is not allowed for this endpoint.',
+      },
+      requestId: res.locals.requestId,
     });
   };
 
@@ -32,38 +35,150 @@ export const createApplicationManagementRouter = (
     enabled: rateLimitConfig.enabled,
     windowMs: rateLimitConfig.windowMs,
     maxRequests: rateLimitConfig.maxRequests,
-    identifier:'application-management',
+    identifier: 'application-management',
   });
   const limited = limiter === undefined ? [] : [limiter];
 
-  router.post('/device/applications/inventory',...limited,requireDeviceSession(sessions),c.ingestInventory);
-  router.post('/device/applications/enforcement-status',...limited,requireDeviceSession(sessions),c.reportEnforcement);
+  router.post(
+    '/device/applications/inventory',
+    ...limited,
+    requireDeviceSession(sessions),
+    c.ingestInventory,
+  );
+  router.post(
+    '/device/applications/enforcement-status',
+    ...limited,
+    requireDeviceSession(sessions),
+    c.reportEnforcement,
+  );
 
-  router.get('/devices/:deviceId/applications',...limited,admin,requireAdminAuthorization,c.listInventory);
-  router.get('/devices/:deviceId/applications/:packageName',...limited,admin,requireAdminAuthorization,c.getInventoryItem);
-  router.post('/devices/:deviceId/applications/inventory-request',...limited,admin,requireAdminAuthorization,c.requestInventory);
+  router.get(
+    '/devices/:deviceId/applications',
+    ...limited,
+    admin,
+    requireAdminAuthorization,
+    c.listInventory,
+  );
+  router.get(
+    '/devices/:deviceId/applications/:packageName',
+    ...limited,
+    admin,
+    requireAdminAuthorization,
+    c.getInventoryItem,
+  );
+  router.post(
+    '/devices/:deviceId/applications/inventory-request',
+    ...limited,
+    admin,
+    requireAdminAuthorization,
+    c.requestInventory,
+  );
 
-  router.get('/application-policies',...limited,admin,requireAdminAuthorization,c.listPolicies);
-  router.post('/application-policies',...limited,admin,requireAdminAuthorization,c.createPolicy);
-  router.get('/application-policies/:policyId',...limited,admin,requireAdminAuthorization,c.getPolicy);
-  router.patch('/application-policies/:policyId',...limited,admin,requireAdminAuthorization,c.updatePolicy);
-  router.post('/application-policies/:policyId/disable',...limited,admin,requireAdminAuthorization,c.disablePolicy);
+  router.get(
+    '/application-policies',
+    ...limited,
+    admin,
+    requireAdminAuthorization,
+    c.listPolicies,
+  );
+  router.post(
+    '/application-policies',
+    ...limited,
+    admin,
+    requireAdminAuthorization,
+    c.createPolicy,
+  );
+  router.get(
+    '/application-policies/:policyId',
+    ...limited,
+    admin,
+    requireAdminAuthorization,
+    c.getPolicy,
+  );
+  router.patch(
+    '/application-policies/:policyId',
+    ...limited,
+    admin,
+    requireAdminAuthorization,
+    c.updatePolicy,
+  );
+  router.post(
+    '/application-policies/:policyId/disable',
+    ...limited,
+    admin,
+    requireAdminAuthorization,
+    c.disablePolicy,
+  );
 
-  router.put('/devices/:deviceId/application-policy',...limited,admin,requireAdminAuthorization,c.assignPolicy);
-  router.delete('/devices/:deviceId/application-policy',...limited,admin,requireAdminAuthorization,c.removeAssignment);
-  router.get('/devices/:deviceId/application-policy/effective',...limited,admin,requireAdminAuthorization,c.effectivePolicy);
-  router.get('/devices/:deviceId/application-policy/enforcement',...limited,admin,requireAdminAuthorization,c.enforcementStatus);
+  router.put(
+    '/devices/:deviceId/application-policy',
+    ...limited,
+    admin,
+    requireAdminAuthorization,
+    c.assignPolicy,
+  );
+  router.delete(
+    '/devices/:deviceId/application-policy',
+    ...limited,
+    admin,
+    requireAdminAuthorization,
+    c.removeAssignment,
+  );
+  router.get(
+    '/devices/:deviceId/application-policy/effective',
+    ...limited,
+    admin,
+    requireAdminAuthorization,
+    c.effectivePolicy,
+  );
+  router.get(
+    '/devices/:deviceId/application-policy/enforcement',
+    ...limited,
+    admin,
+    requireAdminAuthorization,
+    c.enforcementStatus,
+  );
 
-  router.all('/device/applications/inventory',methodNotAllowed('POST, OPTIONS'));
-  router.all('/device/applications/enforcement-status',methodNotAllowed('POST, OPTIONS'));
-  router.all('/devices/:deviceId/applications',methodNotAllowed('GET, OPTIONS'));
-  router.all('/devices/:deviceId/applications/:packageName',methodNotAllowed('GET, OPTIONS'));
-  router.all('/devices/:deviceId/applications/inventory-request',methodNotAllowed('POST, OPTIONS'));
-  router.all('/application-policies',methodNotAllowed('GET, POST, OPTIONS'));
-  router.all('/application-policies/:policyId',methodNotAllowed('GET, PATCH, OPTIONS'));
-  router.all('/application-policies/:policyId/disable',methodNotAllowed('POST, OPTIONS'));
-  router.all('/devices/:deviceId/application-policy',methodNotAllowed('PUT, DELETE, OPTIONS'));
-  router.all('/devices/:deviceId/application-policy/effective',methodNotAllowed('GET, OPTIONS'));
-  router.all('/devices/:deviceId/application-policy/enforcement',methodNotAllowed('GET, OPTIONS'));
+  router.all(
+    '/device/applications/inventory',
+    methodNotAllowed('POST, OPTIONS'),
+  );
+  router.all(
+    '/device/applications/enforcement-status',
+    methodNotAllowed('POST, OPTIONS'),
+  );
+  router.all(
+    '/devices/:deviceId/applications',
+    methodNotAllowed('GET, OPTIONS'),
+  );
+  router.all(
+    '/devices/:deviceId/applications/:packageName',
+    methodNotAllowed('GET, OPTIONS'),
+  );
+  router.all(
+    '/devices/:deviceId/applications/inventory-request',
+    methodNotAllowed('POST, OPTIONS'),
+  );
+  router.all('/application-policies', methodNotAllowed('GET, POST, OPTIONS'));
+  router.all(
+    '/application-policies/:policyId',
+    methodNotAllowed('GET, PATCH, OPTIONS'),
+  );
+  router.all(
+    '/application-policies/:policyId/disable',
+    methodNotAllowed('POST, OPTIONS'),
+  );
+  router.all(
+    '/devices/:deviceId/application-policy',
+    methodNotAllowed('PUT, DELETE, OPTIONS'),
+  );
+  router.all(
+    '/devices/:deviceId/application-policy/effective',
+    methodNotAllowed('GET, OPTIONS'),
+  );
+  router.all(
+    '/devices/:deviceId/application-policy/enforcement',
+    methodNotAllowed('GET, OPTIONS'),
+  );
   return router;
 };
