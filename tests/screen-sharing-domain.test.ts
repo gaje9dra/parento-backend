@@ -6,7 +6,9 @@ import {
 
 describe('Phase 9.1 screen-sharing state machine', () => {
   it('accepts the documented lifecycle transitions', () => {
-    expect(isValidScreenSharingTransition('REQUESTED', 'AUTHORIZED')).toBe(true);
+    expect(isValidScreenSharingTransition('REQUESTED', 'AUTHORIZED')).toBe(
+      true,
+    );
     expect(isValidScreenSharingTransition('AUTHORIZED', 'STARTING')).toBe(true);
     expect(isValidScreenSharingTransition('STARTING', 'ACTIVE')).toBe(true);
     expect(isValidScreenSharingTransition('ACTIVE', 'STOPPING')).toBe(true);
@@ -23,7 +25,12 @@ describe('Phase 9.1 screen-sharing state machine', () => {
   });
 
   it('keeps terminal states terminal', () => {
-    for (const status of ['STOPPED', 'EXPIRED', 'FAILED', 'REJECTED'] as const) {
+    for (const status of [
+      'STOPPED',
+      'EXPIRED',
+      'FAILED',
+      'REJECTED',
+    ] as const) {
       expect(isTerminalScreenSharingStatus(status)).toBe(true);
     }
   });

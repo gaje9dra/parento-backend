@@ -91,7 +91,14 @@ export class PostgresScreenSharingSessionRepository
           ],
         );
         const session = map(result.rows[0]!);
-        await insertEvent(client, session.id, null, 'REQUESTED', new Date(), null);
+        await insertEvent(
+          client,
+          session.id,
+          null,
+          'REQUESTED',
+          new Date(),
+          null,
+        );
         return { session, created: true };
       });
     } catch (error) {
@@ -110,15 +117,22 @@ export class PostgresScreenSharingSessionRepository
     return result.rows[0] === undefined ? null : map(result.rows[0]);
   }
 
-  async findOwned(id: string, adminId: string): Promise<ScreenSharingSession | null> {
+  async findOwned(
+    id: string,
+    adminId: string,
+  ): Promise<ScreenSharingSession | null> {
     const result = await this.query<Row>(
-      'SELECT ' + columns + ' FROM screen_sharing_sessions WHERE id=$1 AND admin_id=$2',
+      'SELECT ' +
+        columns +
+        ' FROM screen_sharing_sessions WHERE id=$1 AND admin_id=$2',
       [id, adminId],
     );
     return result.rows[0] === undefined ? null : map(result.rows[0]);
   }
 
-  async findActiveByDeviceId(managedDeviceId: string): Promise<ScreenSharingSession | null> {
+  async findActiveByDeviceId(
+    managedDeviceId: string,
+  ): Promise<ScreenSharingSession | null> {
     const result = await this.query<Row>(
       'SELECT ' +
         columns +
@@ -145,17 +159,25 @@ export class PostgresScreenSharingSessionRepository
 
     return this.transaction(async (client) => {
       const currentResult = await client.query<Row>(
-        'SELECT ' + columns + ' FROM screen_sharing_sessions WHERE id=$1 FOR UPDATE',
+        'SELECT ' +
+          columns +
+          ' FROM screen_sharing_sessions WHERE id=$1 FOR UPDATE',
         [input.id],
       );
       const current = currentResult.rows[0];
-      if (!current) throw new PersistenceError('NOT_FOUND', 'Screen session not found.');
+      if (!current)
+        throw new PersistenceError('NOT_FOUND', 'Screen session not found.');
       if (current.status !== input.from) {
-        throw new PersistenceError('INVALID_STATE', 'The screen session state has changed.');
+        throw new PersistenceError(
+          'INVALID_STATE',
+          'The screen session state has changed.',
+        );
       }
 
-      const terminal = ['STOPPED','EXPIRED','FAILED','REJECTED'].includes(input.to);
-      const set = ['status=$2','last_activity_at=$3'];
+      const terminal = ['STOPPED', 'EXPIRED', 'FAILED', 'REJECTED'].includes(
+        input.to,
+      );
+      const set = ['status=$2', 'last_activity_at=$3'];
       const values: unknown[] = [input.id, input.to, input.now];
       const add = (sql: string, value: unknown) => {
         set.push(sql.replace('$X', '$' + (values.length + 1)));
@@ -163,14 +185,19 @@ export class PostgresScreenSharingSessionRepository
       };
 
       if (input.to === 'AUTHORIZED') add('authorized_at=$X', input.now);
-      if (input.to === 'STARTING' && current.started_at === null) add('started_at=$X', input.now);
-      if (input.to === 'ACTIVE') add('started_at=COALESCE(started_at,$X)', input.now);
+      if (input.to === 'STARTING' && current.started_at === null)
+        add('started_at=$X', input.now);
+      if (input.to === 'ACTIVE')
+        add('started_at=COALESCE(started_at,$X)', input.now);
       if (terminal) add('stopped_at=COALESCE(stopped_at,$X)', input.now);
-      if (input.terminationReason !== undefined) add('termination_reason=$X', input.terminationReason);
+      if (input.terminationReason !== undefined)
+        add('termination_reason=$X', input.terminationReason);
       if (input.transportState !== undefined) {
         add(
           'transport_state=$X',
-          input.transportState === null ? null : JSON.stringify(input.transportState),
+          input.transportState === null
+            ? null
+            : JSON.stringify(input.transportState),
         );
       }
 
@@ -205,7 +232,7 @@ export class PostgresScreenSharingSessionRepository
   async deleteTerminatedBefore(cutoff: Date, limit: number): Promise<number> {
     const boundedLimit = Math.min(Math.max(Math.trunc(limit), 1), 1000);
     const result = await this.query<{ id: string }>(
-      "DELETE FROM screen_sharing_sessions WHERE id IN (SELECT id FROM screen_sharing_sessions WHERE stopped_at IS NOT NULL AND stopped_at < $1 ORDER BY stopped_at ASC LIMIT $2) RETURNING id",
+      'DELETE FROM screen_sharing_sessions WHERE id IN (SELECT id FROM screen_sharing_sessions WHERE stopped_at IS NOT NULL AND stopped_at < $1 ORDER BY stopped_at ASC LIMIT $2) RETURNING id',
       [cutoff, boundedLimit],
     );
     return result.rowCount ?? 0;
@@ -214,7 +241,10 @@ export class PostgresScreenSharingSessionRepository
   async expireDue(now: Date, limit: number): Promise<number> {
     const boundedLimit = Math.min(Math.max(Math.trunc(limit), 1), 1000);
     return this.transaction(async (client) => {
-      const rows = await client.query<{ id: string; status: ScreenSharingSessionStatus }>(
+      const rows = await client.query<{
+        id: string;
+        status: ScreenSharingSessionStatus;
+      }>(
         "SELECT id,status FROM screen_sharing_sessions WHERE expires_at <= $1 AND status IN ('REQUESTED','AUTHORIZED','STARTING','ACTIVE','STOPPING') ORDER BY expires_at ASC LIMIT $2 FOR UPDATE SKIP LOCKED",
         [now, boundedLimit],
       );
@@ -223,7 +253,14 @@ export class PostgresScreenSharingSessionRepository
           "UPDATE screen_sharing_sessions SET status='EXPIRED', stopped_at=$2, last_activity_at=$2, termination_reason='EXPIRED' WHERE id=$1",
           [row.id, now],
         );
-        await insertEvent(client, row.id, row.status, 'EXPIRED', now, 'EXPIRED');
+        await insertEvent(
+          client,
+          row.id,
+          row.status,
+          'EXPIRED',
+          now,
+          'EXPIRED',
+        );
       }
       return rows.rowCount ?? 0;
     });
@@ -240,6 +277,13 @@ const insertEvent = async (
 ): Promise<void> => {
   await client.query(
     'INSERT INTO screen_sharing_session_events (id,screen_session_id,from_status,to_status,occurred_at,termination_reason) VALUES ($1,$2,$3,$4,$5,$6)',
-    [randomUUID(), sessionId, fromStatus, toStatus, occurredAt, terminationReason],
+    [
+      randomUUID(),
+      sessionId,
+      fromStatus,
+      toStatus,
+      occurredAt,
+      terminationReason,
+    ],
   );
 };

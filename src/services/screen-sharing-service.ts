@@ -53,23 +53,46 @@ export class ScreenSharingService {
     correlationId?: string | null,
   ): Promise<{ session: ScreenSharingSession; created: boolean }> {
     if (!UUID.test(deviceId)) {
-      throw new AppError(400, 'INVALID_REQUEST', 'Managed-device identifier is invalid.');
+      throw new AppError(
+        400,
+        'INVALID_REQUEST',
+        'Managed-device identifier is invalid.',
+      );
     }
 
     const device = await this.devices.findById(deviceId);
     if (device === null) {
-      throw new AppError(404, 'DEVICE_NOT_FOUND', 'Managed device was not found.');
+      throw new AppError(
+        404,
+        'DEVICE_NOT_FOUND',
+        'Managed device was not found.',
+      );
     }
     if (device.adminId !== adminId) {
-      throw new AppError(403, 'AUTHORIZATION_DENIED', 'The administrator does not control this device.');
+      throw new AppError(
+        403,
+        'AUTHORIZATION_DENIED',
+        'The administrator does not control this device.',
+      );
     }
-    if (device.enrollmentStatus !== 'ACTIVE' || device.operationalStatus !== 'ACTIVE') {
-      throw new AppError(409, 'DEVICE_NOT_READY', 'Managed device is not authorized for screen sharing.');
+    if (
+      device.enrollmentStatus !== 'ACTIVE' ||
+      device.operationalStatus !== 'ACTIVE'
+    ) {
+      throw new AppError(
+        409,
+        'DEVICE_NOT_READY',
+        'Managed device is not authorized for screen sharing.',
+      );
     }
 
     const connection = await this.deviceSessions.findActiveByDeviceId(deviceId);
     if (connection === null || connection.expiresAt.getTime() <= Date.now()) {
-      throw new AppError(409, 'DEVICE_UNAVAILABLE', 'Managed device does not have a valid communication session.');
+      throw new AppError(
+        409,
+        'DEVICE_UNAVAILABLE',
+        'Managed device does not have a valid communication session.',
+      );
     }
 
     await this.expireDue();
@@ -87,7 +110,9 @@ export class ScreenSharingService {
         correlationId && /^[A-Za-z0-9._:-]{1,128}$/.test(correlationId)
           ? correlationId
           : randomUUID(),
-      expiresAt: new Date(now.getTime() + this.options.maxDurationSeconds * 1000),
+      expiresAt: new Date(
+        now.getTime() + this.options.maxDurationSeconds * 1000,
+      ),
       transportState: { state: 'AUTHORIZATION_PENDING' },
     });
 
@@ -125,9 +150,16 @@ export class ScreenSharingService {
   async getOwned(id: string, adminId: string): Promise<ScreenSharingSession> {
     const session = await this.sessions.findOwned(id, adminId);
     if (session === null) {
-      throw new AppError(404, 'SCREEN_SESSION_NOT_FOUND', 'Screen-sharing session was not found.');
+      throw new AppError(
+        404,
+        'SCREEN_SESSION_NOT_FOUND',
+        'Screen-sharing session was not found.',
+      );
     }
-    if (session.expiresAt.getTime() <= Date.now() && !this.isTerminal(session.status)) {
+    if (
+      session.expiresAt.getTime() <= Date.now() &&
+      !this.isTerminal(session.status)
+    ) {
       return this.expire(session);
     }
     return session;
@@ -136,7 +168,11 @@ export class ScreenSharingService {
   async stop(id: string, adminId: string): Promise<ScreenSharingSession> {
     let session = await this.getOwned(id, adminId);
     if (this.isTerminal(session.status)) {
-      throw new AppError(409, 'SCREEN_SESSION_STATE_CONFLICT', 'The screen-sharing session is already terminated.');
+      throw new AppError(
+        409,
+        'SCREEN_SESSION_STATE_CONFLICT',
+        'The screen-sharing session is already terminated.',
+      );
     }
     if (session.status === 'STOPPING') return session;
 
@@ -160,52 +196,92 @@ export class ScreenSharingService {
 
   async markStarted(
     sessionId: string,
-    deviceSession: Pick<DeviceConnectionSession, 'managedDeviceId' | 'state' | 'expiresAt'>,
+    deviceSession: Pick<
+      DeviceConnectionSession,
+      'managedDeviceId' | 'state' | 'expiresAt'
+    >,
     transportState: Record<string, unknown> | null,
   ): Promise<ScreenSharingSession> {
     this.assertDeviceSession(deviceSession, sessionId);
     const session = await this.sessions.findById(sessionId);
-    if (session === null) throw new AppError(404, 'SCREEN_SESSION_NOT_FOUND', 'Screen-sharing session was not found.');
+    if (session === null)
+      throw new AppError(
+        404,
+        'SCREEN_SESSION_NOT_FOUND',
+        'Screen-sharing session was not found.',
+      );
     if (session.managedDeviceId !== deviceSession.managedDeviceId) {
-      throw new AppError(403, 'AUTHORIZATION_DENIED', 'The screen-sharing session is not assigned to this device.');
+      throw new AppError(
+        403,
+        'AUTHORIZATION_DENIED',
+        'The screen-sharing session is not assigned to this device.',
+      );
     }
     if (session.expiresAt.getTime() <= Date.now()) return this.expire(session);
     if (session.status !== 'STARTING') {
-      throw new AppError(409, 'SCREEN_SESSION_STATE_CONFLICT', 'The screen-sharing session is not starting.');
+      throw new AppError(
+        409,
+        'SCREEN_SESSION_STATE_CONFLICT',
+        'The screen-sharing session is not starting.',
+      );
     }
-    return this.transition(session, 'ACTIVE', null, sanitizeTransportState(transportState));
+    return this.transition(
+      session,
+      'ACTIVE',
+      null,
+      sanitizeTransportState(transportState),
+    );
   }
 
   async markStopped(
     sessionId: string,
-    deviceSession: Pick<DeviceConnectionSession, 'managedDeviceId' | 'state' | 'expiresAt'>,
+    deviceSession: Pick<
+      DeviceConnectionSession,
+      'managedDeviceId' | 'state' | 'expiresAt'
+    >,
   ): Promise<ScreenSharingSession> {
     this.assertDeviceSession(deviceSession, sessionId);
     const session = await this.sessions.findById(sessionId);
-    if (session === null) throw new AppError(404, 'SCREEN_SESSION_NOT_FOUND', 'Screen-sharing session was not found.');
+    if (session === null)
+      throw new AppError(
+        404,
+        'SCREEN_SESSION_NOT_FOUND',
+        'Screen-sharing session was not found.',
+      );
     if (session.managedDeviceId !== deviceSession.managedDeviceId) {
-      throw new AppError(403, 'AUTHORIZATION_DENIED', 'The screen-sharing session is not assigned to this device.');
+      throw new AppError(
+        403,
+        'AUTHORIZATION_DENIED',
+        'The screen-sharing session is not assigned to this device.',
+      );
     }
     if (this.isTerminal(session.status)) return session;
     if (session.status !== 'STOPPING') {
-      throw new AppError(409, 'SCREEN_SESSION_STATE_CONFLICT', 'The screen-sharing session cannot be stopped from its current state.');
+      throw new AppError(
+        409,
+        'SCREEN_SESSION_STATE_CONFLICT',
+        'The screen-sharing session cannot be stopped from its current state.',
+      );
     }
-    return this.transition(
-      session,
-      'STOPPED',
-      'ADMIN_STOP',
-      { state: 'STOPPED' },
-    );
+    return this.transition(session, 'STOPPED', 'ADMIN_STOP', {
+      state: 'STOPPED',
+    });
   }
 
   async expireDue(): Promise<number> {
     return this.sessions.expireDue(new Date(), 100);
   }
 
-  private async expire(session: ScreenSharingSession): Promise<ScreenSharingSession> {
+  private async expire(
+    session: ScreenSharingSession,
+  ): Promise<ScreenSharingSession> {
     if (this.isTerminal(session.status)) return session;
     try {
-      if (['AUTHORIZED', 'STARTING', 'ACTIVE', 'STOPPING'].includes(session.status)) {
+      if (
+        ['AUTHORIZED', 'STARTING', 'ACTIVE', 'STOPPING'].includes(
+          session.status,
+        )
+      ) {
         await this.commands.createScreenShareCommand(session.adminId, {
           deviceId: session.managedDeviceId,
           type: 'STOP_SCREEN_SHARE',
@@ -270,14 +346,21 @@ export class ScreenSharingService {
   }
 
   private assertDeviceSession(
-    session: Pick<DeviceConnectionSession, 'managedDeviceId' | 'state' | 'expiresAt'>,
+    session: Pick<
+      DeviceConnectionSession,
+      'managedDeviceId' | 'state' | 'expiresAt'
+    >,
     _screenSessionId: string,
   ): void {
     if (
       session.expiresAt.getTime() <= Date.now() ||
       !['CONNECTED', 'STALE'].includes(session.state)
     ) {
-      throw new AppError(401, 'DEVICE_SESSION_INVALID', 'Managed-device session is no longer valid.');
+      throw new AppError(
+        401,
+        'DEVICE_SESSION_INVALID',
+        'Managed-device session is no longer valid.',
+      );
     }
   }
 

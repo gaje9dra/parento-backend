@@ -79,14 +79,15 @@ export const createV1Router = (
   const realtimeTransport = realtime.enabled
     ? new SseDeviceTransport(realtimeRegistry)
     : undefined;
-  const commandDelivery = realtimeTransport === undefined
-    ? undefined
-    : new CommandDeliveryService(
-        commands,
-        realtimeTransport,
-        deviceSessions,
-        realtimeRegistry,
-      );
+  const commandDelivery =
+    realtimeTransport === undefined
+      ? undefined
+      : new CommandDeliveryService(
+          commands,
+          realtimeTransport,
+          deviceSessions,
+          realtimeRegistry,
+        );
   const commandService = new CommandService(
     commands,
     managedDevices,
@@ -98,7 +99,7 @@ export const createV1Router = (
   );
 
   router.use(createCommandRouter(authentication, commandService));
-const monitoringRepository = new PostgresDeviceMonitoringRepository(database);
+  const monitoringRepository = new PostgresDeviceMonitoringRepository(database);
   const monitoringService = new DeviceMonitoringService(
     monitoringRepository,
     managedDevices,
@@ -147,7 +148,10 @@ const monitoringRepository = new PostgresDeviceMonitoringRepository(database);
     managedDevices,
     deviceSessions,
     commandService,
-    { maxDurationSeconds: security.screenSharingMaxDurationSeconds, retentionSeconds: security.screenSharingRetentionSeconds },
+    {
+      maxDurationSeconds: security.screenSharingMaxDurationSeconds,
+      retentionSeconds: security.screenSharingRetentionSeconds,
+    },
   );
   router.use(
     createScreenSharingRouter(

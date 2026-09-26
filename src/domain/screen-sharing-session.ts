@@ -52,8 +52,7 @@ const transitions: Record<
 
 export const isTerminalScreenSharingStatus = (
   status: ScreenSharingSessionStatus,
-): boolean =>
-  ['STOPPED', 'EXPIRED', 'FAILED', 'REJECTED'].includes(status);
+): boolean => ['STOPPED', 'EXPIRED', 'FAILED', 'REJECTED'].includes(status);
 
 export const isValidScreenSharingTransition = (
   from: ScreenSharingSessionStatus,

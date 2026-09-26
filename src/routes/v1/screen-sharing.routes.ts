@@ -73,11 +73,23 @@ export const createScreenSharingRouter = (
     controller.stopped,
   );
 
-  router.all('/devices/:deviceId/screen-sessions', methodNotAllowed('POST, OPTIONS'));
+  router.all(
+    '/devices/:deviceId/screen-sessions',
+    methodNotAllowed('POST, OPTIONS'),
+  );
   router.all('/screen-sessions/:sessionId', methodNotAllowed('GET, OPTIONS'));
-  router.all('/screen-sessions/:sessionId/stop', methodNotAllowed('POST, OPTIONS'));
-  router.all('/device/screen-sessions/:sessionId/started', methodNotAllowed('POST, OPTIONS'));
-  router.all('/device/screen-sessions/:sessionId/stopped', methodNotAllowed('POST, OPTIONS'));
+  router.all(
+    '/screen-sessions/:sessionId/stop',
+    methodNotAllowed('POST, OPTIONS'),
+  );
+  router.all(
+    '/device/screen-sessions/:sessionId/started',
+    methodNotAllowed('POST, OPTIONS'),
+  );
+  router.all(
+    '/device/screen-sessions/:sessionId/stopped',
+    methodNotAllowed('POST, OPTIONS'),
+  );
 
   return router;
 };

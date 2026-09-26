@@ -38,7 +38,12 @@ export class CommandService {
         'INVALID_REQUEST',
         'Managed-device identifier is invalid.',
       );
-    if (!['FUTURE_COMMAND', 'START_SCREEN_SHARE', 'STOP_SCREEN_SHARE'].includes(input.type) || input.version !== 1)
+    if (
+      !['FUTURE_COMMAND', 'START_SCREEN_SHARE', 'STOP_SCREEN_SHARE'].includes(
+        input.type,
+      ) ||
+      input.version !== 1
+    )
       throw new AppError(
         400,
         'UNSUPPORTED_COMMAND_TYPE',

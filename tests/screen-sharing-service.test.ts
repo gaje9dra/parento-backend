@@ -34,15 +34,21 @@ const connection: DeviceConnectionSession = {
   expiresAt: new Date(Date.now() + 60_000),
 };
 
-const makeSession = (status: ScreenSharingSession['status']): ScreenSharingSession => ({
+const makeSession = (
+  status: ScreenSharingSession['status'],
+): ScreenSharingSession => ({
   id: '44444444-4444-4444-8444-444444444444',
   managedDeviceId: device.id,
   adminId: device.adminId,
   status,
   createdAt: new Date(),
   authorizedAt: status === 'REQUESTED' ? null : new Date(),
-  startedAt: ['ACTIVE', 'STOPPING', 'STOPPED'].includes(status) ? new Date() : null,
-  stoppedAt: ['STOPPED', 'EXPIRED', 'FAILED'].includes(status) ? new Date() : null,
+  startedAt: ['ACTIVE', 'STOPPING', 'STOPPED'].includes(status)
+    ? new Date()
+    : null,
+  stoppedAt: ['STOPPED', 'EXPIRED', 'FAILED'].includes(status)
+    ? new Date()
+    : null,
   expiresAt: new Date(Date.now() + 60_000),
   lastActivityAt: new Date(),
   terminationReason: null,
@@ -53,7 +59,12 @@ const makeSession = (status: ScreenSharingSession['status']): ScreenSharingSessi
 describe('Phase 9.1 screen-sharing service', () => {
   it('requires device ownership and an active device communication session', async () => {
     const devices = {
-      findById: vi.fn().mockResolvedValue({ ...device, adminId: '99999999-9999-4999-8999-999999999999' }),
+      findById: vi
+        .fn()
+        .mockResolvedValue({
+          ...device,
+          adminId: '99999999-9999-4999-8999-999999999999',
+        }),
     } as unknown as ManagedDeviceRepository;
     const sessions = {
       findActiveByDeviceId: vi.fn().mockResolvedValue(connection),

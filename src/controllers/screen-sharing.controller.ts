@@ -4,12 +4,16 @@ import type { ScreenSharingService } from '../services/screen-sharing-service.js
 
 const deviceParam = z.object({ deviceId: z.string().uuid() }).strict();
 const sessionParam = z.object({ sessionId: z.string().uuid() }).strict();
-const requestBody = z.object({
-  correlationId: z.string().min(1).max(128).nullable().optional(),
-}).strict();
-const startedBody = z.object({
-  transportState: z.record(z.string(), z.unknown()).nullable().default(null),
-}).strict();
+const requestBody = z
+  .object({
+    correlationId: z.string().min(1).max(128).nullable().optional(),
+  })
+  .strict();
+const startedBody = z
+  .object({
+    transportState: z.record(z.string(), z.unknown()).nullable().default(null),
+  })
+  .strict();
 
 const toSession = (session: {
   id: string;
@@ -49,14 +53,20 @@ export const createScreenSharingController = (
       const b = requestBody.safeParse(req.body);
       if (!p.success || !b.success) {
         res.status(400).json({
-          error: { code: 'INVALID_REQUEST', message: 'Invalid screen-sharing request.' },
+          error: {
+            code: 'INVALID_REQUEST',
+            message: 'Invalid screen-sharing request.',
+          },
           requestId: res.locals.requestId,
         });
         return;
       }
       if (!req.authenticatedAdmin) {
         res.status(401).json({
-          error: { code: 'AUTHENTICATION_REQUIRED', message: 'Administrator authentication is required.' },
+          error: {
+            code: 'AUTHENTICATION_REQUIRED',
+            message: 'Administrator authentication is required.',
+          },
           requestId: res.locals.requestId,
         });
         return;
@@ -80,20 +90,34 @@ export const createScreenSharingController = (
       const p = sessionParam.safeParse(req.params);
       if (!p.success) {
         res.status(400).json({
-          error: { code: 'INVALID_REQUEST', message: 'Invalid screen session identifier.' },
+          error: {
+            code: 'INVALID_REQUEST',
+            message: 'Invalid screen session identifier.',
+          },
           requestId: res.locals.requestId,
         });
         return;
       }
       if (!req.authenticatedAdmin) {
         res.status(401).json({
-          error: { code: 'AUTHENTICATION_REQUIRED', message: 'Administrator authentication is required.' },
+          error: {
+            code: 'AUTHENTICATION_REQUIRED',
+            message: 'Administrator authentication is required.',
+          },
           requestId: res.locals.requestId,
         });
         return;
       }
-      const session = await service.getOwned(p.data.sessionId, req.authenticatedAdmin.id);
-      res.status(200).json({ data: { session: toSession(session) }, requestId: res.locals.requestId });
+      const session = await service.getOwned(
+        p.data.sessionId,
+        req.authenticatedAdmin.id,
+      );
+      res
+        .status(200)
+        .json({
+          data: { session: toSession(session) },
+          requestId: res.locals.requestId,
+        });
     } catch (error) {
       next(error);
     }
@@ -114,8 +138,16 @@ export const createScreenSharingController = (
         });
         return;
       }
-      const session = await service.stop(p.data.sessionId, req.authenticatedAdmin.id);
-      res.status(200).json({ data: { session: toSession(session) }, requestId: res.locals.requestId });
+      const session = await service.stop(
+        p.data.sessionId,
+        req.authenticatedAdmin.id,
+      );
+      res
+        .status(200)
+        .json({
+          data: { session: toSession(session) },
+          requestId: res.locals.requestId,
+        });
     } catch (error) {
       next(error);
     }
@@ -128,24 +160,39 @@ export const createScreenSharingController = (
       const deviceSession = req.authenticatedDeviceSession;
       if (!p.success || !b.success) {
         res.status(400).json({
-          error: { code: 'INVALID_REQUEST', message: 'Invalid screen session state update.' },
+          error: {
+            code: 'INVALID_REQUEST',
+            message: 'Invalid screen session state update.',
+          },
           requestId: res.locals.requestId,
         });
         return;
       }
       if (!deviceSession) {
         res.status(401).json({
-          error: { code: 'DEVICE_SESSION_INVALID', message: 'Managed-device session is required.' },
+          error: {
+            code: 'DEVICE_SESSION_INVALID',
+            message: 'Managed-device session is required.',
+          },
           requestId: res.locals.requestId,
         });
         return;
       }
-      const session = await service.markStarted(p.data.sessionId, {
-        managedDeviceId: deviceSession.managedDeviceId,
-        state: deviceSession.state as 'CONNECTED',
-        expiresAt: deviceSession.expiresAt,
-      }, b.data.transportState);
-      res.status(200).json({ data: { session: toSession(session) }, requestId: res.locals.requestId });
+      const session = await service.markStarted(
+        p.data.sessionId,
+        {
+          managedDeviceId: deviceSession.managedDeviceId,
+          state: deviceSession.state as 'CONNECTED',
+          expiresAt: deviceSession.expiresAt,
+        },
+        b.data.transportState,
+      );
+      res
+        .status(200)
+        .json({
+          data: { session: toSession(session) },
+          requestId: res.locals.requestId,
+        });
     } catch (error) {
       next(error);
     }
@@ -157,14 +204,20 @@ export const createScreenSharingController = (
       const deviceSession = req.authenticatedDeviceSession;
       if (!p.success) {
         res.status(400).json({
-          error: { code: 'INVALID_REQUEST', message: 'Invalid screen session identifier.' },
+          error: {
+            code: 'INVALID_REQUEST',
+            message: 'Invalid screen session identifier.',
+          },
           requestId: res.locals.requestId,
         });
         return;
       }
       if (!deviceSession) {
         res.status(401).json({
-          error: { code: 'DEVICE_SESSION_INVALID', message: 'Managed-device session is required.' },
+          error: {
+            code: 'DEVICE_SESSION_INVALID',
+            message: 'Managed-device session is required.',
+          },
           requestId: res.locals.requestId,
         });
         return;
@@ -174,7 +227,12 @@ export const createScreenSharingController = (
         state: deviceSession.state as 'CONNECTED',
         expiresAt: deviceSession.expiresAt,
       });
-      res.status(200).json({ data: { session: toSession(session) }, requestId: res.locals.requestId });
+      res
+        .status(200)
+        .json({
+          data: { session: toSession(session) },
+          requestId: res.locals.requestId,
+        });
     } catch (error) {
       next(error);
     }

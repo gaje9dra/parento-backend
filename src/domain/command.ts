@@ -1,4 +1,8 @@
-export const COMMAND_TYPES = ['FUTURE_COMMAND', 'START_SCREEN_SHARE', 'STOP_SCREEN_SHARE'] as const;
+export const COMMAND_TYPES = [
+  'FUTURE_COMMAND',
+  'START_SCREEN_SHARE',
+  'STOP_SCREEN_SHARE',
+] as const;
 export type CommandType = (typeof COMMAND_TYPES)[number];
 export const COMMAND_TYPE = 'FUTURE_COMMAND' as const;
 
