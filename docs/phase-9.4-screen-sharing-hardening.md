@@ -120,6 +120,10 @@ The Admin and Managed Android repositories must consume the existing backend scr
 
 No camera, microphone, audio streaming, arbitrary execution, shell access, permission bypass, hidden API, covert capture, recording storage, iOS support, or Phase 9.5+/10 functionality was implemented.
 
+## Verification
+
+The repository's standard verification workflow is retained unchanged after formatting checks.
+
 ## Git safety
 
 Only `gaje9dra/parento-backend` is changed by this phase. No changes were made to `parento-managed` or `parento-admin`.
