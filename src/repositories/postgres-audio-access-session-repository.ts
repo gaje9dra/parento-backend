@@ -91,7 +91,7 @@ export class PostgresAudioAccessSessionRepository
         const session = map(result.rows[0]!);
         await client.query(
           'INSERT INTO audio_access_session_events (id,audio_session_id,from_status,to_status,occurred_at,termination_reason) VALUES ($1,$2,$3,$4,$5,$6)',
-          [randomUUID(), session.id, null, 'REQUESTED', now(), null],
+          [randomUUID(), session.id, null, 'REQUESTED', new Date(), null],
         );
         return { session, created: true };
       });
