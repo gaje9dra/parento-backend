@@ -378,10 +378,7 @@ export class AudioAccessService {
   }
 
   private assertConnectedDeviceSession(
-    session: Pick<
-      DeviceConnectionSession,
-      'state' | 'expiresAt'
-    >,
+    session: Pick<DeviceConnectionSession, 'state' | 'expiresAt'>,
   ): void {
     if (
       session.expiresAt.getTime() <= Date.now() ||
