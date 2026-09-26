@@ -35,7 +35,6 @@ export const createScreenSharingRouter = (
     enabled: rateLimitConfig.enabled,
     windowMs: rateLimitConfig.windowMs,
     maxRequests: rateLimitConfig.maxRequests,
-    identifier: 'screen-sharing-session',
   });
   const limited = limiter === undefined ? [] : [limiter];
 
