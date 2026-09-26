@@ -127,3 +127,4 @@ The repository's standard verification workflow is retained unchanged after form
 ## Git safety
 
 Only `gaje9dra/parento-backend` is changed by this phase. No changes were made to `parento-managed` or `parento-admin`.
+
