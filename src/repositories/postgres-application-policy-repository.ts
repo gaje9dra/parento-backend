@@ -78,7 +78,11 @@ const loadRules = async (
     'SELECT policy_id, package_name, action FROM application_policy_rules WHERE policy_id=$1 ORDER BY package_name',
     [policyId],
   );
-  return result.rows;
+  return result.rows.map((row) => ({
+    policyId: row.policy_id,
+    packageName: row.package_name,
+    action: row.action,
+  }));
 };
 
 const encodePolicyCursor = (row: PolicyRow): string =>
