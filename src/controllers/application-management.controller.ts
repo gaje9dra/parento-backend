@@ -243,10 +243,14 @@ export const createApplicationManagementController = (
         });
         return;
       }
+      const page = {
+        ...(limit === undefined ? {} : { limit }),
+        cursor: typeof cursor === 'string' ? cursor : null,
+      };
       const result = await service.listInventory(
         req.authenticatedAdmin.id,
         p.data.deviceId,
-        { limit, cursor: typeof cursor === 'string' ? cursor : null },
+        page,
       );
       res.status(200).json({
         data: {
