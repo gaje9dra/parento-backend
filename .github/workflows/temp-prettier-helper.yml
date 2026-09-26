@@ -13,4 +13,11 @@ jobs:
         with:
           node-version: 24.21.0
       - run: npm install --ignore-scripts
-      - run: npx prettier --check . || true
+      - run: |
+          files="openapi.yaml src/controllers/application-management.controller.ts src/domain/application-management.ts src/repositories/application-inventory-repository.ts src/repositories/application-policy-repository.ts src/repositories/postgres-application-inventory-repository.ts src/repositories/postgres-application-policy-repository.ts src/routes/v1/application-management.routes.ts src/routes/v1/index.ts src/services/application-management-service.ts src/services/command-service.ts tests/application-management-database.integration.test.ts tests/application-management-service.test.ts tests/command-service.test.ts"
+          npx prettier --write $files
+          for file in $files; do
+            echo "FILE_START:$file"
+            cat "$file"
+            echo "FILE_END:$file"
+          done
