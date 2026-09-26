@@ -175,7 +175,7 @@ export class ApplicationManagementService {
     deviceId: string,
     page?: { limit?: number; cursor?: string | null },
   ) {
-    const device = await this.requireOwnedActiveDevice(adminId, deviceId);
+    const device = await this.requireOwnedDevice(adminId, deviceId);
     const result = await this.inventory.listForAdmin(adminId, device.id, page);
     const freshness = this.inventoryFreshness(
       result.receivedAt,
@@ -193,7 +193,7 @@ export class ApplicationManagementService {
     packageName: string,
   ) {
     validatePackage(packageName);
-    await this.requireOwnedActiveDevice(adminId, deviceId);
+    await this.requireOwnedDevice(adminId, deviceId);
     return this.inventory.findForAdmin(adminId, deviceId, packageName);
   }
 
