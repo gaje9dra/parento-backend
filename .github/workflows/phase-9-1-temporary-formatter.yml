@@ -22,7 +22,7 @@ jobs:
       - name: Format Phase 9.1 files
         shell: bash
         run: |
-          files="$(git diff --name-only origin/main...HEAD | grep -E '\.(ts|md|json|yml|yaml)$|^\.env\.example$' || true)"
+          files="$(git diff --name-only origin/main...HEAD | grep -E '\.(ts|md|json|yml|yaml)$' || true)"
           files="$files"$'\n'"src/repositories/postgres-device-monitoring-repository.ts"
           printf '%s\n' "$files" | sed '/^$/d' | xargs npx prettier --write
       - name: Commit formatting
