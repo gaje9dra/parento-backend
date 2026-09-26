@@ -94,6 +94,18 @@ export class PostgresDeviceConnectionSessionRepository
     return result.rows[0] === undefined ? null : map(result.rows[0]);
   }
 
+  async findLatestByDeviceId(
+    managedDeviceId: string,
+  ): Promise<DeviceConnectionSession | null> {
+    const result = await this.query<Row>(
+      'SELECT ' +
+        columns +
+        ' FROM device_connection_sessions WHERE managed_device_id=$1 ORDER BY last_seen_at DESC, created_at DESC, id DESC LIMIT 1',
+      [managedDeviceId],
+    );
+    return result.rows[0] === undefined ? null : map(result.rows[0]);
+  }
+
   async findByTokenHash(
     tokenHash: string,
   ): Promise<DeviceConnectionSession | null> {

@@ -16,6 +16,9 @@ export interface DeviceConnectionSessionRepository extends Repository {
   findActiveByDeviceId?(
     managedDeviceId: string,
   ): Promise<DeviceConnectionSession | null>;
+  findLatestByDeviceId?(
+    managedDeviceId: string,
+  ): Promise<DeviceConnectionSession | null>;
   touchConnected(
     id: string,
     now: Date,

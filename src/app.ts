@@ -102,6 +102,7 @@ app.use(
     config.security,
     config.rateLimit,
     config.realtime,
+    config.monitoring,
   ),
 );
 app.use(notFoundHandler);
