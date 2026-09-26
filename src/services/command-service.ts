@@ -72,14 +72,14 @@ export class CommandService {
       const keys = Object.keys(payload);
       if (
         keys.length !== 1 ||
-        keys[0] !== 'screenSessionId' ||
-        typeof payload.screenSessionId !== 'string' ||
-        !UUID.test(payload.screenSessionId)
+        keys[0] !== 'screenSessionId' && keys[0] !== 'audioSessionId' ||
+        (keys[0] === 'screenSessionId' && (typeof payload.screenSessionId !== 'string' || !UUID.test(payload.screenSessionId))) ||
+        (keys[0] === 'audioSessionId' && (typeof payload.audioSessionId !== 'string' || !UUID.test(payload.audioSessionId)))
       ) {
         throw new AppError(
           400,
           'INVALID_COMMAND_PAYLOAD',
-          'Screen-sharing commands require only a valid screenSessionId.',
+          'Capability commands require only a valid session identifier.',
         );
       }
     }
@@ -216,6 +216,64 @@ export class CommandService {
       version: 1,
       payload: { screenSessionId: input.screenSessionId },
       idempotencyKey,
+      correlationId: input.correlationId,
+    });
+  }
+
+  async createAudioAccessCommand(
+    adminId: string,
+    input: {
+      deviceId: string;
+      type: 'START_AUDIO_ACCESS' | 'STOP_AUDIO_ACCESS';
+      audioSessionId: string;
+      correlationId: string;
+    },
+  ): Promise<{ command: Command; created: boolean }> {
+    if (this.screenSessions === undefined) {
+      throw new AppError(
+        503,
+        'SERVICE_UNAVAILABLE',
+        'Audio-access command security is not configured.',
+      );
+    }
+    const audioSessions = this.screenSessions as unknown as {
+      findById(id: string): Promise<{
+        id: string;
+        managedDeviceId: string;
+        adminId: string;
+        status: string;
+      } | null>;
+    };
+    const session = await audioSessions.findById(input.audioSessionId);
+    if (
+      session === null ||
+      session.managedDeviceId !== input.deviceId ||
+      session.adminId !== adminId
+    ) {
+      throw new AppError(
+        404,
+        'AUDIO_SESSION_NOT_FOUND',
+        'Audio-access session was not found.',
+      );
+    }
+    const startAllowed =
+      input.type === 'START_AUDIO_ACCESS' && session.status === 'AUTHORIZED';
+    const stopAllowed =
+      input.type === 'STOP_AUDIO_ACCESS' &&
+      ['AUTHORIZED', 'STARTING', 'ACTIVE', 'STOPPING'].includes(session.status);
+    if (!startAllowed && !stopAllowed) {
+      throw new AppError(
+        409,
+        'AUDIO_SESSION_STATE_CONFLICT',
+        'The audio-access command is not valid for the current session state.',
+      );
+    }
+    return this.create(adminId, {
+      deviceId: input.deviceId,
+      type: input.type,
+      version: 1,
+      payload: { audioSessionId: input.audioSessionId },
+      idempotencyKey: 'audio-session:' + input.audioSessionId + ':' + input.type,
       correlationId: input.correlationId,
     });
   }
