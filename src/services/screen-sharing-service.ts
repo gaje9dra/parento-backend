@@ -181,6 +181,14 @@ export class ScreenSharingService {
   private async expire(session: ScreenSharingSession): Promise<ScreenSharingSession> {
     if (this.isTerminal(session.status)) return session;
     try {
+      if (['AUTHORIZED', 'STARTING', 'ACTIVE', 'STOPPING'].includes(session.status)) {
+        await this.commands.createScreenShareCommand(session.adminId, {
+          deviceId: session.managedDeviceId,
+          type: 'STOP_SCREEN_SHARE',
+          screenSessionId: session.id,
+          correlationId: session.correlationId,
+        });
+      }
       return await this.sessions.transition({
         id: session.id,
         from: session.status,
