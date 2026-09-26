@@ -59,12 +59,10 @@ const makeSession = (
 describe('Phase 9.1 screen-sharing service', () => {
   it('requires device ownership and an active device communication session', async () => {
     const devices = {
-      findById: vi
-        .fn()
-        .mockResolvedValue({
-          ...device,
-          adminId: '99999999-9999-4999-8999-999999999999',
-        }),
+      findById: vi.fn().mockResolvedValue({
+        ...device,
+        adminId: '99999999-9999-4999-8999-999999999999',
+      }),
     } as unknown as ManagedDeviceRepository;
     const sessions = {
       findActiveByDeviceId: vi.fn().mockResolvedValue(connection),

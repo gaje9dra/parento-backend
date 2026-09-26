@@ -70,7 +70,10 @@ export class PostgresEnrollmentSessionRepository
           [input.adminId],
         );
         if (admin.rows[0]?.status !== 'ACTIVE') {
-          throw new PersistenceError('INVALID_STATE', 'Administrator is not active.');
+          throw new PersistenceError(
+            'INVALID_STATE',
+            'Administrator is not active.',
+          );
         }
         const result = await client.query<SessionRow>(
           'INSERT INTO enrollment_sessions (id, admin_id, secret_hash, expires_at) VALUES ($1, $2, $3, $4) RETURNING ' +
@@ -112,10 +115,9 @@ export class PostgresEnrollmentSessionRepository
   ): Promise<EnrollmentSession | null> {
     try {
       return await this.transaction(async (client) => {
-        const adminResult = await client.query<{ status: 'ACTIVE' | 'DISABLED' }>(
-          'SELECT status FROM admins WHERE id = $1 FOR UPDATE',
-          [adminId],
-        );
+        const adminResult = await client.query<{
+          status: 'ACTIVE' | 'DISABLED';
+        }>('SELECT status FROM admins WHERE id = $1 FOR UPDATE', [adminId]);
         if (adminResult.rows[0]?.status !== 'ACTIVE') return null;
         const result = await client.query<SessionRow>(
           'SELECT ' +
@@ -177,12 +179,16 @@ export class PostgresEnrollmentSessionRepository
         );
         const owner = ownerResult.rows[0];
         if (owner === undefined) {
-          throw new PersistenceError('NOT_FOUND', 'Enrollment session not found.');
+          throw new PersistenceError(
+            'NOT_FOUND',
+            'Enrollment session not found.',
+          );
         }
-        const adminResult = await client.query<{ status: 'ACTIVE' | 'DISABLED' }>(
-          'SELECT status FROM admins WHERE id = $1 FOR UPDATE',
-          [owner.admin_id],
-        );
+        const adminResult = await client.query<{
+          status: 'ACTIVE' | 'DISABLED';
+        }>('SELECT status FROM admins WHERE id = $1 FOR UPDATE', [
+          owner.admin_id,
+        ]);
         if (adminResult.rows[0]?.status !== 'ACTIVE') {
           throw new PersistenceError(
             'INVALID_STATE',

@@ -112,12 +112,10 @@ export const createScreenSharingController = (
         p.data.sessionId,
         req.authenticatedAdmin.id,
       );
-      res
-        .status(200)
-        .json({
-          data: { session: toSession(session) },
-          requestId: res.locals.requestId,
-        });
+      res.status(200).json({
+        data: { session: toSession(session) },
+        requestId: res.locals.requestId,
+      });
     } catch (error) {
       next(error);
     }
@@ -142,12 +140,10 @@ export const createScreenSharingController = (
         p.data.sessionId,
         req.authenticatedAdmin.id,
       );
-      res
-        .status(200)
-        .json({
-          data: { session: toSession(session) },
-          requestId: res.locals.requestId,
-        });
+      res.status(200).json({
+        data: { session: toSession(session) },
+        requestId: res.locals.requestId,
+      });
     } catch (error) {
       next(error);
     }
@@ -187,12 +183,10 @@ export const createScreenSharingController = (
         },
         b.data.transportState,
       );
-      res
-        .status(200)
-        .json({
-          data: { session: toSession(session) },
-          requestId: res.locals.requestId,
-        });
+      res.status(200).json({
+        data: { session: toSession(session) },
+        requestId: res.locals.requestId,
+      });
     } catch (error) {
       next(error);
     }
@@ -227,12 +221,10 @@ export const createScreenSharingController = (
         state: deviceSession.state as 'CONNECTED',
         expiresAt: deviceSession.expiresAt,
       });
-      res
-        .status(200)
-        .json({
-          data: { session: toSession(session) },
-          requestId: res.locals.requestId,
-        });
+      res.status(200).json({
+        data: { session: toSession(session) },
+        requestId: res.locals.requestId,
+      });
     } catch (error) {
       next(error);
     }
