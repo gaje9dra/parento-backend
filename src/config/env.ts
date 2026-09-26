@@ -81,6 +81,12 @@ const rawEnvSchema = z.object({
     .min(30)
     .max(3600)
     .default(900),
+  SCREEN_SHARING_RETENTION_SECONDS: z.coerce
+    .number()
+    .int()
+    .min(86400)
+    .max(7776000)
+    .default(2592000),
   REQUEST_BODY_LIMIT: z.string().min(1).default('100kb'),
   REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(120000),
   HEADERS_TIMEOUT_MS: z.coerce.number().int().positive().default(15000),
@@ -169,6 +175,7 @@ export interface AppConfig {
     readonly commandTtlSeconds: number;
     readonly commandMaxPayloadBytes: number;
     readonly screenSharingMaxDurationSeconds: number;
+    readonly screenSharingRetentionSeconds: number;
     readonly jwtAudience?: string;
     readonly accessTokenTtlSeconds: number;
     readonly sessionTtlSeconds: number;
@@ -461,6 +468,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       commandMaxPayloadBytes: parsed.data.COMMAND_MAX_PAYLOAD_BYTES,
       screenSharingMaxDurationSeconds:
         parsed.data.SCREEN_SHARING_MAX_DURATION_SECONDS,
+      screenSharingRetentionSeconds:
+        parsed.data.SCREEN_SHARING_RETENTION_SECONDS,
       requestBodyLimit: parsed.data.REQUEST_BODY_LIMIT,
       requestTimeoutMs: parsed.data.REQUEST_TIMEOUT_MS,
       headersTimeoutMs: parsed.data.HEADERS_TIMEOUT_MS,
