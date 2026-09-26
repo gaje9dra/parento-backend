@@ -147,7 +147,7 @@ const monitoringRepository = new PostgresDeviceMonitoringRepository(database);
     managedDevices,
     deviceSessions,
     commandService,
-    { maxDurationSeconds: security.screenSharingMaxDurationSeconds },
+    { maxDurationSeconds: security.screenSharingMaxDurationSeconds, retentionSeconds: security.screenSharingRetentionSeconds },
   );
   router.use(
     createScreenSharingRouter(
