@@ -223,14 +223,22 @@ export class ApplicationManagementService {
     rules: readonly { packageName: string; action: ApplicationRuleAction }[];
   }) {
     validateRules(input.rules, this.options.maxPolicyRules);
-    const policy = await this.policies.create({
-      id: randomUUID(),
-      adminId: input.adminId,
-      name: input.name.trim(),
-      description: input.description,
-      createdBy: input.adminId,
-      rules: input.rules,
-    });
+    let policy: ApplicationPolicy;
+    try {
+      policy = await this.policies.create({
+        id: randomUUID(),
+        adminId: input.adminId,
+        name: input.name.trim(),
+        description: input.description,
+        createdBy: input.adminId,
+        rules: input.rules,
+      });
+    } catch (error) {
+      if (error instanceof PersistenceError && error.code === 'CONFLICT') {
+        throw new AppError(409, 'CONFLICT', 'An application policy with this name already exists.');
+      }
+      throw error;
+    }
     await this.events.record({
       id: randomUUID(),
       eventType: 'POLICY_CREATED',
@@ -305,12 +313,20 @@ export class ApplicationManagementService {
         'A disabled application policy cannot be assigned.',
       );
     }
-    const assignment = await this.policies.assign({
-      managedDeviceId: device.id,
-      policyId: policy.id,
-      policyVersion: policy.version,
-      assignedBy: adminId,
-    });
+    let assignment: ApplicationPolicyAssignment;
+    try {
+      assignment = await this.policies.assign({
+        managedDeviceId: device.id,
+        policyId: policy.id,
+        policyVersion: policy.version,
+        assignedBy: adminId,
+      });
+    } catch (error) {
+      if (error instanceof PersistenceError) {
+        throw new AppError(409, 'CONFLICT', 'Application policy assignment could not be applied.');
+      }
+      throw error;
+    }
     const sync = await this.requestPolicySync(
       adminId,
       device.id,
