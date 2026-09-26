@@ -29,4 +29,5 @@ export interface ScreenSharingSessionRepository extends Repository {
   }): Promise<ScreenSharingSession>;
   expireDue(now: Date, limit: number): Promise<number>;
   expireForAdmin(adminId: string, now: Date): Promise<number>;
+  deleteTerminatedBefore(cutoff: Date, limit: number): Promise<number>;
 }
