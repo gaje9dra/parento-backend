@@ -426,6 +426,14 @@ export class PostgresApplicationManagementRepository
     }
   }
 
+  async listAssignmentsForPolicy(policyId: string, adminId: string): Promise<ApplicationPolicyAssignment[]> {
+    const result = await this.query<AssignmentRow>(
+      'SELECT d.managed_device_id,d.policy_id,d.policy_version,d.assigned_at,d.assigned_by FROM device_application_policy_assignments d JOIN managed_devices m ON m.id=d.managed_device_id WHERE d.policy_id=$1 AND m.admin_id=$2 ORDER BY d.managed_device_id',
+      [policyId,adminId],
+    );
+    return result.rows.map(mapAssignment);
+  }
+
   async removeAssignment(managedDeviceId: string, adminId: string): Promise<boolean> {
     const result = await this.query(
       'DELETE FROM device_application_policy_assignments d USING managed_devices m WHERE d.managed_device_id=m.id AND d.managed_device_id=$1 AND m.admin_id=$2',
