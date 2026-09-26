@@ -112,3 +112,27 @@ AFTER UPDATE OF enrollment_status, operational_status ON managed_devices
 FOR EACH ROW
 WHEN (NEW.enrollment_status = 'REVOKED' OR NEW.operational_status = 'REVOKED')
 EXECUTE FUNCTION terminate_screen_sessions_for_device_revocation();
+
+
+CREATE OR REPLACE FUNCTION terminate_screen_sessions_for_admin_disable()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.status = 'DISABLED' THEN
+    UPDATE screen_sharing_sessions
+      SET status='EXPIRED',
+          stopped_at=COALESCE(stopped_at, NOW()),
+          last_activity_at=NOW(),
+          termination_reason='ADMIN_DISABLED',
+          transport_state='{"state":"EXPIRED","reason":"ADMIN_DISABLED"}'::jsonb
+      WHERE admin_id=NEW.id
+        AND status IN ('REQUESTED','AUTHORIZED','STARTING','ACTIVE','STOPPING');
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER admin_screen_session_disable
+AFTER UPDATE OF status ON admins
+FOR EACH ROW
+WHEN (NEW.status = 'DISABLED')
+EXECUTE FUNCTION terminate_screen_sessions_for_admin_disable();
