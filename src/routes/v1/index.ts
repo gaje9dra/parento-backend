@@ -124,7 +124,7 @@ export const createV1Router = (
       maxFutureSkewSeconds: security.monitoringMaxFutureSkewSeconds,
     },
   );
-  router.use(createApplicationManagementRouter(authentication, applicationManagementService, deviceSessions));
+  router.use(createApplicationManagementRouter(authentication, applicationManagementService, deviceSessions, rateLimit));
   const monitoringRepository = new PostgresDeviceMonitoringRepository(database);
   const monitoringService = new DeviceMonitoringService(
     monitoringRepository,
