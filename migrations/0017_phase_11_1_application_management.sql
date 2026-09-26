@@ -209,24 +209,40 @@ AFTER UPDATE OF version, status ON application_policies
 FOR EACH ROW EXECUTE FUNCTION propagate_application_policy_change();
 
 CREATE OR REPLACE FUNCTION invalidate_application_management_on_revoke()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER AS $
+DECLARE
+  command_row RECORD;
 BEGIN
   IF NEW.enrollment_status='REVOKED' OR NEW.operational_status='REVOKED' THEN
     UPDATE application_policy_sync_state
       SET status='STALE', updated_at=NOW()
       WHERE managed_device_id=NEW.id;
 
-    UPDATE commands
-      SET status='REJECTED',
-          completed_at=COALESCE(completed_at,NOW()),
-          failure_code='DEVICE_REVOKED'
+    FOR command_row IN
+      SELECT id, status, correlation_id
+      FROM commands
       WHERE managed_device_id=NEW.id
         AND type IN ('SYNC_APPLICATION_POLICY','REQUEST_APPLICATION_INVENTORY')
-        AND status IN ('CREATED','QUEUED','DELIVERING','DELIVERED','ACKNOWLEDGED');
+        AND status IN ('CREATED','QUEUED','DELIVERING','DELIVERED','ACKNOWLEDGED')
+    LOOP
+      UPDATE commands
+        SET status='REJECTED',
+            completed_at=COALESCE(completed_at,NOW()),
+            failure_code='DEVICE_REVOKED'
+        WHERE id=command_row.id;
+
+      INSERT INTO command_events
+        (id,command_id,from_status,to_status,actor_type,actor_id,correlation_id,occurred_at,metadata)
+      VALUES
+        (md5(command_row.id::text || clock_timestamp()::text)::uuid,
+         command_row.id, command_row.status, 'REJECTED', 'SYSTEM', NULL,
+         command_row.correlation_id, NOW(),
+         jsonb_build_object('reason','DEVICE_REVOKED'));
+    END LOOP;
   END IF;
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$ LANGUAGE plpgsql;
 
 CREATE TRIGGER managed_device_application_management_revocation
 AFTER UPDATE OF enrollment_status, operational_status ON managed_devices
