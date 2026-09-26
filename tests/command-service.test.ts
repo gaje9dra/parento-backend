@@ -163,7 +163,10 @@ describe('Phase 9.4 screen-sharing command binding', () => {
         screenSessionId: sessionId,
         correlationId: randomUUID(),
       }),
-    ).rejects.toMatchObject({ statusCode: 404, code: 'SCREEN_SESSION_NOT_FOUND' });
+    ).rejects.toMatchObject({
+      statusCode: 404,
+      code: 'SCREEN_SESSION_NOT_FOUND',
+    });
   });
 
   it('rejects replayed screen start against an ACTIVE session', async () => {
