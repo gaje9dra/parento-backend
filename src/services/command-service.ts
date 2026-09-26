@@ -49,6 +49,8 @@ export class CommandService {
         'STOP_SCREEN_SHARE',
         'START_AUDIO_ACCESS',
         'STOP_AUDIO_ACCESS',
+        'SYNC_APPLICATION_POLICY',
+        'REQUEST_APPLICATION_INVENTORY',
       ].includes(input.type) ||
       input.version !== 1
     )
@@ -77,21 +79,39 @@ export class CommandService {
     if (input.type !== 'FUTURE_COMMAND') {
       const keys = Object.keys(payload);
       const key = keys[0];
-      const validKey =
+      const validCapability =
         keys.length === 1 &&
         (key === 'screenSessionId' || key === 'audioSessionId');
-      const validValue =
+      const validCapabilityValue =
         (key === 'screenSessionId' &&
           typeof payload.screenSessionId === 'string' &&
           UUID.test(payload.screenSessionId)) ||
         (key === 'audioSessionId' &&
           typeof payload.audioSessionId === 'string' &&
           UUID.test(payload.audioSessionId));
-      if (!validKey || !validValue) {
+      const validApplicationPolicy =
+        input.type === 'SYNC_APPLICATION_POLICY' &&
+        keys.length === 2 &&
+        typeof payload.policyId === 'string' &&
+        UUID.test(payload.policyId) &&
+        Number.isInteger(payload.policyVersion) &&
+        Number(payload.policyVersion) > 0;
+      const validApplicationPolicyRemoval =
+        input.type === 'SYNC_APPLICATION_POLICY' &&
+        keys.length === 2 &&
+        payload.policyId === null &&
+        payload.policyVersion === null;
+      const validInventoryRequest =
+        input.type === 'REQUEST_APPLICATION_INVENTORY' &&
+        keys.length === 1 &&
+        payload.schemaVersion === 1;
+      if (
+        (!validCapability && !validApplicationPolicy && !validApplicationPolicyRemoval && !validInventoryRequest)
+      ) {
         throw new AppError(
           400,
           'INVALID_COMMAND_PAYLOAD',
-          'Capability commands require only a valid session identifier.',
+          'The command payload is not valid for the requested command type.',
         );
       }
     }
@@ -279,6 +299,47 @@ export class CommandService {
       payload: { audioSessionId: input.audioSessionId },
       idempotencyKey:
         'audio-session:' + input.audioSessionId + ':' + input.type,
+      correlationId: input.correlationId,
+    });
+  }
+
+  async createApplicationPolicyCommand(
+    adminId: string,
+    input: {
+      deviceId: string;
+      policyId: string | null;
+      policyVersion: number | null;
+      correlationId: string;
+    },
+  ): Promise<{ command: Command; created: boolean }> {
+    const isRemoval = input.policyId === null && input.policyVersion === null;
+    if (!isRemoval && (input.policyId === null || input.policyVersion === null)) {
+      throw new AppError(400, 'INVALID_REQUEST', 'Policy identity is incomplete.');
+    }
+    return this.create(adminId, {
+      deviceId: input.deviceId,
+      type: 'SYNC_APPLICATION_POLICY',
+      version: 1,
+      payload: { policyId: input.policyId, policyVersion: input.policyVersion },
+      idempotencyKey:
+        'application-policy:' +
+        input.deviceId +
+        ':' +
+        (input.policyVersion === null ? 'none' : input.policyVersion),
+      correlationId: input.correlationId,
+    });
+  }
+
+  async createApplicationInventoryRequest(
+    adminId: string,
+    input: { deviceId: string; correlationId: string },
+  ): Promise<{ command: Command; created: boolean }> {
+    return this.create(adminId, {
+      deviceId: input.deviceId,
+      type: 'REQUEST_APPLICATION_INVENTORY',
+      version: 1,
+      payload: { schemaVersion: 1 },
+      idempotencyKey: 'application-inventory:' + input.deviceId + ':' + input.correlationId,
       correlationId: input.correlationId,
     });
   }
