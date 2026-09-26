@@ -43,7 +43,7 @@ CREATE TABLE device_monitoring_state (
   CONSTRAINT device_monitoring_memory_nonnegative_check CHECK (
     (memory_total_bytes IS NULL OR memory_total_bytes >= 0) AND
     (memory_available_bytes IS NULL OR memory_available_bytes >= 0)
-  ),
+  )
 );
 
 CREATE INDEX device_monitoring_observed_idx
