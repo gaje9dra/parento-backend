@@ -101,7 +101,7 @@ const rawEnvSchema = z.object({
     .default(32768),
   APPLICATION_INVENTORY_MAX_ITEMS: z.coerce.number().int().min(1).max(10000).default(1000),
   APPLICATION_POLICY_MAX_RULES: z.coerce.number().int().min(1).max(5000).default(500),
-  APPLICATION_INVENTORY_MAX_PAYLOAD_BYTES: z.coerce.number().int().min(1024).max(1048576).default(131072),
+  APPLICATION_INVENTORY_MAX_PAYLOAD_BYTES: z.coerce.number().int().min(1024).max(1048576).default(65536),
   SCREEN_SHARING_MAX_DURATION_SECONDS: z.coerce
     .number()
     .int()
