@@ -81,14 +81,10 @@ export class PostgresApplicationInventoryRepository
         return { applied: false, receivedAt: currentReceived };
       }
 
-      await client.query(
-        'DELETE FROM application_inventory WHERE managed_device_id=$1',
-        [input.managedDeviceId],
-      );
-
       for (const item of input.items) {
         await client.query(
-          'INSERT INTO application_inventory (managed_device_id, package_name, label, version_name, version_code, install_state, enabled, first_observed_at, last_observed_at, last_received_at, source_category) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$8,$9,$10)',
+          'INSERT INTO application_inventory (managed_device_id, package_name, label, version_name, version_code, install_state, enabled, first_observed_at, last_observed_at, last_received_at, source_category) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$8,$9,$10) ' +
+            'ON CONFLICT (managed_device_id, package_name) DO UPDATE SET label=EXCLUDED.label, version_name=EXCLUDED.version_name, version_code=EXCLUDED.version_code, install_state=EXCLUDED.install_state, enabled=EXCLUDED.enabled, first_observed_at=LEAST(application_inventory.first_observed_at,EXCLUDED.first_observed_at), last_observed_at=GREATEST(application_inventory.last_observed_at,EXCLUDED.last_observed_at), last_received_at=EXCLUDED.last_received_at, source_category=EXCLUDED.source_category',
           [
             input.managedDeviceId,
             item.packageName,
@@ -101,6 +97,18 @@ export class PostgresApplicationInventoryRepository
             input.receivedAt,
             item.sourceCategory,
           ],
+        );
+      }
+
+      if (input.items.length === 0) {
+        await client.query(
+          'DELETE FROM application_inventory WHERE managed_device_id=$1',
+          [input.managedDeviceId],
+        );
+      } else {
+        await client.query(
+          'DELETE FROM application_inventory WHERE managed_device_id=$1 AND NOT (package_name = ANY($2::text[]))',
+          [input.managedDeviceId, input.items.map((item) => item.packageName)],
         );
       }
 
