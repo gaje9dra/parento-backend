@@ -65,7 +65,7 @@ export class PostgresAudioAccessSessionRepository
           [input.managedDeviceId],
         );
         const active = await client.query<Row>(
-          "SELECT " +
+          'SELECT ' +
             columns +
             " FROM audio_access_sessions WHERE managed_device_id=$1 AND status IN ('REQUESTED','AUTHORIZED','STARTING','ACTIVE','STOPPING') FOR UPDATE",
           [input.managedDeviceId],
@@ -153,7 +153,9 @@ export class PostgresAudioAccessSessionRepository
 
     return this.transaction(async (client) => {
       const currentResult = await client.query<Row>(
-        'SELECT ' + columns + ' FROM audio_access_sessions WHERE id=$1 FOR UPDATE',
+        'SELECT ' +
+          columns +
+          ' FROM audio_access_sessions WHERE id=$1 FOR UPDATE',
         [input.id],
       );
       const current = currentResult.rows[0];
