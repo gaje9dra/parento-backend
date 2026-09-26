@@ -122,6 +122,8 @@ const monitoringRepository = new PostgresDeviceMonitoringRepository(database);
       deviceCredentials,
       deviceSessions,
       rateLimit,
+      realtimeTransport,
+      commandDelivery,
     ),
   );
 
