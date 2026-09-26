@@ -445,7 +445,7 @@ export class PostgresApplicationManagementRepository
   async getEffectivePolicy(managedDeviceId: string, adminId: string): Promise<ApplicationPolicy | null> {
     const result = await this.query<PolicyRow>(
       'SELECT p.' + policyColumns.replaceAll(',', ',p.') +
-        ' FROM device_application_policy_assignments d JOIN managed_devices m ON m.id=d.managed_device_id JOIN application_policies p ON p.id=d.policy_id AND p.version=d.policy_version ' +
+        ' FROM device_application_policy_assignments d JOIN managed_devices m ON m.id=d.managed_device_id JOIN application_policies p ON p.id=d.policy_id ' +
         'WHERE d.managed_device_id=$1 AND m.admin_id=$2 AND p.status=\'ACTIVE\'',
       [managedDeviceId,adminId],
     );
