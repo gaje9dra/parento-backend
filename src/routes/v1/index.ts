@@ -31,6 +31,11 @@ import { PostgresDeviceMonitoringRepository } from '../../repositories/postgres-
 import { createDeviceMonitoringRouter } from './device-monitoring.routes.js';
 import { createAudioAccessRouter } from './audio-access.routes.js';
 import { AudioAccessService } from '../../services/audio-access-service.js';
+import { PostgresApplicationInventoryRepository } from '../../repositories/postgres-application-inventory-repository.js';
+import { PostgresApplicationPolicyRepository } from '../../repositories/postgres-application-policy-repository.js';
+import { PostgresApplicationManagementEventRepository } from '../../repositories/postgres-application-management-event-repository.js';
+import { ApplicationManagementService } from '../../services/application-management-service.js';
+import { createApplicationManagementRouter } from './application-management.routes.js';
 
 export const createV1Router = (
   database: Database,
@@ -166,6 +171,37 @@ export const createV1Router = (
       screenSharing,
       deviceSessions,
       rateLimit,
+    ),
+  );
+
+  const applicationInventory = new PostgresApplicationInventoryRepository(database);
+  const applicationPolicies = new PostgresApplicationPolicyRepository(database);
+  const applicationEvents = new PostgresApplicationManagementEventRepository(database);
+  const applicationManagement = new ApplicationManagementService(
+    applicationInventory,
+    applicationPolicies,
+    managedDevices,
+    commandService,
+    applicationEvents,
+    {
+      maxInventoryItems: security.applicationInventoryMaxItems,
+      maxPolicyRules: security.applicationPolicyMaxRules,
+      maxFutureSkewSeconds: security.monitoringMaxFutureSkewSeconds,
+      staleSeconds: security.monitoringStaleSeconds,
+      veryStaleSeconds: security.monitoringVeryStaleSeconds,
+    },
+  );
+  router.use(
+    createApplicationManagementRouter(
+      applicationManagement,
+      authentication,
+      deviceSessions,
+      rateLimit,
+      {
+        maxInventoryItems: security.applicationInventoryMaxItems,
+        maxPolicyRules: security.applicationPolicyMaxRules,
+        maxPayloadBytes: security.applicationInventoryMaxPayloadBytes,
+      },
     ),
   );
 
