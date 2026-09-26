@@ -1,4 +1,8 @@
 -- Phase 11.1 backend application inventory and desired-policy foundation.
+
+ALTER TABLE commands DROP CONSTRAINT IF EXISTS commands_type_check;
+ALTER TABLE commands ADD CONSTRAINT commands_type_check CHECK (type IN ('FUTURE_COMMAND','START_SCREEN_SHARE','STOP_SCREEN_SHARE','START_AUDIO_ACCESS','STOP_AUDIO_ACCESS','SYNC_APPLICATION_POLICY','REQUEST_APPLICATION_INVENTORY'));
+
 -- This migration stores application metadata and desired state only; Android enforcement is external.
 
 CREATE TABLE application_inventory (
