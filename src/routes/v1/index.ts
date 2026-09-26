@@ -118,9 +118,9 @@ export const createV1Router = (
     {
       staleSeconds: security.monitoringStaleSeconds,
       veryStaleSeconds: security.monitoringVeryStaleSeconds,
-      maxInventoryItems: 1000,
-      maxRuleCount: 500,
-      maxInventoryPayloadBytes: Math.min(security.monitoringMaxPayloadBytes, 131072),
+      maxInventoryItems: security.applicationInventoryMaxItems,
+      maxRuleCount: security.applicationPolicyMaxRules,
+      maxInventoryPayloadBytes: security.applicationInventoryMaxPayloadBytes,
       maxFutureSkewSeconds: security.monitoringMaxFutureSkewSeconds,
     },
   );
