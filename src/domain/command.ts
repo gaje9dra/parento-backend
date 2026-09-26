@@ -4,6 +4,8 @@ export const COMMAND_TYPES = [
   'STOP_SCREEN_SHARE',
   'START_AUDIO_ACCESS',
   'STOP_AUDIO_ACCESS',
+  'SYNC_APPLICATION_POLICY',
+  'REQUEST_APPLICATION_INVENTORY',
 ] as const;
 export type CommandType = (typeof COMMAND_TYPES)[number];
 export const COMMAND_TYPE = 'FUTURE_COMMAND' as const;
