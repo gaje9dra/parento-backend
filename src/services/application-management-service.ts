@@ -394,7 +394,7 @@ export class ApplicationManagementService {
       managedDeviceId: device.id,
       policyId: policy.id,
       policyVersion: assignment.policyVersion,
-      metadata: { commandId: sync.command.id },
+      metadata: { commandId: sync.command.command.id },
     });
     return { removed: true, sync };
   }
