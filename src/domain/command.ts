@@ -1,3 +1,9 @@
+export const COMMAND_TYPES = [
+  'FUTURE_COMMAND',
+  'START_SCREEN_SHARE',
+  'STOP_SCREEN_SHARE',
+] as const;
+export type CommandType = (typeof COMMAND_TYPES)[number];
 export const COMMAND_TYPE = 'FUTURE_COMMAND' as const;
 
 export type CommandStatus =
@@ -19,7 +25,7 @@ export interface Command {
   readonly id: string;
   readonly managedDeviceId: string;
   readonly adminId: string;
-  readonly type: typeof COMMAND_TYPE;
+  readonly type: CommandType;
   readonly version: number;
   readonly status: CommandStatus;
   readonly payload: Record<string, unknown>;

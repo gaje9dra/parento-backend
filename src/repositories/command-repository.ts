@@ -2,6 +2,7 @@ import type {
   Command,
   CommandActorType,
   CommandStatus,
+  CommandType,
 } from '../domain/command.js';
 import type { Repository } from './repository.js';
 
@@ -10,7 +11,7 @@ export interface CommandRepository extends Repository {
     id: string;
     managedDeviceId: string;
     adminId: string;
-    type: 'FUTURE_COMMAND';
+    type: CommandType;
     version: number;
     payload: Record<string, unknown>;
     correlationId: string | null;

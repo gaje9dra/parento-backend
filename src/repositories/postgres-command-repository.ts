@@ -4,6 +4,7 @@ import type {
   Command,
   CommandActorType,
   CommandStatus,
+  CommandType,
 } from '../domain/command.js';
 import {
   isTerminalCommandStatus,
@@ -18,7 +19,7 @@ interface Row {
   id: string;
   managed_device_id: string;
   admin_id: string;
-  type: 'FUTURE_COMMAND';
+  type: CommandType;
   version: number;
   status: CommandStatus;
   payload: Record<string, unknown>;
@@ -71,7 +72,7 @@ export class PostgresCommandRepository
     id: string;
     managedDeviceId: string;
     adminId: string;
-    type: 'FUTURE_COMMAND';
+    type: CommandType;
     version: number;
     payload: Record<string, unknown>;
     correlationId: string | null;

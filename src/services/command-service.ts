@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { Command, CommandStatus } from '../domain/command.js';
+import type { Command, CommandStatus, CommandType } from '../domain/command.js';
 import { PersistenceError } from '../domain/persistence-errors.js';
 import type { CommandRepository } from '../repositories/command-repository.js';
 import type { ManagedDeviceRepository } from '../repositories/managed-device-repository.js';
@@ -25,7 +25,7 @@ export class CommandService {
     adminId: string,
     input: {
       deviceId: string;
-      type: string;
+      type: CommandType;
       version: number;
       payload: unknown;
       idempotencyKey: string | null;
@@ -38,7 +38,12 @@ export class CommandService {
         'INVALID_REQUEST',
         'Managed-device identifier is invalid.',
       );
-    if (input.type !== 'FUTURE_COMMAND' || input.version !== 1)
+    if (
+      !['FUTURE_COMMAND', 'START_SCREEN_SHARE', 'STOP_SCREEN_SHARE'].includes(
+        input.type,
+      ) ||
+      input.version !== 1
+    )
       throw new AppError(
         400,
         'UNSUPPORTED_COMMAND_TYPE',
@@ -55,12 +60,27 @@ export class CommandService {
         'Command payload must be a JSON object.',
       );
     const payload = input.payload as Record<string, unknown>;
-    if (Object.keys(payload).length !== 0)
+    if (input.type === 'FUTURE_COMMAND' && Object.keys(payload).length !== 0)
       throw new AppError(
         400,
         'INVALID_COMMAND_PAYLOAD',
         'FUTURE_COMMAND does not accept executable or device-control payload data.',
       );
+    if (input.type !== 'FUTURE_COMMAND') {
+      const keys = Object.keys(payload);
+      if (
+        keys.length !== 1 ||
+        keys[0] !== 'screenSessionId' ||
+        typeof payload.screenSessionId !== 'string' ||
+        !UUID.test(payload.screenSessionId)
+      ) {
+        throw new AppError(
+          400,
+          'INVALID_COMMAND_PAYLOAD',
+          'Screen-sharing commands require only a valid screenSessionId.',
+        );
+      }
+    }
     const bytes = Buffer.byteLength(JSON.stringify(payload), 'utf8');
     if (bytes > this.options.maxPayloadBytes)
       throw new AppError(
@@ -101,7 +121,7 @@ export class CommandService {
         id: randomUUID(),
         managedDeviceId: device.id,
         adminId,
-        type: 'FUTURE_COMMAND',
+        type: input.type,
         version: 1,
         payload,
         correlationId: input.correlationId,
@@ -138,6 +158,27 @@ export class CommandService {
       throw error;
     }
   }
+  async createScreenShareCommand(
+    adminId: string,
+    input: {
+      deviceId: string;
+      type: 'START_SCREEN_SHARE' | 'STOP_SCREEN_SHARE';
+      screenSessionId: string;
+      correlationId: string;
+    },
+  ): Promise<{ command: Command; created: boolean }> {
+    const idempotencyKey =
+      'screen-session:' + input.screenSessionId + ':' + input.type;
+    return this.create(adminId, {
+      deviceId: input.deviceId,
+      type: input.type,
+      version: 1,
+      payload: { screenSessionId: input.screenSessionId },
+      idempotencyKey,
+      correlationId: input.correlationId,
+    });
+  }
+
   async getOwned(id: string, adminId: string): Promise<Command> {
     const command = await this.commands.findOwned(id, adminId);
     if (command === null)

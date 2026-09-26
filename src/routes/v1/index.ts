@@ -19,9 +19,12 @@ import { CommandService } from '../../services/command-service.js';
 import { PostgresLocationRepository } from '../../repositories/postgres-location-repository.js';
 import { LocationService } from '../../services/location-service.js';
 import { createLocationRouter } from './location.routes.js';
-  const locations = new PostgresLocationRepository(database);
-  const locationService = new LocationService(locations, managedDevices);
-    createLocationRouter(
+import { createScreenSharingRouter } from './screen-sharing.routes.js';
+import { InMemoryDeviceConnectionRegistry } from '../../realtime/device-connection-registry.js';
+import { SseDeviceTransport } from '../../realtime/sse-device-transport.js';
+import { CommandDeliveryService } from '../../services/command-delivery-service.js';
+import { ScreenSharingService } from '../../services/screen-sharing-service.js';
+import { PostgresScreenSharingSessionRepository } from '../../repositories/postgres-screen-sharing-session-repository.js';
 import { DeviceMonitoringService } from '../../services/device-monitoring-service.js';
 import { PostgresDeviceMonitoringRepository } from '../../repositories/postgres-device-monitoring-repository.js';
 import { createDeviceMonitoringRouter } from './device-monitoring.routes.js';
@@ -30,14 +33,19 @@ export const createV1Router = (
   database: Database,
   security: AppConfig['security'],
   rateLimit: AppConfig['rateLimit'],
+  realtime: AppConfig['realtime'] = { enabled: false },
 ): Router => {
   const router = Router();
+  const screenSessions = new PostgresScreenSharingSessionRepository(database);
   const adminRepository = new PostgresAdminRepository(database);
   const authentication = new AdminAuthenticationService(
     adminRepository,
     undefined,
     security.accessTokenTtlSeconds,
     security.sessionTtlSeconds,
+    async (adminId) => {
+      await screenSessions.expireForAdmin(adminId, new Date());
+    },
   );
 
   router.use(createHealthRouter(database));
@@ -67,13 +75,31 @@ export const createV1Router = (
     managedDevices,
     { sessionTtlSeconds: security.deviceSessionTtlSeconds },
   );
-  const commandService = new CommandService(commands, managedDevices, {
-    ttlSeconds: security.commandTtlSeconds,
-    maxPayloadBytes: security.commandMaxPayloadBytes,
-  });
+  const realtimeRegistry = new InMemoryDeviceConnectionRegistry();
+  const realtimeTransport = realtime.enabled
+    ? new SseDeviceTransport(realtimeRegistry)
+    : undefined;
+  const commandDelivery =
+    realtimeTransport === undefined
+      ? undefined
+      : new CommandDeliveryService(
+          commands,
+          realtimeTransport,
+          deviceSessions,
+          realtimeRegistry,
+        );
+  const commandService = new CommandService(
+    commands,
+    managedDevices,
+    {
+      ttlSeconds: security.commandTtlSeconds,
+      maxPayloadBytes: security.commandMaxPayloadBytes,
+    },
+    commandDelivery,
+  );
 
   router.use(createCommandRouter(authentication, commandService));
-const monitoringRepository = new PostgresDeviceMonitoringRepository(database);
+  const monitoringRepository = new PostgresDeviceMonitoringRepository(database);
   const monitoringService = new DeviceMonitoringService(
     monitoringRepository,
     managedDevices,
@@ -101,6 +127,8 @@ const monitoringRepository = new PostgresDeviceMonitoringRepository(database);
       deviceCredentials,
       deviceSessions,
       rateLimit,
+      realtimeTransport,
+      commandDelivery,
     ),
   );
 
@@ -115,6 +143,24 @@ const monitoringRepository = new PostgresDeviceMonitoringRepository(database);
     ),
   );
 
+  const screenSharing = new ScreenSharingService(
+    screenSessions,
+    managedDevices,
+    deviceSessions,
+    commandService,
+    {
+      maxDurationSeconds: security.screenSharingMaxDurationSeconds,
+      retentionSeconds: security.screenSharingRetentionSeconds,
+    },
+  );
+  router.use(
+    createScreenSharingRouter(
+      authentication,
+      screenSharing,
+      deviceSessions,
+      rateLimit,
+    ),
+  );
 
   return router;
 };

@@ -40,7 +40,11 @@ export class EnrollmentSessionService {
         error.code === 'INVALID_STATE' &&
         error.message === 'Administrator is not active.'
       ) {
-        throw new AppError(403, 'AUTHORIZATION_DENIED', 'Administrator authorization is required.');
+        throw new AppError(
+          403,
+          'AUTHORIZATION_DENIED',
+          'Administrator authorization is required.',
+        );
       }
       throw error;
     }
