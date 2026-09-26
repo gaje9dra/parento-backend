@@ -49,6 +49,8 @@ export class CommandService {
         'STOP_SCREEN_SHARE',
         'START_AUDIO_ACCESS',
         'STOP_AUDIO_ACCESS',
+        'SYNC_APPLICATION_POLICY',
+        'REQUEST_APPLICATION_INVENTORY',
       ].includes(input.type) ||
       input.version !== 1
     )
@@ -74,7 +76,13 @@ export class CommandService {
         'INVALID_COMMAND_PAYLOAD',
         'FUTURE_COMMAND does not accept executable or device-control payload data.',
       );
-    if (input.type !== 'FUTURE_COMMAND') {
+    if (['SYNC_APPLICATION_POLICY','REQUEST_APPLICATION_INVENTORY'].includes(input.type)) {
+      const keys = Object.keys(payload);
+      const validKeys = input.type === 'REQUEST_APPLICATION_INVENTORY' ? keys.length === 0 : keys.length === 2 && keys.includes('policyId') && keys.includes('policyVersion');
+      const validPolicyId = input.type === 'REQUEST_APPLICATION_INVENTORY' || (typeof payload.policyId === 'string' && UUID.test(payload.policyId));
+      const validPolicyVersion = input.type === 'REQUEST_APPLICATION_INVENTORY' || (typeof payload.policyVersion === 'number' && Number.isInteger(payload.policyVersion) && payload.policyVersion > 0);
+      if (!validKeys || !validPolicyId || !validPolicyVersion) throw new AppError(400,'INVALID_COMMAND_PAYLOAD','Application-management command payload is invalid.');
+    } else if (input.type !== 'FUTURE_COMMAND') {
       const keys = Object.keys(payload);
       const key = keys[0];
       const validKey =
