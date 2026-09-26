@@ -204,7 +204,6 @@ describe('Phase 9.4 screen-sharing command binding', () => {
   });
 });
 
-
 describe('Phase 10.1 audio-access command binding', () => {
   it('rejects an audio command whose session belongs to another device', async () => {
     const owner = randomUUID();
