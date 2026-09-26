@@ -182,9 +182,9 @@ describe('Phase 9.1 screen-sharing service', () => {
       { maxDurationSeconds: 900 },
     );
 
-    await expect(
-      service.stop(stopped.id, stopped.adminId),
-    ).resolves.toEqual(stopped);
+    await expect(service.stop(stopped.id, stopped.adminId)).resolves.toEqual(
+      stopped,
+    );
   });
 
   it('rejects stale device sessions for managed lifecycle acknowledgements', async () => {
