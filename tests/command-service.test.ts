@@ -203,3 +203,78 @@ describe('Phase 9.4 screen-sharing command binding', () => {
     });
   });
 });
+
+
+describe('Phase 10.1 audio-access command binding', () => {
+  it('rejects an audio command whose session belongs to another device', async () => {
+    const owner = randomUUID();
+    const managed = device(owner);
+    const audioSessionId = randomUUID();
+    const audioSessions = {
+      findById: async () => ({
+        id: audioSessionId,
+        managedDeviceId: randomUUID(),
+        adminId: owner,
+        status: 'AUTHORIZED',
+      }),
+    } as unknown as import('../src/repositories/audio-access-session-repository.js').AudioAccessSessionRepository;
+    const devices = new FakeDevices();
+    devices.item = managed;
+    const service = new CommandService(
+      new FakeCommands(),
+      devices,
+      { ttlSeconds: 300, maxPayloadBytes: 4096 },
+      undefined,
+      undefined,
+      audioSessions,
+    );
+
+    await expect(
+      service.createAudioAccessCommand(owner, {
+        deviceId: managed.id,
+        type: 'START_AUDIO_ACCESS',
+        audioSessionId,
+        correlationId: randomUUID(),
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 404,
+      code: 'AUDIO_SESSION_NOT_FOUND',
+    });
+  });
+
+  it('rejects replayed audio start against an ACTIVE session', async () => {
+    const owner = randomUUID();
+    const managed = device(owner);
+    const audioSessionId = randomUUID();
+    const audioSessions = {
+      findById: async () => ({
+        id: audioSessionId,
+        managedDeviceId: managed.id,
+        adminId: owner,
+        status: 'ACTIVE',
+      }),
+    } as unknown as import('../src/repositories/audio-access-session-repository.js').AudioAccessSessionRepository;
+    const devices = new FakeDevices();
+    devices.item = managed;
+    const service = new CommandService(
+      new FakeCommands(),
+      devices,
+      { ttlSeconds: 300, maxPayloadBytes: 4096 },
+      undefined,
+      undefined,
+      audioSessions,
+    );
+
+    await expect(
+      service.createAudioAccessCommand(owner, {
+        deviceId: managed.id,
+        type: 'START_AUDIO_ACCESS',
+        audioSessionId,
+        correlationId: randomUUID(),
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      code: 'AUDIO_SESSION_STATE_CONFLICT',
+    });
+  });
+});
