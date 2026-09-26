@@ -293,7 +293,8 @@ paths:
               type: object
               additionalProperties: false
               properties:
-                correlationId: { type: string, minLength: 1, maxLength: 128, nullable: true }
+                correlationId:
+                  { type: string, minLength: 1, maxLength: 128, nullable: true }
       responses:
         '201': { description: Screen-sharing session created }
         '200': { description: Existing session returned for an idempotent retry }
@@ -352,7 +353,8 @@ paths:
               type: object
               additionalProperties: false
               properties:
-                transportState: { type: object, additionalProperties: false, nullable: true }
+                transportState:
+                  { type: object, additionalProperties: false, nullable: true }
       responses:
         '200': { description: Active screen-sharing session }
         '400': { $ref: '#/components/responses/ApiErrorResponse' }
