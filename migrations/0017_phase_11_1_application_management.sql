@@ -286,7 +286,7 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  IF jsonb_object_length(NEW.payload) <> 2
+  IF (SELECT count(*) FROM jsonb_object_keys(NEW.payload)) <> 2
      OR NOT (NEW.payload ? 'policyId')
      OR NOT (NEW.payload ? 'policyVersion') THEN
     RAISE EXCEPTION 'Invalid application policy command payload'
