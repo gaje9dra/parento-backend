@@ -28,4 +28,5 @@ export interface ScreenSharingSessionRepository extends Repository {
     transportState?: Record<string, unknown> | null;
   }): Promise<ScreenSharingSession>;
   expireDue(now: Date, limit: number): Promise<number>;
+  expireForAdmin(adminId: string, now: Date): Promise<number>;
 }
