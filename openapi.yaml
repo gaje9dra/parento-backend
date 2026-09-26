@@ -481,6 +481,60 @@ paths:
         '401': { $ref: '#/components/responses/ApiErrorResponse' }
         '403': { $ref: '#/components/responses/ApiErrorResponse' }
         '404': { $ref: '#/components/responses/ApiErrorResponse' }
+  /api/v1/device/location:
+    post:
+      summary: Submit the authenticated managed device's latest location state
+      operationId: reportDeviceLocation
+      security:
+        - deviceSessionBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LocationReportRequest'
+      responses:
+        '202':
+          description: Location accepted as the latest state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationReportResponse'
+        '200':
+          description: Report was older than the current state and was ignored
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationReportResponse'
+        '400': { $ref: '#/components/responses/ApiErrorResponse' }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '403': { $ref: '#/components/responses/ApiErrorResponse' }
+        '409': { $ref: '#/components/responses/ApiErrorResponse' }
+        '429': { $ref: '#/components/responses/ApiErrorResponse' }
+  /api/v1/devices/{deviceId}/location:
+    get:
+      summary: Retrieve latest location state for an authorized managed device
+      operationId: getManagedDeviceLocation
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Latest location state or never-reported state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationResponse'
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '403': { $ref: '#/components/responses/ApiErrorResponse' }
+        '404': { $ref: '#/components/responses/ApiErrorResponse' }
+        '429': { $ref: '#/components/responses/ApiErrorResponse' }
 components:
   securitySchemes:
     bearerAuth:
@@ -785,6 +839,70 @@ components:
         lastSuccessfulCommunicationEpochMillis:
           { type: integer, format: int64, nullable: true }
         lastMonitoringUpdateEpochMillis: { type: integer, format: int64 }
+    LocationReportRequest:
+      type: object
+      additionalProperties: false
+      required: [reportId, availability, observedAt]
+      properties:
+        reportId: { type: string, format: uuid }
+        availability: { type: string, enum: [AVAILABLE, UNAVAILABLE] }
+        latitude: { type: number, minimum: -90, maximum: 90, nullable: true }
+        longitude: { type: number, minimum: -180, maximum: 180, nullable: true }
+        accuracyMeters:
+          { type: number, minimum: 0, maximum: 100000, nullable: true }
+        observedAt: { type: string, format: date-time }
+    LocationState:
+      type: object
+      required:
+        [
+          managedDeviceId,
+          availability,
+          latitude,
+          longitude,
+          accuracyMeters,
+          observedAt,
+          receivedAt,
+          reportId,
+        ]
+      properties:
+        managedDeviceId: { type: string, format: uuid }
+        availability: { type: string, enum: [AVAILABLE, UNAVAILABLE] }
+        latitude: { type: number, nullable: true }
+        longitude: { type: number, nullable: true }
+        accuracyMeters: { type: number, nullable: true }
+        observedAt: { type: string, format: date-time }
+        receivedAt: { type: string, format: date-time }
+        reportId: { type: string, format: uuid }
+    LocationReportResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccess'
+        - type: object
+          properties:
+            data:
+              type: object
+              required: [accepted, location, freshness]
+              properties:
+                accepted: { type: boolean }
+                location: { $ref: '#/components/schemas/LocationState' }
+                freshness:
+                  type: string
+                  enum: [FRESH, STALE, VERY_STALE, UNKNOWN, NEVER_REPORTED]
+    LocationResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccess'
+        - type: object
+          properties:
+            data:
+              type: object
+              required: [location, freshness]
+              properties:
+                location:
+                  oneOf:
+                    - $ref: '#/components/schemas/LocationState'
+                    - type: 'null'
+                freshness:
+                  type: string
+                  enum: [FRESH, STALE, VERY_STALE, UNKNOWN, NEVER_REPORTED]
     ApiError:
       type: object
       required: [error, requestId]
@@ -828,6 +946,10 @@ components:
                 - UNSUPPORTED_MONITORING_SCHEMA
                 - INVALID_MONITORING_PAYLOAD
                 - REALTIME_UNAVAILABLE
+                - INVALID_LOCATION_COORDINATES
+                - INVALID_LOCATION_ACCURACY
+                - INVALID_LOCATION_TIMESTAMP
+                - LOCATION_REPORT_ID_CONFLICT
             message:
               type: string
             metadata:
