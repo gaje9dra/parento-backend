@@ -23,7 +23,12 @@ describe('Phase 10.1 audio-access state machine', () => {
   });
 
   it('keeps terminal states terminal', () => {
-    for (const status of ['STOPPED', 'EXPIRED', 'FAILED', 'REJECTED'] as const) {
+    for (const status of [
+      'STOPPED',
+      'EXPIRED',
+      'FAILED',
+      'REJECTED',
+    ] as const) {
       expect(isTerminalAudioAccessStatus(status)).toBe(true);
     }
   });
