@@ -138,6 +138,101 @@ describe('Phase 9.1 screen-sharing service', () => {
     });
   });
 
+  it('retries the same start request idempotently when correlation matches', async () => {
+    const requested = makeSession('ACTIVE');
+    const screenSessions = {
+      name: 'screen-sharing-session',
+      create: vi.fn().mockResolvedValue({ session: requested, created: false }),
+      expireDue: vi.fn().mockResolvedValue(0),
+      deleteTerminatedBefore: vi.fn().mockResolvedValue(0),
+    } as unknown as ScreenSharingSessionRepository;
+    const service = new ScreenSharingService(
+      screenSessions,
+      { findById: vi.fn().mockResolvedValue(device) } as unknown as ManagedDeviceRepository,
+      { findActiveByDeviceId: vi.fn().mockResolvedValue(connection) } as unknown as DeviceConnectionSessionRepository,
+      {} as CommandService,
+      { maxDurationSeconds: 900 },
+    );
+
+    const result = await service.request(
+      device.adminId,
+      device.id,
+      requested.correlationId,
+    );
+
+    expect(result.created).toBe(false);
+    expect(result.session.id).toBe(requested.id);
+  });
+
+  it('treats repeated stop requests as idempotent after termination', async () => {
+    const stopped = makeSession('STOPPED');
+    const screenSessions = {
+      name: 'screen-sharing-session',
+      findOwned: vi.fn().mockResolvedValue(stopped),
+    } as unknown as ScreenSharingSessionRepository;
+    const service = new ScreenSharingService(
+      screenSessions,
+      {} as ManagedDeviceRepository,
+      {} as DeviceConnectionSessionRepository,
+      {} as CommandService,
+      { maxDurationSeconds: 900 },
+    );
+
+    await expect(service.stop(stopped.id, stopped.adminId)).resolves.toEqual(stopped);
+  });
+
+  it('rejects stale device sessions for managed lifecycle acknowledgements', async () => {
+    const active = makeSession('STARTING');
+    const screenSessions = {
+      findById: vi.fn().mockResolvedValue(active),
+    } as unknown as ScreenSharingSessionRepository;
+    const service = new ScreenSharingService(
+      screenSessions,
+      {} as ManagedDeviceRepository,
+      {} as DeviceConnectionSessionRepository,
+      {} as CommandService,
+      { maxDurationSeconds: 900 },
+    );
+
+    await expect(
+      service.markStarted(
+        active.id,
+        {
+          managedDeviceId: active.managedDeviceId,
+          state: 'STALE',
+          expiresAt: new Date(Date.now() + 60_000),
+        },
+        null,
+      ),
+    ).rejects.toMatchObject({ code: 'DEVICE_SESSION_INVALID', statusCode: 401 });
+  });
+
+  it('rejects unsupported transport lifecycle metadata', async () => {
+    const active = makeSession('STARTING');
+    const screenSessions = {
+      findById: vi.fn().mockResolvedValue(active),
+    } as unknown as ScreenSharingSessionRepository;
+    const service = new ScreenSharingService(
+      screenSessions,
+      {} as ManagedDeviceRepository,
+      {} as DeviceConnectionSessionRepository,
+      {} as CommandService,
+      { maxDurationSeconds: 900 },
+    );
+
+    await expect(
+      service.markStarted(
+        active.id,
+        {
+          managedDeviceId: active.managedDeviceId,
+          state: 'CONNECTED',
+          expiresAt: new Date(Date.now() + 60_000),
+        },
+        { state: 'EVIL_STATE' },
+      ),
+    ).rejects.toMatchObject({ code: 'INVALID_REQUEST', statusCode: 400 });
+  });
+
   it('transitions an owned active session to STOPPING and queues a stop command', async () => {
     const active = makeSession('ACTIVE');
     const stopping = { ...active, status: 'STOPPING' as const };
