@@ -2,7 +2,7 @@ name: Temporary Prettier Helper
 
 on:
   push:
-    branches: [phase-11.1-application-management-foundation]
+    branches: [phase-3-3-verification-3]
 
 jobs:
   format:
@@ -13,4 +13,4 @@ jobs:
         with:
           node-version: 24.21.0
       - run: npm install --ignore-scripts
-      - run: npx prettier --check . || true
+      - run: npx prettier src/repositories/postgres-admin-repository.ts
