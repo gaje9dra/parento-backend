@@ -202,6 +202,15 @@ export class PostgresScreenSharingSessionRepository
     return result.rowCount ?? 0;
   }
 
+  async deleteTerminatedBefore(cutoff: Date, limit: number): Promise<number> {
+    const boundedLimit = Math.min(Math.max(Math.trunc(limit), 1), 1000);
+    const result = await this.query<{ id: string }>(
+      "DELETE FROM screen_sharing_sessions WHERE id IN (SELECT id FROM screen_sharing_sessions WHERE stopped_at IS NOT NULL AND stopped_at < $1 ORDER BY stopped_at ASC LIMIT $2) RETURNING id",
+      [cutoff, boundedLimit],
+    );
+    return result.rowCount ?? 0;
+  }
+
   async expireDue(now: Date, limit: number): Promise<number> {
     const boundedLimit = Math.min(Math.max(Math.trunc(limit), 1), 1000);
     return this.transaction(async (client) => {
