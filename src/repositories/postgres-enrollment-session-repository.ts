@@ -64,12 +64,21 @@ export class PostgresEnrollmentSessionRepository
     expiresAt: Date;
   }): Promise<EnrollmentSession> {
     try {
-      const result = await this.query<SessionRow>(
-        'INSERT INTO enrollment_sessions (id, admin_id, secret_hash, expires_at) VALUES ($1, $2, $3, $4) RETURNING ' +
-          columns,
-        [input.id, input.adminId, input.secretHash, input.expiresAt],
-      );
-      return toSession(result.rows[0]!);
+      return await this.transaction(async (client) => {
+        const admin = await client.query<{ status: 'ACTIVE' | 'DISABLED' }>(
+          'SELECT status FROM admins WHERE id = $1 FOR UPDATE',
+          [input.adminId],
+        );
+        if (admin.rows[0]?.status !== 'ACTIVE') {
+          throw new PersistenceError('INVALID_STATE', 'Administrator is not active.');
+        }
+        const result = await client.query<SessionRow>(
+          'INSERT INTO enrollment_sessions (id, admin_id, secret_hash, expires_at) VALUES ($1, $2, $3, $4) RETURNING ' +
+            columns,
+          [input.id, input.adminId, input.secretHash, input.expiresAt],
+        );
+        return toSession(result.rows[0]!);
+      });
     } catch (error) {
       throw mapPostgresPersistenceError(
         error,
@@ -103,6 +112,11 @@ export class PostgresEnrollmentSessionRepository
   ): Promise<EnrollmentSession | null> {
     try {
       return await this.transaction(async (client) => {
+        const adminResult = await client.query<{ status: 'ACTIVE' | 'DISABLED' }>(
+          'SELECT status FROM admins WHERE id = $1 FOR UPDATE',
+          [adminId],
+        );
+        if (adminResult.rows[0]?.status !== 'ACTIVE') return null;
         const result = await client.query<SessionRow>(
           'SELECT ' +
             columns +
@@ -157,6 +171,24 @@ export class PostgresEnrollmentSessionRepository
 
     try {
       return await this.transaction(async (client) => {
+        const ownerResult = await client.query<{ admin_id: string }>(
+          'SELECT admin_id FROM enrollment_sessions WHERE id = $1',
+          [input.id],
+        );
+        const owner = ownerResult.rows[0];
+        if (owner === undefined) {
+          throw new PersistenceError('NOT_FOUND', 'Enrollment session not found.');
+        }
+        const adminResult = await client.query<{ status: 'ACTIVE' | 'DISABLED' }>(
+          'SELECT status FROM admins WHERE id = $1 FOR UPDATE',
+          [owner.admin_id],
+        );
+        if (adminResult.rows[0]?.status !== 'ACTIVE') {
+          throw new PersistenceError(
+            'INVALID_STATE',
+            'Enrollment authorization is no longer available.',
+          );
+        }
         const result = await client.query<SessionRow>(
           'SELECT ' +
             columns +
@@ -209,16 +241,6 @@ export class PostgresEnrollmentSessionRepository
             attempts >= maxAttempts
               ? 'Enrollment verification is no longer available.'
               : 'Enrollment verification failed.',
-          );
-        }
-
-        const adminResult = await client.query<{
-          status: 'ACTIVE' | 'DISABLED';
-        }>('SELECT status FROM admins WHERE id = $1', [current.admin_id]);
-        if (adminResult.rows[0]?.status !== 'ACTIVE') {
-          throw new PersistenceError(
-            'INVALID_STATE',
-            'Enrollment authorization is no longer available.',
           );
         }
 

@@ -637,3 +637,33 @@ Implemented endpoints:
 The managed Android client is intentionally not modified in this backend phase. Monitoring synchronization remains a documented cross-repository dependency. Its later integration must consume the documented monitoring and SSE contracts.
 
 See `docs/phase-6.4-device-communication-monitoring.md` for the complete contract, lifecycle, security, freshness, retention, and operational details.
+
+## Phase 5.4 — Enrollment Security Hardening & Phase 5 Backend Completion
+
+Phase 5.4 hardens the Phase 5.1 enrollment implementation without changing the established API architecture or modifying the Android repositories.
+
+Implemented:
+
+- administrator-row locking during enrollment creation, cancellation, and consumption;
+- server-side disabled-administrator enforcement at the database transaction boundary;
+- database invariants for enrollment secret digest format and state/timestamp/device-association consistency;
+- exact server-time expiration enforcement at the consumption boundary;
+- replay and concurrent-consumption protection retained with PostgreSQL row locking and stable installation identity uniqueness;
+- expanded enrollment integration coverage for disabled administrators and expiration boundaries;
+- Phase 5.4 enrollment security documentation.
+
+Migration:
+
+`migrations/0008_phase_5_4_enrollment_security_hardening.sql`
+
+The Phase 5 HTTP contract remains unchanged:
+
+- `POST /api/v1/devices/enrollments`
+- `GET /api/v1/devices/enrollments`
+- `GET /api/v1/devices/enrollments/{enrollmentId}`
+- `POST /api/v1/devices/enrollments/{enrollmentId}/cancel`
+- `POST /api/v1/devices/enrollments/{enrollmentId}/consume`
+
+No Phase 6 functionality is implemented. No changes are made to `gaje9dra/parento-admin` or `gaje9dra/parento-managed`.
+
+See `docs/phase-5.4-enrollment-security.md` for the final security model, state machine, transaction boundaries, database invariants, and cross-repository contract.

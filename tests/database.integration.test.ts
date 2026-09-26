@@ -45,6 +45,11 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
         applied: true,
         name: 'phase_6_4_device_communication_monitoring',
       },
+      {
+        id: '0010',
+        applied: true,
+        name: 'phase_5_4_enrollment_security_hardening',
+      },
     ]);
   });
 
@@ -53,7 +58,7 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
     await runMigrations(database);
 
     const status = await migrationStatus(database);
-    expect(status.filter((migration) => migration.applied)).toHaveLength(9);
+    expect(status.filter((migration) => migration.applied)).toHaveLength(10);
   });
 
   it('verifies the final schema has the Phase 2 integrity constraints and query indexes', async () => {
@@ -75,10 +80,19 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
       'SELECT constraint_name FROM information_schema.table_constraints ' +
         "WHERE constraint_schema = 'public' AND constraint_name IN (" +
         "'managed_devices_stable_identifier_unique', 'enrollments_device_admin_fk', " +
-        "'managed_devices_stable_identifier_check', 'enrollments_completed_timestamp_check'" +
+        "'managed_devices_stable_identifier_check', 'enrollments_completed_timestamp_check', 'enrollment_sessions_secret_hash_format_check', 'enrollment_sessions_verified_timestamp_check', 'enrollment_sessions_verified_timestamp_state_check', 'enrollment_sessions_completed_timestamp_check', 'enrollment_sessions_completed_timestamp_state_check', 'enrollment_sessions_managed_device_check', 'enrollment_sessions_managed_device_state_check', 'enrollment_sessions_cancelled_timestamp_check', 'enrollment_sessions_cancelled_timestamp_state_check'" +
         ') ORDER BY constraint_name',
     );
     expect(constraints.rows.map((row) => row.constraint_name)).toEqual([
+      'enrollment_sessions_cancelled_timestamp_check',
+      'enrollment_sessions_cancelled_timestamp_state_check',
+      'enrollment_sessions_completed_timestamp_check',
+      'enrollment_sessions_completed_timestamp_state_check',
+      'enrollment_sessions_managed_device_check',
+      'enrollment_sessions_managed_device_state_check',
+      'enrollment_sessions_secret_hash_format_check',
+      'enrollment_sessions_verified_timestamp_check',
+      'enrollment_sessions_verified_timestamp_state_check',
       'enrollments_completed_timestamp_check',
       'enrollments_device_admin_fk',
       'managed_devices_stable_identifier_check',
@@ -148,9 +162,9 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
     await runMigrations(database);
     const status = await migrationStatus(database);
     expect(status.at(-1)).toEqual({
-      id: '0009',
+      id: '0010',
       applied: true,
-      name: 'phase_6_4_device_communication_monitoring',
+      name: 'phase_5_4_enrollment_security_hardening',
     });
   });
 
