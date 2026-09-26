@@ -16,15 +16,13 @@ const methodNotAllowed =
   (allow: string): RequestHandler =>
   (_req, res) => {
     res.setHeader('Allow', allow);
-    res
-      .status(405)
-      .json({
-        error: {
-          code: 'METHOD_NOT_ALLOWED',
-          message: 'HTTP method is not allowed for this endpoint.',
-        },
-        requestId: res.locals.requestId,
-      });
+    res.status(405).json({
+      error: {
+        code: 'METHOD_NOT_ALLOWED',
+        message: 'HTTP method is not allowed for this endpoint.',
+      },
+      requestId: res.locals.requestId,
+    });
   };
 
 export const createDeviceMonitoringRouter = (
