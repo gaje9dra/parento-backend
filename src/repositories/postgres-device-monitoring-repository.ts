@@ -30,7 +30,8 @@ const mapState = (row: StateRow): DeviceMonitoringState => {
   managementMode: row.management_mode as DeviceMonitoringState['managementMode'],
   lastSuccessfulInitializationAt: row.last_successful_initialization_at, lastSuccessfulCommunicationAt: row.last_successful_communication_at,
   freshness: 'UNKNOWN', lastSeenAt: row.last_seen_at,
-});
+  });
+};
 
 const cursorEncode = (createdAt: Date, id: string): string => Buffer.from(JSON.stringify({ createdAt: createdAt.toISOString(), id })).toString('base64url');
 const cursorDecode = (cursor: string): { createdAt: Date; id: string } => {
