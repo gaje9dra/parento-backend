@@ -84,3 +84,7 @@ No screen frames, screenshots, recordings, media blobs, or transport credentials
 ## Transport boundary
 
 The backend only coordinates authorization, command delivery, lifecycle, expiration, and non-secret session metadata. Actual MediaProjection capture, media encoding/decoding, media transport, and OS consent remain out of scope for Phase 9.1.
+
+
+## Verification note
+Terminated session metadata is cleaned opportunistically when new screen-sharing requests are processed, using the configured retention window. This keeps retention bounded without introducing a separate scheduler in Phase 9.1.
