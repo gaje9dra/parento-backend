@@ -137,3 +137,51 @@ CREATE TRIGGER managed_device_application_enforcement_revocation
 AFTER UPDATE OF enrollment_status, operational_status ON managed_devices
 FOR EACH ROW WHEN (NEW.enrollment_status='REVOKED' OR NEW.operational_status='REVOKED')
 EXECUTE FUNCTION clear_application_enforcement_on_revocation();
+
+CREATE OR REPLACE FUNCTION sync_application_enforcement_on_policy_change()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.status = 'ACTIVE' THEN
+    UPDATE application_enforcement_state e
+    SET desired_policy_id = NEW.id,
+        desired_policy_version = NEW.version,
+        status = CASE WHEN e.reported_policy_id = NEW.id AND e.reported_policy_version = NEW.version THEN 'APPLIED' ELSE 'PENDING' END,
+        synchronization_required = NOT (e.reported_policy_id = NEW.id AND e.reported_policy_version = NEW.version),
+        synchronization_requested_at = NOW(),
+        updated_at = NOW()
+    WHERE e.managed_device_id IN (
+      SELECT managed_device_id FROM device_application_policy_assignments WHERE policy_id = NEW.id
+    );
+  ELSE
+    UPDATE application_enforcement_state e
+    SET status='STALE', synchronization_required=FALSE, updated_at=NOW()
+    WHERE e.managed_device_id IN (
+      SELECT managed_device_id FROM device_application_policy_assignments WHERE policy_id = NEW.id
+    );
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER application_policy_enforcement_sync
+AFTER UPDATE OF status, version ON application_policies
+FOR EACH ROW EXECUTE FUNCTION sync_application_enforcement_on_policy_change();
+
+CREATE OR REPLACE FUNCTION clear_application_enforcement_on_assignment_removal()
+RETURNS TRIGGER AS $$
+BEGIN
+  UPDATE application_enforcement_state
+  SET desired_policy_id=NULL,
+      desired_policy_version=NULL,
+      status='UNKNOWN',
+      synchronization_required=FALSE,
+      synchronization_requested_at=NULL,
+      updated_at=NOW()
+  WHERE managed_device_id=OLD.managed_device_id;
+  RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER device_application_policy_assignment_remove_sync
+AFTER DELETE ON device_application_policy_assignments
+FOR EACH ROW EXECUTE FUNCTION clear_application_enforcement_on_assignment_removal();
