@@ -5,8 +5,8 @@ import type {
 import type { Repository } from './repository.js';
 
 export interface MonitoringDevicePageRequest {
-  readonly limit?: number;
-  readonly cursor?: string | null;
+  readonly limit?: number | undefined;
+  readonly cursor?: string | null | undefined;
 }
 
 export interface MonitoringDevicePageItem {
