@@ -323,22 +323,3 @@ describe('Phase 10.1 audio-access command binding', () => {
     ).resolves.toMatchObject({ created: true });
   });
 });
-Post job cleanup.
-(node:2346) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
-(Use `node --trace-deprecation ...` to show where the warning was created)
-Post job cleanup.
-[command]/usr/bin/git version
-git version 2.55.0
-Temporarily overriding HOME='/home/runner/work/_temp/e10b3868-31a5-407b-8847-8b75dea1f11f' before making global git config changes
-Adding repository directory to the temporary git global config as a safe directory
-[command]/usr/bin/git config --global --add safe.directory /home/runner/work/parento-backend/parento-backend
-[command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
-[command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
-[command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
-http.https://github.com/.extraheader
-[command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
-[command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
-[command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
-[command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
-Cleaning up orphan processes
-##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-node@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
