@@ -251,8 +251,6 @@ export class PostgresScreenSharingSessionRepository
   }
 }
 
-
-
 const insertEvent = async (
   client: PoolClient,
   sessionId: string,
