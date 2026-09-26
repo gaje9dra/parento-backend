@@ -78,7 +78,7 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
     await runMigrations(database);
 
     const status = await migrationStatus(database);
-    expect(status.filter((migration) => migration.applied)).toHaveLength(14);
+    expect(status.filter((migration) => migration.applied)).toHaveLength(15);
   });
 
   it('verifies the final schema has the Phase 2 integrity constraints and query indexes', async () => {
@@ -182,9 +182,9 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
     await runMigrations(database);
     const status = await migrationStatus(database);
     expect(status.at(-1)).toEqual({
-      id: '0014',
+      id: '0015',
       applied: true,
-      name: 'phase_9_1_screen_sharing',
+      name: 'phase_9_4_screen_sharing_hardening',
     });
   });
 
