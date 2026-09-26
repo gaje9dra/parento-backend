@@ -39,6 +39,7 @@ const makeSession = (
 ): AudioAccessSession => ({
   id: '44444444-4444-4444-8444-444444444444',
   managedDeviceId: device.id,
+  deviceConnectionSessionId: connection.id,
   adminId: device.adminId,
   status,
   createdAt: new Date(),
@@ -141,6 +142,7 @@ describe('Phase 10.1 audio-access service', () => {
       service.markStarted(
         starting.id,
         {
+          id: connection.id,
           managedDeviceId: starting.managedDeviceId,
           state: 'STALE',
           expiresAt: new Date(Date.now() + 60_000),
@@ -156,11 +158,60 @@ describe('Phase 10.1 audio-access service', () => {
       service.markStarted(
         starting.id,
         {
+          id: connection.id,
           managedDeviceId: starting.managedDeviceId,
           state: 'CONNECTED',
           expiresAt: new Date(Date.now() + 60_000),
         },
         { state: 'EVIL_STATE' },
+      ),
+    ).rejects.toMatchObject({
+      code: 'INVALID_REQUEST',
+      statusCode: 400,
+    });
+  });
+
+  it('rejects acknowledgements from a different device connection session', async () => {
+    const starting = makeSession('STARTING');
+    const sessions = {
+      findById: vi.fn().mockResolvedValue(starting),
+    } as unknown as AudioAccessSessionRepository;
+    const service = buildService(sessions);
+
+    await expect(
+      service.markStarted(
+        starting.id,
+        {
+          id: '99999999-9999-4999-8999-999999999999',
+          managedDeviceId: starting.managedDeviceId,
+          state: 'CONNECTED',
+          expiresAt: new Date(Date.now() + 60_000),
+        },
+        null,
+      ),
+    ).rejects.toMatchObject({
+      code: 'AUTHORIZATION_DENIED',
+      statusCode: 403,
+    });
+  });
+
+  it('rejects credential or media metadata in transport state', async () => {
+    const starting = makeSession('STARTING');
+    const sessions = {
+      findById: vi.fn().mockResolvedValue(starting),
+    } as unknown as AudioAccessSessionRepository;
+    const service = buildService(sessions);
+
+    await expect(
+      service.markStarted(
+        starting.id,
+        {
+          id: connection.id,
+          managedDeviceId: starting.managedDeviceId,
+          state: 'CONNECTED',
+          expiresAt: new Date(Date.now() + 60_000),
+        },
+        { token: 'secret' },
       ),
     ).rejects.toMatchObject({
       code: 'INVALID_REQUEST',
