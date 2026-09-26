@@ -131,7 +131,6 @@ describe('Phase 6.1 command authorization', () => {
   });
 });
 
-
 describe('Phase 9.4 screen-sharing command binding', () => {
   it('rejects a screen command whose session belongs to another device', async () => {
     const owner = randomUUID();
