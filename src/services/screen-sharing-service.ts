@@ -86,7 +86,8 @@ export class ScreenSharingService {
       );
     }
 
-    const connection = await this.deviceSessions.findActiveByDeviceId(deviceId);
+    const connection =
+      (await this.deviceSessions.findActiveByDeviceId?.(deviceId)) ?? null;
     if (connection === null || connection.expiresAt.getTime() <= Date.now()) {
       throw new AppError(
         409,
