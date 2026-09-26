@@ -19,6 +19,12 @@ import { CommandService } from '../../services/command-service.js';
 import { PostgresLocationRepository } from '../../repositories/postgres-location-repository.js';
 import { LocationService } from '../../services/location-service.js';
 import { createLocationRouter } from './location.routes.js';
+import { createScreenSharingRouter } from './screen-sharing.routes.js';
+import { InMemoryDeviceConnectionRegistry } from '../../realtime/device-connection-registry.js';
+import { SseDeviceTransport } from '../../realtime/sse-device-transport.js';
+import { CommandDeliveryService } from '../../services/command-delivery-service.js';
+import { ScreenSharingService } from '../../services/screen-sharing-service.js';
+import { PostgresScreenSharingSessionRepository } from '../../repositories/postgres-screen-sharing-session-repository.js';
   const locations = new PostgresLocationRepository(database);
   const locationService = new LocationService(locations, managedDevices);
     createLocationRouter(
@@ -30,6 +36,7 @@ export const createV1Router = (
   database: Database,
   security: AppConfig['security'],
   rateLimit: AppConfig['rateLimit'],
+  realtime: AppConfig['realtime'] = { enabled: false },
 ): Router => {
   const router = Router();
   const adminRepository = new PostgresAdminRepository(database);
@@ -67,10 +74,27 @@ export const createV1Router = (
     managedDevices,
     { sessionTtlSeconds: security.deviceSessionTtlSeconds },
   );
-  const commandService = new CommandService(commands, managedDevices, {
-    ttlSeconds: security.commandTtlSeconds,
-    maxPayloadBytes: security.commandMaxPayloadBytes,
-  });
+  const realtimeRegistry = new InMemoryDeviceConnectionRegistry();
+  const realtimeTransport = realtime.enabled
+    ? new SseDeviceTransport(realtimeRegistry)
+    : undefined;
+  const commandDelivery = realtimeTransport === undefined
+    ? undefined
+    : new CommandDeliveryService(
+        commands,
+        realtimeTransport,
+        deviceSessions,
+        realtimeRegistry,
+      );
+  const commandService = new CommandService(
+    commands,
+    managedDevices,
+    {
+      ttlSeconds: security.commandTtlSeconds,
+      maxPayloadBytes: security.commandMaxPayloadBytes,
+    },
+    commandDelivery,
+  );
 
   router.use(createCommandRouter(authentication, commandService));
 const monitoringRepository = new PostgresDeviceMonitoringRepository(database);
@@ -112,9 +136,27 @@ const monitoringRepository = new PostgresDeviceMonitoringRepository(database);
       locationService,
       deviceSessions,
       rateLimit,
+      realtimeTransport,
+      commandDelivery,
     ),
   );
 
+  const screenSessions = new PostgresScreenSharingSessionRepository(database);
+  const screenSharing = new ScreenSharingService(
+    screenSessions,
+    managedDevices,
+    deviceSessions,
+    commandService,
+    { maxDurationSeconds: security.screenSharingMaxDurationSeconds },
+  );
+  router.use(
+    createScreenSharingRouter(
+      authentication,
+      screenSharing,
+      deviceSessions,
+      rateLimit,
+    ),
+  );
 
   return router;
 };
