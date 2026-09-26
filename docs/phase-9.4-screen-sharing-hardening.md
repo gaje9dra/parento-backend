@@ -123,4 +123,3 @@ No camera, microphone, audio streaming, arbitrary execution, shell access, permi
 ## Git safety
 
 Only `gaje9dra/parento-backend` is changed by this phase. No changes were made to `parento-managed` or `parento-admin`.
-
