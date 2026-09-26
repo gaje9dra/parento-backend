@@ -125,9 +125,7 @@ export const createAudioAccessController = (service: AudioAccessService) => ({
       if (!p.success || !req.authenticatedAdmin) {
         res.status(p.success ? 401 : 400).json({
           error: {
-            code: p.success
-              ? 'AUTHENTICATION_REQUIRED'
-              : 'INVALID_REQUEST',
+            code: p.success ? 'AUTHENTICATION_REQUIRED' : 'INVALID_REQUEST',
             message: p.success
               ? 'Administrator authentication is required.'
               : 'Invalid audio session identifier.',
