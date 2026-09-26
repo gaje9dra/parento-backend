@@ -1,519 +1,1205 @@
-import { randomUUID } from 'node:crypto';
-import type { Command, CommandStatus, CommandType } from '../domain/command.js';
-import { PersistenceError } from '../domain/persistence-errors.js';
-import type { CommandRepository } from '../repositories/command-repository.js';
-import type { ManagedDeviceRepository } from '../repositories/managed-device-repository.js';
-import { AppError } from '../types/errors.js';
-import type { CommandDeliveryService } from './command-delivery-service.js';
-import type { ScreenSharingSessionRepository } from '../repositories/screen-sharing-session-repository.js';
-import type { AudioAccessSessionRepository } from '../repositories/audio-access-session-repository.js';
-
-export interface CommandServiceOptions {
-  readonly ttlSeconds: number;
-  readonly maxPayloadBytes: number;
-}
-
-const UUID =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-export class CommandService {
-  constructor(
-    private readonly commands: CommandRepository,
-    private readonly devices: ManagedDeviceRepository,
-    private readonly options: CommandServiceOptions,
-    private readonly delivery?: CommandDeliveryService,
-    private readonly screenSessions?: ScreenSharingSessionRepository,
-    private readonly audioSessions?: AudioAccessSessionRepository,
-  ) {}
-  async create(
-    adminId: string,
-    input: {
-      deviceId: string;
-      type: CommandType;
-      version: number;
-      payload: unknown;
-      idempotencyKey: string | null;
-      correlationId: string | null;
-    },
-  ): Promise<{ command: Command; created: boolean }> {
-    if (!UUID.test(input.deviceId))
-      throw new AppError(
-        400,
-        'INVALID_REQUEST',
-        'Managed-device identifier is invalid.',
-      );
-    if (
-      ![
-        'FUTURE_COMMAND',
-        'START_SCREEN_SHARE',
-        'STOP_SCREEN_SHARE',
-        'START_AUDIO_ACCESS',
-        'STOP_AUDIO_ACCESS',
-        'SYNC_APPLICATION_POLICY',
-        'REQUEST_APPLICATION_INVENTORY',
-      ].includes(input.type) ||
-      input.version !== 1
-    )
-      throw new AppError(
-        400,
-        'UNSUPPORTED_COMMAND_TYPE',
-        'The requested command type is not enabled in this phase.',
-      );
-    if (
-      input.payload === null ||
-      typeof input.payload !== 'object' ||
-      Array.isArray(input.payload)
-    )
-      throw new AppError(
-        400,
-        'INVALID_COMMAND_PAYLOAD',
-        'Command payload must be a JSON object.',
-      );
-    const payload = input.payload as Record<string, unknown>;
-    if (input.type === 'FUTURE_COMMAND' && Object.keys(payload).length !== 0)
-      throw new AppError(
-        400,
-        'INVALID_COMMAND_PAYLOAD',
-        'FUTURE_COMMAND does not accept executable or device-control payload data.',
-      );
-    if (input.type !== 'FUTURE_COMMAND') {
-      const keys = Object.keys(payload);
-      const key = keys[0];
-      const validCapability =
-        keys.length === 1 &&
-        (key === 'screenSessionId' || key === 'audioSessionId');
-      const validCapabilityValue =
-        (key === 'screenSessionId' &&
-          typeof payload.screenSessionId === 'string' &&
-          UUID.test(payload.screenSessionId)) ||
-        (key === 'audioSessionId' &&
-          typeof payload.audioSessionId === 'string' &&
-          UUID.test(payload.audioSessionId));
-      const validApplicationPolicy =
-        input.type === 'SYNC_APPLICATION_POLICY' &&
-        keys.length === 2 &&
-        typeof payload.policyId === 'string' &&
-        UUID.test(payload.policyId) &&
-        Number.isInteger(payload.policyVersion) &&
-        Number(payload.policyVersion) > 0;
-      const validApplicationPolicyRemoval =
-        input.type === 'SYNC_APPLICATION_POLICY' &&
-        keys.length === 2 &&
-        payload.policyId === null &&
-        payload.policyVersion === null;
-      const validInventoryRequest =
-        input.type === 'REQUEST_APPLICATION_INVENTORY' &&
-        keys.length === 1 &&
-        payload.schemaVersion === 1;
-      if (
-        (!validCapability && !validApplicationPolicy && !validApplicationPolicyRemoval && !validInventoryRequest)
-      ) {
-        throw new AppError(
-          400,
-          'INVALID_COMMAND_PAYLOAD',
-          'The command payload is not valid for the requested command type.',
-        );
-      }
-    }
-    const bytes = Buffer.byteLength(JSON.stringify(payload), 'utf8');
-    if (bytes > this.options.maxPayloadBytes)
-      throw new AppError(
-        413,
-        'COMMAND_PAYLOAD_TOO_LARGE',
-        'Command payload is too large.',
-      );
-    const device = await this.devices.findById(input.deviceId);
-    if (device === null)
-      throw new AppError(
-        404,
-        'DEVICE_NOT_FOUND',
-        'Managed device was not found.',
-      );
-    if (device.adminId !== adminId)
-      throw new AppError(
-        403,
-        'AUTHORIZATION_DENIED',
-        'The administrator does not control this device.',
-      );
-    if (
-      device.enrollmentStatus !== 'ACTIVE' ||
-      device.operationalStatus !== 'ACTIVE'
-    )
-      throw new AppError(
-        409,
-        'DEVICE_NOT_READY',
-        'Managed device is not available for commands.',
-      );
-    if (
-      input.idempotencyKey !== null &&
-      !/^[A-Za-z0-9._:-]{1,128}$/.test(input.idempotencyKey)
-    )
-      throw new AppError(400, 'INVALID_REQUEST', 'Idempotency key is invalid.');
-    const now = new Date();
-    try {
-      const created = await this.commands.create({
-        id: randomUUID(),
-        managedDeviceId: device.id,
-        adminId,
-        type: input.type,
-        version: 1,
-        payload,
-        correlationId: input.correlationId,
-        idempotencyKey: input.idempotencyKey,
-        expiresAt: new Date(now.getTime() + this.options.ttlSeconds * 1000),
-      });
-      if (!created.created) {
-        if (this.delivery !== undefined)
-          await this.delivery.deliverQueuedForDevice(device.id);
-        const existing = await this.commands.findById(created.command.id);
-        return { command: existing ?? created.command, created: false };
-      }
-      const queued = await this.commands.transition({
-        id: created.command.id,
-        from: 'CREATED',
-        to: 'QUEUED',
-        actorType: 'SYSTEM',
-        actorId: null,
-        now: new Date(),
-        correlationId: created.command.correlationId,
-      });
-      if (this.delivery !== undefined) {
-        await this.delivery.deliverQueuedForDevice(device.id);
-      }
-      const latest = await this.commands.findById(queued.id);
-      return { command: latest ?? queued, created: true };
-    } catch (error) {
-      if (error instanceof PersistenceError && error.code === 'CONFLICT')
-        throw new AppError(
-          409,
-          'COMMAND_IDEMPOTENCY_CONFLICT',
-          'A command already exists for this idempotency key.',
-        );
-      throw error;
-    }
-  }
-  async createScreenShareCommand(
-    adminId: string,
-    input: {
-      deviceId: string;
-      type: 'START_SCREEN_SHARE' | 'STOP_SCREEN_SHARE';
-      screenSessionId: string;
-      correlationId: string;
-    },
-  ): Promise<{ command: Command; created: boolean }> {
-    if (this.screenSessions === undefined) {
-      throw new AppError(
-        503,
-        'SERVICE_UNAVAILABLE',
-        'Screen-sharing command security is not configured.',
-      );
-    }
-    const screenSession = await this.screenSessions.findById(
-      input.screenSessionId,
-    );
-    if (
-      screenSession === null ||
-      screenSession.managedDeviceId !== input.deviceId ||
-      screenSession.adminId !== adminId
-    ) {
-      throw new AppError(
-        404,
-        'SCREEN_SESSION_NOT_FOUND',
-        'Screen-sharing session was not found.',
-      );
-    }
-
-    const startAllowed =
-      input.type === 'START_SCREEN_SHARE' &&
-      screenSession.status === 'AUTHORIZED';
-    const stopAllowed =
-      input.type === 'STOP_SCREEN_SHARE' &&
-      ['AUTHORIZED', 'STARTING', 'ACTIVE', 'STOPPING'].includes(
-        screenSession.status,
-      );
-
-    if (!startAllowed && !stopAllowed) {
-      throw new AppError(
-        409,
-        'SCREEN_SESSION_STATE_CONFLICT',
-        'The screen-sharing command is not valid for the current session state.',
-      );
-    }
-
-    const idempotencyKey =
-      'screen-session:' + input.screenSessionId + ':' + input.type;
-    return this.create(adminId, {
-      deviceId: input.deviceId,
-      type: input.type,
-      version: 1,
-      payload: { screenSessionId: input.screenSessionId },
-      idempotencyKey,
-      correlationId: input.correlationId,
-    });
-  }
-
-  async createAudioAccessCommand(
-    adminId: string,
-    input: {
-      deviceId: string;
-      type: 'START_AUDIO_ACCESS' | 'STOP_AUDIO_ACCESS';
-      audioSessionId: string;
-      correlationId: string;
-    },
-  ): Promise<{ command: Command; created: boolean }> {
-    if (this.audioSessions === undefined) {
-      throw new AppError(
-        503,
-        'SERVICE_UNAVAILABLE',
-        'Audio-access command security is not configured.',
-      );
-    }
-    const session = await this.audioSessions.findById(input.audioSessionId);
-    if (
-      session === null ||
-      session.managedDeviceId !== input.deviceId ||
-      session.adminId !== adminId
-    ) {
-      throw new AppError(
-        404,
-        'AUDIO_SESSION_NOT_FOUND',
-        'Audio-access session was not found.',
-      );
-    }
-    const startAllowed =
-      input.type === 'START_AUDIO_ACCESS' && session.status === 'AUTHORIZED';
-    const stopAllowed =
-      input.type === 'STOP_AUDIO_ACCESS' &&
-      ['AUTHORIZED', 'STARTING', 'ACTIVE', 'STOPPING'].includes(session.status);
-    if (!startAllowed && !stopAllowed) {
-      throw new AppError(
-        409,
-        'AUDIO_SESSION_STATE_CONFLICT',
-        'The audio-access command is not valid for the current session state.',
-      );
-    }
-    return this.create(adminId, {
-      deviceId: input.deviceId,
-      type: input.type,
-      version: 1,
-      payload: { audioSessionId: input.audioSessionId },
-      idempotencyKey:
-        'audio-session:' + input.audioSessionId + ':' + input.type,
-      correlationId: input.correlationId,
-    });
-  }
-
-  async createApplicationPolicyCommand(
-    adminId: string,
-    input: {
-      deviceId: string;
-      policyId: string | null;
-      policyVersion: number | null;
-      correlationId: string;
-    },
-  ): Promise<{ command: Command; created: boolean }> {
-    const isRemoval = input.policyId === null && input.policyVersion === null;
-    if (!isRemoval && (input.policyId === null || input.policyVersion === null)) {
-      throw new AppError(400, 'INVALID_REQUEST', 'Policy identity is incomplete.');
-    }
-    return this.create(adminId, {
-      deviceId: input.deviceId,
-      type: 'SYNC_APPLICATION_POLICY',
-      version: 1,
-      payload: { policyId: input.policyId, policyVersion: input.policyVersion },
-      idempotencyKey:
-        'application-policy:' +
-        input.deviceId +
-        ':' +
-        (input.policyVersion === null ? 'none' : input.policyVersion),
-      correlationId: input.correlationId,
-    });
-  }
-
-  async createApplicationInventoryRequest(
-    adminId: string,
-    input: { deviceId: string; correlationId: string },
-  ): Promise<{ command: Command; created: boolean }> {
-    return this.create(adminId, {
-      deviceId: input.deviceId,
-      type: 'REQUEST_APPLICATION_INVENTORY',
-      version: 1,
-      payload: { schemaVersion: 1 },
-      idempotencyKey: 'application-inventory:' + input.deviceId + ':' + input.correlationId,
-      correlationId: input.correlationId,
-    });
-  }
-
-  async getOwned(id: string, adminId: string): Promise<Command> {
-    const command = await this.commands.findOwned(id, adminId);
-    if (command === null)
-      throw new AppError(404, 'COMMAND_NOT_FOUND', 'Command was not found.');
-    return this.expireIfNeeded(command);
-  }
-  async getOwnedForDevice(
-    id: string,
-    adminId: string,
-    deviceId: string,
-  ): Promise<Command> {
-    const command = await this.getOwned(id, adminId);
-    if (command.managedDeviceId !== deviceId)
-      throw new AppError(
-        403,
-        'AUTHORIZATION_DENIED',
-        'The command is not assigned to this device.',
-      );
-    return command;
-  }
-  async cancel(
-    id: string,
-    adminId: string,
-    deviceId?: string,
-  ): Promise<Command> {
-    const command = await this.getOwned(id, adminId);
-    if (deviceId !== undefined && command.managedDeviceId !== deviceId)
-      throw new AppError(
-        403,
-        'AUTHORIZATION_DENIED',
-        'The command is not assigned to this device.',
-      );
-    if (
-      ['SUCCEEDED', 'FAILED', 'EXPIRED', 'CANCELLED', 'REJECTED'].includes(
-        command.status,
-      )
-    )
-      throw new AppError(
-        409,
-        'COMMAND_STATE_CONFLICT',
-        'The command cannot be cancelled in its current state.',
-      );
-    try {
-      return await this.commands.cancelOwned(id, adminId, new Date());
-    } catch (error) {
-      if (error instanceof PersistenceError)
-        throw new AppError(409, 'COMMAND_STATE_CONFLICT', error.message);
-      throw error;
-    }
-  }
-  async acknowledge(
-    id: string,
-    session: { id: string; managedDeviceId: string },
-  ): Promise<Command> {
-    return this.deviceTransition(id, session, 'DELIVERED', 'ACKNOWLEDGED');
-  }
-  async start(
-    id: string,
-    session: { id: string; managedDeviceId: string },
-  ): Promise<Command> {
-    return this.deviceTransition(id, session, 'ACKNOWLEDGED', 'RUNNING');
-  }
-  async result(
-    id: string,
-    session: { id: string; managedDeviceId: string },
-    status: 'SUCCEEDED' | 'FAILED',
-    resultCode: string | null,
-    errorCategory: string | null,
-    resultMetadata: Record<string, unknown> | null,
-  ): Promise<Command> {
-    const command = await this.commands.findById(id);
-    this.assertDevice(command, session.managedDeviceId);
-    if (resultMetadata !== null) {
-      const bytes = Buffer.byteLength(JSON.stringify(resultMetadata), 'utf8');
-      if (bytes > this.options.maxPayloadBytes) {
-        throw new AppError(
-          413,
-          'COMMAND_PAYLOAD_TOO_LARGE',
-          'Command result metadata is too large.',
-        );
-      }
-    }
-    if (command!.status !== 'RUNNING')
-      throw new AppError(
-        409,
-        'COMMAND_STATE_CONFLICT',
-        'Command is not running.',
-      );
-    try {
-      return await this.commands.transition({
-        id,
-        from: 'RUNNING',
-        to: status,
-        actorType: 'DEVICE',
-        actorId: session.managedDeviceId,
-        now: new Date(),
-        correlationId: command!.correlationId,
-        resultCode,
-        errorCategory,
-        resultMetadata,
-      });
-    } catch (error) {
-      if (error instanceof PersistenceError)
-        throw new AppError(409, 'COMMAND_STATE_CONFLICT', error.message);
-      throw error;
-    }
-  }
-  private async deviceTransition(
-    id: string,
-    session: { id: string; managedDeviceId: string },
-    from: CommandStatus,
-    to: CommandStatus,
-  ): Promise<Command> {
-    const command = await this.commands.findById(id);
-    this.assertDevice(command, session.managedDeviceId);
-    if (command!.status !== from)
-      throw new AppError(
-        409,
-        'COMMAND_STATE_CONFLICT',
-        'Command is not in the required state.',
-      );
-    try {
-      return await this.commands.transition({
-        id,
-        from,
-        to,
-        actorType: 'DEVICE',
-        actorId: session.managedDeviceId,
-        now: new Date(),
-        correlationId: command!.correlationId,
-      });
-    } catch (error) {
-      if (error instanceof PersistenceError)
-        throw new AppError(409, 'COMMAND_STATE_CONFLICT', error.message);
-      throw error;
-    }
-  }
-  private assertDevice(
-    command: Command | null,
-    deviceId: string,
-  ): asserts command is Command {
-    if (command === null)
-      throw new AppError(404, 'COMMAND_NOT_FOUND', 'Command was not found.');
-    if (command.managedDeviceId !== deviceId)
-      throw new AppError(
-        403,
-        'AUTHORIZATION_DENIED',
-        'The command is not assigned to this device.',
-      );
-  }
-  private async expireIfNeeded(command: Command): Promise<Command> {
-    if (
-      command.expiresAt.getTime() > Date.now() ||
-      ['SUCCEEDED', 'FAILED', 'EXPIRED', 'CANCELLED', 'REJECTED'].includes(
-        command.status,
-      )
-    )
-      return command;
-    try {
-      return await this.commands.transition({
-        id: command.id,
-        from: command.status,
-        to: 'EXPIRED',
-        actorType: 'SYSTEM',
-        actorId: null,
-        now: new Date(),
-        correlationId: command.correlationId,
-      });
-    } catch {
-      return command;
-    }
-  }
-}
+2026-09-26T11:55:54.7925186Z import { randomUUID } from 'node:crypto';
+2026-09-26T11:55:54.7925508Z import type { Command, CommandStatus, CommandType } from '../domain/command.js';
+2026-09-26T11:55:54.7925770Z import { PersistenceError } from '../domain/persistence-errors.js';
+2026-09-26T11:55:54.7926083Z import type { CommandRepository } from '../repositories/command-repository.js';
+2026-09-26T11:55:54.7926459Z import type { ManagedDeviceRepository } from '../repositories/managed-device-repository.js';
+2026-09-26T11:55:54.7926626Z import { AppError } from '../types/errors.js';
+2026-09-26T11:55:54.7926945Z import type { CommandDeliveryService } from './command-delivery-service.js';
+2026-09-26T11:55:54.7927403Z import type { ScreenSharingSessionRepository } from '../repositories/screen-sharing-session-repository.js';
+2026-09-26T11:55:54.7927842Z import type { AudioAccessSessionRepository } from '../repositories/audio-access-session-repository.js';
+2026-09-26T11:55:54.7927849Z 
+2026-09-26T11:55:54.7928010Z export interface CommandServiceOptions {
+2026-09-26T11:55:54.7928131Z   readonly ttlSeconds: number;
+2026-09-26T11:55:54.7928261Z   readonly maxPayloadBytes: number;
+2026-09-26T11:55:54.7928343Z }
+2026-09-26T11:55:54.7928349Z 
+2026-09-26T11:55:54.7928428Z const UUID =
+2026-09-26T11:55:54.7928655Z   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+2026-09-26T11:55:54.7928662Z 
+2026-09-26T11:55:54.7928780Z export class CommandService {
+2026-09-26T11:55:54.7928867Z   constructor(
+2026-09-26T11:55:54.7929042Z     private readonly commands: CommandRepository,
+2026-09-26T11:55:54.7929225Z     private readonly devices: ManagedDeviceRepository,
+2026-09-26T11:55:54.7929618Z     private readonly options: CommandServiceOptions,
+2026-09-26T11:55:54.7929813Z     private readonly delivery?: CommandDeliveryService,
+2026-09-26T11:55:54.7930193Z     private readonly screenSessions?: ScreenSharingSessionRepository,
+2026-09-26T11:55:54.7930416Z     private readonly audioSessions?: AudioAccessSessionRepository,
+2026-09-26T11:55:54.7930503Z   ) {}
+2026-09-26T11:55:54.7930596Z   async create(
+2026-09-26T11:55:54.7930686Z     adminId: string,
+2026-09-26T11:55:54.7930776Z     input: {
+2026-09-26T11:55:54.7930867Z       deviceId: string;
+2026-09-26T11:55:54.7930967Z       type: CommandType;
+2026-09-26T11:55:54.7931055Z       version: number;
+2026-09-26T11:55:54.7931143Z       payload: unknown;
+2026-09-26T11:55:54.7931272Z       idempotencyKey: string | null;
+2026-09-26T11:55:54.7931395Z       correlationId: string | null;
+2026-09-26T11:55:54.7931471Z     },
+2026-09-26T11:55:54.7931647Z   ): Promise<{ command: Command; created: boolean }> {
+2026-09-26T11:55:54.7931770Z     if (!UUID.test(input.deviceId))
+2026-09-26T11:55:54.7931863Z       throw new AppError(
+2026-09-26T11:55:54.7931954Z         400,
+2026-09-26T11:55:54.7932047Z         'INVALID_REQUEST',
+2026-09-26T11:55:54.7932199Z         'Managed-device identifier is invalid.',
+2026-09-26T11:55:54.7932285Z       );
+2026-09-26T11:55:54.7932365Z     if (
+2026-09-26T11:55:54.7932447Z       ![
+2026-09-26T11:55:54.7932543Z         'FUTURE_COMMAND',
+2026-09-26T11:55:54.7932637Z         'START_SCREEN_SHARE',
+2026-09-26T11:55:54.7932736Z         'STOP_SCREEN_SHARE',
+2026-09-26T11:55:54.7932826Z         'START_AUDIO_ACCESS',
+2026-09-26T11:55:54.7932925Z         'STOP_AUDIO_ACCESS',
+2026-09-26T11:55:54.7933051Z         'SYNC_APPLICATION_POLICY',
+2026-09-26T11:55:54.7933182Z         'REQUEST_APPLICATION_INVENTORY',
+2026-09-26T11:55:54.7933301Z       ].includes(input.type) ||
+2026-09-26T11:55:54.7933397Z       input.version !== 1
+2026-09-26T11:55:54.7933587Z     )
+2026-09-26T11:55:54.7933689Z       throw new AppError(
+2026-09-26T11:55:54.7933774Z         400,
+2026-09-26T11:55:54.7933892Z         'UNSUPPORTED_COMMAND_TYPE',
+2026-09-26T11:55:54.7934108Z         'The requested command type is not enabled in this phase.',
+2026-09-26T11:55:54.7934186Z       );
+2026-09-26T11:55:54.7934271Z     if (
+2026-09-26T11:55:54.7934388Z       input.payload === null ||
+2026-09-26T11:55:54.7934519Z       typeof input.payload !== 'object' ||
+2026-09-26T11:55:54.7934643Z       Array.isArray(input.payload)
+2026-09-26T11:55:54.7934724Z     )
+2026-09-26T11:55:54.7934812Z       throw new AppError(
+2026-09-26T11:55:54.7934892Z         400,
+2026-09-26T11:55:54.7935006Z         'INVALID_COMMAND_PAYLOAD',
+2026-09-26T11:55:54.7935152Z         'Command payload must be a JSON object.',
+2026-09-26T11:55:54.7935233Z       );
+2026-09-26T11:55:54.7935426Z     const payload = input.payload as Record<string, unknown>;
+2026-09-26T11:55:54.7935679Z     if (input.type === 'FUTURE_COMMAND' && Object.keys(payload).length !== 0)
+2026-09-26T11:55:54.7935776Z       throw new AppError(
+2026-09-26T11:55:54.7935855Z         400,
+2026-09-26T11:55:54.7935974Z         'INVALID_COMMAND_PAYLOAD',
+2026-09-26T11:55:54.7936252Z         'FUTURE_COMMAND does not accept executable or device-control payload data.',
+2026-09-26T11:55:54.7936329Z       );
+2026-09-26T11:55:54.7936467Z     if (input.type !== 'FUTURE_COMMAND') {
+2026-09-26T11:55:54.7936599Z       const keys = Object.keys(payload);
+2026-09-26T11:55:54.7936689Z       const key = keys[0];
+2026-09-26T11:55:54.7936788Z       const validCapability =
+2026-09-26T11:55:54.7936884Z         keys.length === 1 &&
+2026-09-26T11:55:54.7937073Z         (key === 'screenSessionId' || key === 'audioSessionId');
+2026-09-26T11:55:54.7937200Z       const validCapabilityValue =
+2026-09-26T11:55:54.7937321Z         (key === 'screenSessionId' &&
+2026-09-26T11:55:54.7937496Z           typeof payload.screenSessionId === 'string' &&
+2026-09-26T11:55:54.7937654Z           UUID.test(payload.screenSessionId)) ||
+2026-09-26T11:55:54.7937769Z         (key === 'audioSessionId' &&
+2026-09-26T11:55:54.7937938Z           typeof payload.audioSessionId === 'string' &&
+2026-09-26T11:55:54.7938165Z           UUID.test(payload.audioSessionId));
+2026-09-26T11:55:54.7938290Z       const validApplicationPolicy =
+2026-09-26T11:55:54.7938445Z         input.type === 'SYNC_APPLICATION_POLICY' &&
+2026-09-26T11:55:54.7938538Z         keys.length === 2 &&
+2026-09-26T11:55:54.7938678Z         typeof payload.policyId === 'string' &&
+2026-09-26T11:55:54.7938806Z         UUID.test(payload.policyId) &&
+2026-09-26T11:55:54.7938962Z         Number.isInteger(payload.policyVersion) &&
+2026-09-26T11:55:54.7939091Z         Number(payload.policyVersion) > 0;
+2026-09-26T11:55:54.7939233Z       const validApplicationPolicyRemoval =
+2026-09-26T11:55:54.7939512Z         input.type === 'SYNC_APPLICATION_POLICY' &&
+2026-09-26T11:55:54.7939613Z         keys.length === 2 &&
+2026-09-26T11:55:54.7939740Z         payload.policyId === null &&
+2026-09-26T11:55:54.7939865Z         payload.policyVersion === null;
+2026-09-26T11:55:54.7939992Z       const validInventoryRequest =
+2026-09-26T11:55:54.7940166Z         input.type === 'REQUEST_APPLICATION_INVENTORY' &&
+2026-09-26T11:55:54.7940265Z         keys.length === 1 &&
+2026-09-26T11:55:54.7940394Z         payload.schemaVersion === 1;
+2026-09-26T11:55:54.7940484Z       if (
+2026-09-26T11:55:54.7940583Z         !validCapability &&
+2026-09-26T11:55:54.7940712Z         !validApplicationPolicy &&
+2026-09-26T11:55:54.7940849Z         !validApplicationPolicyRemoval &&
+2026-09-26T11:55:54.7940971Z         !validInventoryRequest
+2026-09-26T11:55:54.7941054Z       ) {
+2026-09-26T11:55:54.7941147Z         throw new AppError(
+2026-09-26T11:55:54.7941234Z           400,
+2026-09-26T11:55:54.7941357Z           'INVALID_COMMAND_PAYLOAD',
+2026-09-26T11:55:54.7941592Z           'The command payload is not valid for the requested command type.',
+2026-09-26T11:55:54.7941673Z         );
+2026-09-26T11:55:54.7941876Z       }
+2026-09-26T11:55:54.7941956Z     }
+2026-09-26T11:55:54.7942184Z     const bytes = Buffer.byteLength(JSON.stringify(payload), 'utf8');
+2026-09-26T11:55:54.7942332Z     if (bytes > this.options.maxPayloadBytes)
+2026-09-26T11:55:54.7942450Z       throw new AppError(
+2026-09-26T11:55:54.7942539Z         413,
+2026-09-26T11:55:54.7942657Z         'COMMAND_PAYLOAD_TOO_LARGE',
+2026-09-26T11:55:54.7942789Z         'Command payload is too large.',
+2026-09-26T11:55:54.7942883Z       );
+2026-09-26T11:55:54.7943085Z     const device = await this.devices.findById(input.deviceId);
+2026-09-26T11:55:54.7943189Z     if (device === null)
+2026-09-26T11:55:54.7943286Z       throw new AppError(
+2026-09-26T11:55:54.7943365Z         404,
+2026-09-26T11:55:54.7943470Z         'DEVICE_NOT_FOUND',
+2026-09-26T11:55:54.7943599Z         'Managed device was not found.',
+2026-09-26T11:55:54.7943682Z       );
+2026-09-26T11:55:54.7943803Z     if (device.adminId !== adminId)
+2026-09-26T11:55:54.7943897Z       throw new AppError(
+2026-09-26T11:55:54.7943980Z         403,
+2026-09-26T11:55:54.7944097Z         'AUTHORIZATION_DENIED',
+2026-09-26T11:55:54.7944266Z         'The administrator does not control this device.',
+2026-09-26T11:55:54.7944349Z       );
+2026-09-26T11:55:54.7944425Z     if (
+2026-09-26T11:55:54.7944567Z       device.enrollmentStatus !== 'ACTIVE' ||
+2026-09-26T11:55:54.7944705Z       device.operationalStatus !== 'ACTIVE'
+2026-09-26T11:55:54.7944782Z     )
+2026-09-26T11:55:54.7944876Z       throw new AppError(
+2026-09-26T11:55:54.7944961Z         409,
+2026-09-26T11:55:54.7945050Z         'DEVICE_NOT_READY',
+2026-09-26T11:55:54.7945218Z         'Managed device is not available for commands.',
+2026-09-26T11:55:54.7945299Z       );
+2026-09-26T11:55:54.7945377Z     if (
+2026-09-26T11:55:54.7945507Z       input.idempotencyKey !== null &&
+2026-09-26T11:55:54.7945686Z       !/^[A-Za-z0-9._:-]{1,128}$/.test(input.idempotencyKey)
+2026-09-26T11:55:54.7945767Z     )
+2026-09-26T11:55:54.7946025Z       throw new AppError(400, 'INVALID_REQUEST', 'Idempotency key is invalid.');
+2026-09-26T11:55:54.7946116Z     const now = new Date();
+2026-09-26T11:55:54.7946202Z     try {
+2026-09-26T11:55:54.7946358Z       const created = await this.commands.create({
+2026-09-26T11:55:54.7946569Z         id: randomUUID(),
+2026-09-26T11:55:54.7946696Z         managedDeviceId: device.id,
+2026-09-26T11:55:54.7946782Z         adminId,
+2026-09-26T11:55:54.7946873Z         type: input.type,
+2026-09-26T11:55:54.7946961Z         version: 1,
+2026-09-26T11:55:54.7947042Z         payload,
+2026-09-26T11:55:54.7947182Z         correlationId: input.correlationId,
+2026-09-26T11:55:54.7947324Z         idempotencyKey: input.idempotencyKey,
+2026-09-26T11:55:54.7947564Z         expiresAt: new Date(now.getTime() + this.options.ttlSeconds * 1000),
+2026-09-26T11:55:54.7947647Z       });
+2026-09-26T11:55:54.7947751Z       if (!created.created) {
+2026-09-26T11:55:54.7947874Z         if (this.delivery !== undefined)
+2026-09-26T11:55:54.7948084Z           await this.delivery.deliverQueuedForDevice(device.id);
+2026-09-26T11:55:54.7948319Z         const existing = await this.commands.findById(created.command.id);
+2026-09-26T11:55:54.7948534Z         return { command: existing ?? created.command, created: false };
+2026-09-26T11:55:54.7948626Z       }
+2026-09-26T11:55:54.7948794Z       const queued = await this.commands.transition({
+2026-09-26T11:55:54.7948906Z         id: created.command.id,
+2026-09-26T11:55:54.7949001Z         from: 'CREATED',
+2026-09-26T11:55:54.7949086Z         to: 'QUEUED',
+2026-09-26T11:55:54.7949188Z         actorType: 'SYSTEM',
+2026-09-26T11:55:54.7949282Z         actorId: null,
+2026-09-26T11:55:54.7949635Z         now: new Date(),
+2026-09-26T11:55:54.7949907Z         correlationId: created.command.correlationId,
+2026-09-26T11:55:54.7949998Z       });
+2026-09-26T11:55:54.7950125Z       if (this.delivery !== undefined) {
+2026-09-26T11:55:54.7950331Z         await this.delivery.deliverQueuedForDevice(device.id);
+2026-09-26T11:55:54.7950414Z       }
+2026-09-26T11:55:54.7950747Z       const latest = await this.commands.findById(queued.id);
+2026-09-26T11:55:54.7950939Z       return { command: latest ?? queued, created: true };
+2026-09-26T11:55:54.7951035Z     } catch (error) {
+2026-09-26T11:55:54.7951287Z       if (error instanceof PersistenceError && error.code === 'CONFLICT')
+2026-09-26T11:55:54.7951387Z         throw new AppError(
+2026-09-26T11:55:54.7951469Z           409,
+2026-09-26T11:55:54.7951604Z           'COMMAND_IDEMPOTENCY_CONFLICT',
+2026-09-26T11:55:54.7951792Z           'A command already exists for this idempotency key.',
+2026-09-26T11:55:54.7951877Z         );
+2026-09-26T11:55:54.7951966Z       throw error;
+2026-09-26T11:55:54.7952042Z     }
+2026-09-26T11:55:54.7952119Z   }
+2026-09-26T11:55:54.7952247Z   async createScreenShareCommand(
+2026-09-26T11:55:54.7952339Z     adminId: string,
+2026-09-26T11:55:54.7952424Z     input: {
+2026-09-26T11:55:54.7952554Z       deviceId: string;
+2026-09-26T11:55:54.7952727Z       type: 'START_SCREEN_SHARE' | 'STOP_SCREEN_SHARE';
+2026-09-26T11:55:54.7952848Z       screenSessionId: string;
+2026-09-26T11:55:54.7952942Z       correlationId: string;
+2026-09-26T11:55:54.7953025Z     },
+2026-09-26T11:55:54.7953191Z   ): Promise<{ command: Command; created: boolean }> {
+2026-09-26T11:55:54.7953338Z     if (this.screenSessions === undefined) {
+2026-09-26T11:55:54.7953435Z       throw new AppError(
+2026-09-26T11:55:54.7953517Z         503,
+2026-09-26T11:55:54.7953631Z         'SERVICE_UNAVAILABLE',
+2026-09-26T11:55:54.7953818Z         'Screen-sharing command security is not configured.',
+2026-09-26T11:55:54.7953895Z       );
+2026-09-26T11:55:54.7953977Z     }
+2026-09-26T11:55:54.7954171Z     const screenSession = await this.screenSessions.findById(
+2026-09-26T11:55:54.7954267Z       input.screenSessionId,
+2026-09-26T11:55:54.7954346Z     );
+2026-09-26T11:55:54.7954425Z     if (
+2026-09-26T11:55:54.7954535Z       screenSession === null ||
+2026-09-26T11:55:54.7954714Z       screenSession.managedDeviceId !== input.deviceId ||
+2026-09-26T11:55:54.7954843Z       screenSession.adminId !== adminId
+2026-09-26T11:55:54.7954923Z     ) {
+2026-09-26T11:55:54.7955016Z       throw new AppError(
+2026-09-26T11:55:54.7955093Z         404,
+2026-09-26T11:55:54.7955341Z         'SCREEN_SESSION_NOT_FOUND',
+2026-09-26T11:55:54.7955485Z         'Screen-sharing session was not found.',
+2026-09-26T11:55:54.7955559Z       );
+2026-09-26T11:55:54.7955635Z     }
+2026-09-26T11:55:54.7955644Z 
+2026-09-26T11:55:54.7955736Z     const startAllowed =
+2026-09-26T11:55:54.7955864Z       input.type === 'START_SCREEN_SHARE' &&
+2026-09-26T11:55:54.7955999Z       screenSession.status === 'AUTHORIZED';
+2026-09-26T11:55:54.7956088Z     const stopAllowed =
+2026-09-26T11:55:54.7956222Z       input.type === 'STOP_SCREEN_SHARE' &&
+2026-09-26T11:55:54.7956410Z       ['AUTHORIZED', 'STARTING', 'ACTIVE', 'STOPPING'].includes(
+2026-09-26T11:55:54.7956507Z         screenSession.status,
+2026-09-26T11:55:54.7956586Z       );
+2026-09-26T11:55:54.7956593Z 
+2026-09-26T11:55:54.7956724Z     if (!startAllowed && !stopAllowed) {
+2026-09-26T11:55:54.7956813Z       throw new AppError(
+2026-09-26T11:55:54.7956894Z         409,
+2026-09-26T11:55:54.7957020Z         'SCREEN_SESSION_STATE_CONFLICT',
+2026-09-26T11:55:54.7957276Z         'The screen-sharing command is not valid for the current session state.',
+2026-09-26T11:55:54.7957354Z       );
+2026-09-26T11:55:54.7957434Z     }
+2026-09-26T11:55:54.7957441Z 
+2026-09-26T11:55:54.7957537Z     const idempotencyKey =
+2026-09-26T11:55:54.7957748Z       'screen-session:' + input.screenSessionId + ':' + input.type;
+2026-09-26T11:55:54.7957865Z     return this.create(adminId, {
+2026-09-26T11:55:54.7957980Z       deviceId: input.deviceId,
+2026-09-26T11:55:54.7958073Z       type: input.type,
+2026-09-26T11:55:54.7958156Z       version: 1,
+2026-09-26T11:55:54.7958337Z       payload: { screenSessionId: input.screenSessionId },
+2026-09-26T11:55:54.7958429Z       idempotencyKey,
+2026-09-26T11:55:54.7958564Z       correlationId: input.correlationId,
+2026-09-26T11:55:54.7958766Z     });
+2026-09-26T11:55:54.7958848Z   }
+2026-09-26T11:55:54.7958856Z 
+2026-09-26T11:55:54.7958977Z   async createAudioAccessCommand(
+2026-09-26T11:55:54.7959067Z     adminId: string,
+2026-09-26T11:55:54.7959156Z     input: {
+2026-09-26T11:55:54.7959244Z       deviceId: string;
+2026-09-26T11:55:54.7959552Z       type: 'START_AUDIO_ACCESS' | 'STOP_AUDIO_ACCESS';
+2026-09-26T11:55:54.7959652Z       audioSessionId: string;
+2026-09-26T11:55:54.7959749Z       correlationId: string;
+2026-09-26T11:55:54.7959827Z     },
+2026-09-26T11:55:54.7959985Z   ): Promise<{ command: Command; created: boolean }> {
+2026-09-26T11:55:54.7960121Z     if (this.audioSessions === undefined) {
+2026-09-26T11:55:54.7960214Z       throw new AppError(
+2026-09-26T11:55:54.7960293Z         503,
+2026-09-26T11:55:54.7960407Z         'SERVICE_UNAVAILABLE',
+2026-09-26T11:55:54.7960585Z         'Audio-access command security is not configured.',
+2026-09-26T11:55:54.7960662Z       );
+2026-09-26T11:55:54.7960738Z     }
+2026-09-26T11:55:54.7960995Z     const session = await this.audioSessions.findById(input.audioSessionId);
+2026-09-26T11:55:54.7961077Z     if (
+2026-09-26T11:55:54.7961167Z       session === null ||
+2026-09-26T11:55:54.7961333Z       session.managedDeviceId !== input.deviceId ||
+2026-09-26T11:55:54.7961451Z       session.adminId !== adminId
+2026-09-26T11:55:54.7961532Z     ) {
+2026-09-26T11:55:54.7961623Z       throw new AppError(
+2026-09-26T11:55:54.7961704Z         404,
+2026-09-26T11:55:54.7961818Z         'AUDIO_SESSION_NOT_FOUND',
+2026-09-26T11:55:54.7961957Z         'Audio-access session was not found.',
+2026-09-26T11:55:54.7962037Z       );
+2026-09-26T11:55:54.7962112Z     }
+2026-09-26T11:55:54.7962206Z     const startAllowed =
+2026-09-26T11:55:54.7962436Z       input.type === 'START_AUDIO_ACCESS' && session.status === 'AUTHORIZED';
+2026-09-26T11:55:54.7962527Z     const stopAllowed =
+2026-09-26T11:55:54.7962656Z       input.type === 'STOP_AUDIO_ACCESS' &&
+2026-09-26T11:55:54.7962904Z       ['AUTHORIZED', 'STARTING', 'ACTIVE', 'STOPPING'].includes(session.status);
+2026-09-26T11:55:54.7963029Z     if (!startAllowed && !stopAllowed) {
+2026-09-26T11:55:54.7963122Z       throw new AppError(
+2026-09-26T11:55:54.7963202Z         409,
+2026-09-26T11:55:54.7963448Z         'AUDIO_SESSION_STATE_CONFLICT',
+2026-09-26T11:55:54.7963692Z         'The audio-access command is not valid for the current session state.',
+2026-09-26T11:55:54.7963768Z       );
+2026-09-26T11:55:54.7963845Z     }
+2026-09-26T11:55:54.7963965Z     return this.create(adminId, {
+2026-09-26T11:55:54.7964078Z       deviceId: input.deviceId,
+2026-09-26T11:55:54.7964169Z       type: input.type,
+2026-09-26T11:55:54.7964254Z       version: 1,
+2026-09-26T11:55:54.7964423Z       payload: { audioSessionId: input.audioSessionId },
+2026-09-26T11:55:54.7964519Z       idempotencyKey:
+2026-09-26T11:55:54.7964725Z         'audio-session:' + input.audioSessionId + ':' + input.type,
+2026-09-26T11:55:54.7964855Z       correlationId: input.correlationId,
+2026-09-26T11:55:54.7964934Z     });
+2026-09-26T11:55:54.7965012Z   }
+2026-09-26T11:55:54.7965025Z 
+2026-09-26T11:55:54.7965158Z   async createApplicationPolicyCommand(
+2026-09-26T11:55:54.7965244Z     adminId: string,
+2026-09-26T11:55:54.7965329Z     input: {
+2026-09-26T11:55:54.7965419Z       deviceId: string;
+2026-09-26T11:55:54.7965533Z       policyId: string | null;
+2026-09-26T11:55:54.7965652Z       policyVersion: number | null;
+2026-09-26T11:55:54.7965749Z       correlationId: string;
+2026-09-26T11:55:54.7965827Z     },
+2026-09-26T11:55:54.7965985Z   ): Promise<{ command: Command; created: boolean }> {
+2026-09-26T11:55:54.7966239Z     const isRemoval = input.policyId === null && input.policyVersion === null;
+2026-09-26T11:55:54.7966316Z     if (
+2026-09-26T11:55:54.7966403Z       !isRemoval &&
+2026-09-26T11:55:54.7966595Z       (input.policyId === null || input.policyVersion === null)
+2026-09-26T11:55:54.7966671Z     ) {
+2026-09-26T11:55:54.7966768Z       throw new AppError(
+2026-09-26T11:55:54.7966851Z         400,
+2026-09-26T11:55:54.7967056Z         'INVALID_REQUEST',
+2026-09-26T11:55:54.7967191Z         'Policy identity is incomplete.',
+2026-09-26T11:55:54.7967270Z       );
+2026-09-26T11:55:54.7967343Z     }
+2026-09-26T11:55:54.7967465Z     return this.create(adminId, {
+2026-09-26T11:55:54.7967578Z       deviceId: input.deviceId,
+2026-09-26T11:55:54.7967711Z       type: 'SYNC_APPLICATION_POLICY',
+2026-09-26T11:55:54.7967797Z       version: 1,
+2026-09-26T11:55:54.7968060Z       payload: { policyId: input.policyId, policyVersion: input.policyVersion },
+2026-09-26T11:55:54.7968155Z       idempotencyKey:
+2026-09-26T11:55:54.7968274Z         'application-policy:' +
+2026-09-26T11:55:54.7968363Z         input.deviceId +
+2026-09-26T11:55:54.7968444Z         ':' +
+2026-09-26T11:55:54.7968663Z         (input.policyVersion === null ? 'none' : input.policyVersion),
+2026-09-26T11:55:54.7968791Z       correlationId: input.correlationId,
+2026-09-26T11:55:54.7968872Z     });
+2026-09-26T11:55:54.7968946Z   }
+2026-09-26T11:55:54.7968958Z 
+2026-09-26T11:55:54.7969103Z   async createApplicationInventoryRequest(
+2026-09-26T11:55:54.7969193Z     adminId: string,
+2026-09-26T11:55:54.7969489Z     input: { deviceId: string; correlationId: string },
+2026-09-26T11:55:54.7969667Z   ): Promise<{ command: Command; created: boolean }> {
+2026-09-26T11:55:54.7969786Z     return this.create(adminId, {
+2026-09-26T11:55:54.7969898Z       deviceId: input.deviceId,
+2026-09-26T11:55:54.7970039Z       type: 'REQUEST_APPLICATION_INVENTORY',
+2026-09-26T11:55:54.7970123Z       version: 1,
+2026-09-26T11:55:54.7970242Z       payload: { schemaVersion: 1 },
+2026-09-26T11:55:54.7970337Z       idempotencyKey:
+2026-09-26T11:55:54.7970590Z         'application-inventory:' + input.deviceId + ':' + input.correlationId,
+2026-09-26T11:55:54.7970718Z       correlationId: input.correlationId,
+2026-09-26T11:55:54.7970799Z     });
+2026-09-26T11:55:54.7970874Z   }
+2026-09-26T11:55:54.7970884Z 
+2026-09-26T11:55:54.7971092Z   async getOwned(id: string, adminId: string): Promise<Command> {
+2026-09-26T11:55:54.7971295Z     const command = await this.commands.findOwned(id, adminId);
+2026-09-26T11:55:54.7971386Z     if (command === null)
+2026-09-26T11:55:54.7971626Z       throw new AppError(404, 'COMMAND_NOT_FOUND', 'Command was not found.');
+2026-09-26T11:55:54.7971881Z     return this.expireIfNeeded(command);
+2026-09-26T11:55:54.7971955Z   }
+2026-09-26T11:55:54.7972057Z   async getOwnedForDevice(
+2026-09-26T11:55:54.7972142Z     id: string,
+2026-09-26T11:55:54.7972227Z     adminId: string,
+2026-09-26T11:55:54.7972315Z     deviceId: string,
+2026-09-26T11:55:54.7972408Z   ): Promise<Command> {
+2026-09-26T11:55:54.7972565Z     const command = await this.getOwned(id, adminId);
+2026-09-26T11:55:54.7972706Z     if (command.managedDeviceId !== deviceId)
+2026-09-26T11:55:54.7972794Z       throw new AppError(
+2026-09-26T11:55:54.7972877Z         403,
+2026-09-26T11:55:54.7972990Z         'AUTHORIZATION_DENIED',
+2026-09-26T11:55:54.7973141Z         'The command is not assigned to this device.',
+2026-09-26T11:55:54.7973225Z       );
+2026-09-26T11:55:54.7973313Z     return command;
+2026-09-26T11:55:54.7973386Z   }
+2026-09-26T11:55:54.7973470Z   async cancel(
+2026-09-26T11:55:54.7973550Z     id: string,
+2026-09-26T11:55:54.7973640Z     adminId: string,
+2026-09-26T11:55:54.7973727Z     deviceId?: string,
+2026-09-26T11:55:54.7973815Z   ): Promise<Command> {
+2026-09-26T11:55:54.7973973Z     const command = await this.getOwned(id, adminId);
+2026-09-26T11:55:54.7974193Z     if (deviceId !== undefined && command.managedDeviceId !== deviceId)
+2026-09-26T11:55:54.7974283Z       throw new AppError(
+2026-09-26T11:55:54.7974364Z         403,
+2026-09-26T11:55:54.7974478Z         'AUTHORIZATION_DENIED',
+2026-09-26T11:55:54.7974627Z         'The command is not assigned to this device.',
+2026-09-26T11:55:54.7974707Z       );
+2026-09-26T11:55:54.7974784Z     if (
+2026-09-26T11:55:54.7975003Z       ['SUCCEEDED', 'FAILED', 'EXPIRED', 'CANCELLED', 'REJECTED'].includes(
+2026-09-26T11:55:54.7975094Z         command.status,
+2026-09-26T11:55:54.7975286Z       )
+2026-09-26T11:55:54.7975369Z     )
+2026-09-26T11:55:54.7975461Z       throw new AppError(
+2026-09-26T11:55:54.7975538Z         409,
+2026-09-26T11:55:54.7975652Z         'COMMAND_STATE_CONFLICT',
+2026-09-26T11:55:54.7975840Z         'The command cannot be cancelled in its current state.',
+2026-09-26T11:55:54.7975916Z       );
+2026-09-26T11:55:54.7975997Z     try {
+2026-09-26T11:55:54.7976217Z       return await this.commands.cancelOwned(id, adminId, new Date());
+2026-09-26T11:55:54.7976305Z     } catch (error) {
+2026-09-26T11:55:54.7976441Z       if (error instanceof PersistenceError)
+2026-09-26T11:55:54.7976657Z         throw new AppError(409, 'COMMAND_STATE_CONFLICT', error.message);
+2026-09-26T11:55:54.7976745Z       throw error;
+2026-09-26T11:55:54.7976823Z     }
+2026-09-26T11:55:54.7976896Z   }
+2026-09-26T11:55:54.7976987Z   async acknowledge(
+2026-09-26T11:55:54.7977073Z     id: string,
+2026-09-26T11:55:54.7977229Z     session: { id: string; managedDeviceId: string },
+2026-09-26T11:55:54.7977329Z   ): Promise<Command> {
+2026-09-26T11:55:54.7977571Z     return this.deviceTransition(id, session, 'DELIVERED', 'ACKNOWLEDGED');
+2026-09-26T11:55:54.7977653Z   }
+2026-09-26T11:55:54.7977739Z   async start(
+2026-09-26T11:55:54.7977823Z     id: string,
+2026-09-26T11:55:54.7977981Z     session: { id: string; managedDeviceId: string },
+2026-09-26T11:55:54.7978072Z   ): Promise<Command> {
+2026-09-26T11:55:54.7978302Z     return this.deviceTransition(id, session, 'ACKNOWLEDGED', 'RUNNING');
+2026-09-26T11:55:54.7978383Z   }
+2026-09-26T11:55:54.7978466Z   async result(
+2026-09-26T11:55:54.7978545Z     id: string,
+2026-09-26T11:55:54.7978698Z     session: { id: string; managedDeviceId: string },
+2026-09-26T11:55:54.7978814Z     status: 'SUCCEEDED' | 'FAILED',
+2026-09-26T11:55:54.7978929Z     resultCode: string | null,
+2026-09-26T11:55:54.7979050Z     errorCategory: string | null,
+2026-09-26T11:55:54.7979204Z     resultMetadata: Record<string, unknown> | null,
+2026-09-26T11:55:54.7979300Z   ): Promise<Command> {
+2026-09-26T11:55:54.7979595Z     const command = await this.commands.findById(id);
+2026-09-26T11:55:54.7979775Z     this.assertDevice(command, session.managedDeviceId);
+2026-09-26T11:55:54.7979897Z     if (resultMetadata !== null) {
+2026-09-26T11:55:54.7980267Z       const bytes = Buffer.byteLength(JSON.stringify(resultMetadata), 'utf8');
+2026-09-26T11:55:54.7980421Z       if (bytes > this.options.maxPayloadBytes) {
+2026-09-26T11:55:54.7980521Z         throw new AppError(
+2026-09-26T11:55:54.7980607Z           413,
+2026-09-26T11:55:54.7980728Z           'COMMAND_PAYLOAD_TOO_LARGE',
+2026-09-26T11:55:54.7980875Z           'Command result metadata is too large.',
+2026-09-26T11:55:54.7980952Z         );
+2026-09-26T11:55:54.7981034Z       }
+2026-09-26T11:55:54.7981111Z     }
+2026-09-26T11:55:54.7981231Z     if (command!.status !== 'RUNNING')
+2026-09-26T11:55:54.7981327Z       throw new AppError(
+2026-09-26T11:55:54.7981408Z         409,
+2026-09-26T11:55:54.7981520Z         'COMMAND_STATE_CONFLICT',
+2026-09-26T11:55:54.7981641Z         'Command is not running.',
+2026-09-26T11:55:54.7981719Z       );
+2026-09-26T11:55:54.7981795Z     try {
+2026-09-26T11:55:54.7981939Z       return await this.commands.transition({
+2026-09-26T11:55:54.7982022Z         id,
+2026-09-26T11:55:54.7982114Z         from: 'RUNNING',
+2026-09-26T11:55:54.7982200Z         to: status,
+2026-09-26T11:55:54.7982292Z         actorType: 'DEVICE',
+2026-09-26T11:55:54.7982426Z         actorId: session.managedDeviceId,
+2026-09-26T11:55:54.7982517Z         now: new Date(),
+2026-09-26T11:55:54.7982654Z         correlationId: command!.correlationId,
+2026-09-26T11:55:54.7982741Z         resultCode,
+2026-09-26T11:55:54.7982826Z         errorCategory,
+2026-09-26T11:55:54.7982915Z         resultMetadata,
+2026-09-26T11:55:54.7982993Z       });
+2026-09-26T11:55:54.7983077Z     } catch (error) {
+2026-09-26T11:55:54.7983216Z       if (error instanceof PersistenceError)
+2026-09-26T11:55:54.7983433Z         throw new AppError(409, 'COMMAND_STATE_CONFLICT', error.message);
+2026-09-26T11:55:54.7983630Z       throw error;
+2026-09-26T11:55:54.7983712Z     }
+2026-09-26T11:55:54.7983789Z   }
+2026-09-26T11:55:54.7983907Z   private async deviceTransition(
+2026-09-26T11:55:54.7983994Z     id: string,
+2026-09-26T11:55:54.7984150Z     session: { id: string; managedDeviceId: string },
+2026-09-26T11:55:54.7984243Z     from: CommandStatus,
+2026-09-26T11:55:54.7984331Z     to: CommandStatus,
+2026-09-26T11:55:54.7984419Z   ): Promise<Command> {
+2026-09-26T11:55:54.7984579Z     const command = await this.commands.findById(id);
+2026-09-26T11:55:54.7984758Z     this.assertDevice(command, session.managedDeviceId);
+2026-09-26T11:55:54.7984868Z     if (command!.status !== from)
+2026-09-26T11:55:54.7984960Z       throw new AppError(
+2026-09-26T11:55:54.7985041Z         409,
+2026-09-26T11:55:54.7985150Z         'COMMAND_STATE_CONFLICT',
+2026-09-26T11:55:54.7985288Z         'Command is not in the required state.',
+2026-09-26T11:55:54.7985363Z       );
+2026-09-26T11:55:54.7985444Z     try {
+2026-09-26T11:55:54.7985590Z       return await this.commands.transition({
+2026-09-26T11:55:54.7985670Z         id,
+2026-09-26T11:55:54.7985751Z         from,
+2026-09-26T11:55:54.7985835Z         to,
+2026-09-26T11:55:54.7985931Z         actorType: 'DEVICE',
+2026-09-26T11:55:54.7986061Z         actorId: session.managedDeviceId,
+2026-09-26T11:55:54.7986150Z         now: new Date(),
+2026-09-26T11:55:54.7986284Z         correlationId: command!.correlationId,
+2026-09-26T11:55:54.7986363Z       });
+2026-09-26T11:55:54.7986450Z     } catch (error) {
+2026-09-26T11:55:54.7986587Z       if (error instanceof PersistenceError)
+2026-09-26T11:55:54.7986805Z         throw new AppError(409, 'COMMAND_STATE_CONFLICT', error.message);
+2026-09-26T11:55:54.7986888Z       throw error;
+2026-09-26T11:55:54.7986965Z     }
+2026-09-26T11:55:54.7987040Z   }
+2026-09-26T11:55:54.7987132Z   private assertDevice(
+2026-09-26T11:55:54.7987226Z     command: Command | null,
+2026-09-26T11:55:54.7987310Z     deviceId: string,
+2026-09-26T11:55:54.7987430Z   ): asserts command is Command {
+2026-09-26T11:55:54.7987521Z     if (command === null)
+2026-09-26T11:55:54.7987752Z       throw new AppError(404, 'COMMAND_NOT_FOUND', 'Command was not found.');
+2026-09-26T11:55:54.7987982Z     if (command.managedDeviceId !== deviceId)
+2026-09-26T11:55:54.7988075Z       throw new AppError(
+2026-09-26T11:55:54.7988153Z         403,
+2026-09-26T11:55:54.7988268Z         'AUTHORIZATION_DENIED',
+2026-09-26T11:55:54.7988422Z         'The command is not assigned to this device.',
+2026-09-26T11:55:54.7988497Z       );
+2026-09-26T11:55:54.7988574Z   }
+2026-09-26T11:55:54.7988801Z   private async expireIfNeeded(command: Command): Promise<Command> {
+2026-09-26T11:55:54.7988879Z     if (
+2026-09-26T11:55:54.7989029Z       command.expiresAt.getTime() > Date.now() ||
+2026-09-26T11:55:54.7989250Z       ['SUCCEEDED', 'FAILED', 'EXPIRED', 'CANCELLED', 'REJECTED'].includes(
+2026-09-26T11:55:54.7989585Z         command.status,
+2026-09-26T11:55:54.7989755Z       )
+2026-09-26T11:55:54.7989845Z     )
+2026-09-26T11:55:54.7989951Z       return command;
+2026-09-26T11:55:54.7990034Z     try {
+2026-09-26T11:55:54.7990180Z       return await this.commands.transition({
+2026-09-26T11:55:54.7990274Z         id: command.id,
+2026-09-26T11:55:54.7990384Z         from: command.status,
+2026-09-26T11:55:54.7990478Z         to: 'EXPIRED',
+2026-09-26T11:55:54.7990575Z         actorType: 'SYSTEM',
+2026-09-26T11:55:54.7990662Z         actorId: null,
+2026-09-26T11:55:54.7990756Z         now: new Date(),
+2026-09-26T11:55:54.7990900Z         correlationId: command.correlationId,
+2026-09-26T11:55:54.7990977Z       });
+2026-09-26T11:55:54.7991063Z     } catch {
+2026-09-26T11:55:54.7991154Z       return command;
+2026-09-26T11:55:54.7991230Z     }
+2026-09-26T11:55:54.7991307Z   }
+2026-09-26T11:55:54.7991382Z }
+2026-09-26T11:55:54.7991677Z ===== tests/application-management-database.integration.test.ts =====
+2026-09-26T11:55:54.7991934Z import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+2026-09-26T11:55:54.7992267Z import { loadConfig } from '../src/config/env.js';
+2026-09-26T11:55:54.7992472Z import { createDatabase } from '../src/db/index.js';
+2026-09-26T11:55:54.7992669Z import { runMigrations } from '../src/db/migrate.js';
+2026-09-26T11:55:54.7992683Z 
+2026-09-26T11:55:54.7992885Z const hasDatabase = Boolean(process.env.DATABASE_URL);
+2026-09-26T11:55:54.7992893Z 
+2026-09-26T11:55:54.7993038Z describe.skipIf(!hasDatabase)(
+2026-09-26T11:55:54.7993209Z   'Phase 11.1 application-management database',
+2026-09-26T11:55:54.7993286Z   () => {
+2026-09-26T11:55:54.7993447Z     const database = createDatabase(loadConfig());
+2026-09-26T11:55:54.7993453Z 
+2026-09-26T11:55:54.7993549Z     beforeAll(async () => {
+2026-09-26T11:55:54.7993672Z       await runMigrations(database);
+2026-09-26T11:55:54.7993756Z     });
+2026-09-26T11:55:54.7993763Z 
+2026-09-26T11:55:54.7993855Z     afterAll(async () => {
+2026-09-26T11:55:54.7993952Z       await database.close();
+2026-09-26T11:55:54.7994037Z     });
+2026-09-26T11:55:54.7994044Z 
+2026-09-26T11:55:54.7994302Z     it('creates the application-management tables and indexes', async () => {
+2026-09-26T11:55:54.7994511Z       const tables = await database.query<{ tablename: string }>(
+2026-09-26T11:55:54.7995565Z         "SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename IN ('application_inventory','application_policies','application_policy_rules','application_policy_assignments','application_policy_sync_state','application_management_events') ORDER BY tablename",
+2026-09-26T11:55:54.7995649Z       );
+2026-09-26T11:55:54.7995847Z       expect(tables.rows.map((row) => row.tablename)).toEqual([
+2026-09-26T11:55:54.7995974Z         'application_inventory',
+2026-09-26T11:55:54.7996108Z         'application_management_events',
+2026-09-26T11:55:54.7996220Z         'application_policies',
+2026-09-26T11:55:54.7996352Z         'application_policy_assignments',
+2026-09-26T11:55:54.7996471Z         'application_policy_rules',
+2026-09-26T11:55:54.7996606Z         'application_policy_sync_state',
+2026-09-26T11:55:54.7996688Z       ]);
+2026-09-26T11:55:54.7996696Z 
+2026-09-26T11:55:54.7996898Z       const indexes = await database.query<{ indexname: string }>(
+2026-09-26T11:55:54.7998128Z         "SELECT indexname FROM pg_indexes WHERE schemaname='public' AND indexname IN ('application_inventory_package_idx','application_inventory_device_observed_idx','application_policy_admin_name_idx','application_policy_assignment_policy_idx','application_sync_status_idx') ORDER BY indexname",
+2026-09-26T11:55:54.7998215Z       );
+2026-09-26T11:55:54.7998416Z       expect(indexes.rows.map((row) => row.indexname)).toEqual([
+2026-09-26T11:55:54.7998569Z         'application_inventory_device_observed_idx',
+2026-09-26T11:55:54.7998708Z         'application_inventory_package_idx',
+2026-09-26T11:55:54.7998836Z         'application_policy_admin_name_idx',
+2026-09-26T11:55:54.7998990Z         'application_policy_assignment_policy_idx',
+2026-09-26T11:55:54.7999116Z         'application_sync_status_idx',
+2026-09-26T11:55:54.7999197Z       ]);
+2026-09-26T11:55:54.7999279Z     });
+2026-09-26T11:55:54.7999287Z 
+2026-09-26T11:55:54.7999789Z     it('extends the existing command allowlist without creating a second command table', async () => {
+2026-09-26T11:55:54.7999996Z       const result = await database.query<{ definition: string }>(
+2026-09-26T11:55:54.8000596Z         "SELECT pg_get_constraintdef(oid) AS definition FROM pg_constraint WHERE conrelid='commands'::regclass AND conname='commands_type_check'",
+2026-09-26T11:55:54.8000678Z       );
+2026-09-26T11:55:54.8000926Z       expect(result.rows[0]?.definition).toContain('SYNC_APPLICATION_POLICY');
+2026-09-26T11:55:54.8001083Z       expect(result.rows[0]?.definition).toContain(
+2026-09-26T11:55:54.8001214Z         'REQUEST_APPLICATION_INVENTORY',
+2026-09-26T11:55:54.8001291Z       );
+2026-09-26T11:55:54.8001299Z 
+2026-09-26T11:55:54.8001516Z       const commandTables = await database.query<{ count: string }>(
+2026-09-26T11:55:54.8002015Z         "SELECT count(*)::text AS count FROM pg_tables WHERE schemaname='public' AND tablename LIKE '%command%'",
+2026-09-26T11:55:54.8002099Z       );
+2026-09-26T11:55:54.8002314Z       expect(Number(commandTables.rows[0]?.count ?? '0')).toBe(2);
+2026-09-26T11:55:54.8002402Z     });
+2026-09-26T11:55:54.8002481Z   },
+2026-09-26T11:55:54.8002562Z );
+2026-09-26T11:55:54.8002781Z ===== tests/application-management-service.test.ts =====
+2026-09-26T11:55:54.8002964Z import { describe, expect, it, vi } from 'vitest';
+2026-09-26T11:55:54.8003379Z import { ApplicationManagementService } from '../src/services/application-management-service.js';
+2026-09-26T11:55:54.8003844Z import type { ApplicationInventoryRepository } from '../src/repositories/application-inventory-repository.js';
+2026-09-26T11:55:54.8004275Z import type { ApplicationPolicyRepository } from '../src/repositories/application-policy-repository.js';
+2026-09-26T11:55:54.8004821Z import type { ApplicationManagementEventRepository } from '../src/repositories/application-management-event-repository.js';
+2026-09-26T11:55:54.8005211Z import type { ManagedDeviceRepository } from '../src/repositories/managed-device-repository.js';
+2026-09-26T11:55:54.8005486Z import type { CommandService } from '../src/services/command-service.js';
+2026-09-26T11:55:54.8005581Z import type {
+2026-09-26T11:55:54.8005676Z   ApplicationPolicy,
+2026-09-26T11:55:54.8005808Z   ApplicationPolicyAssignment,
+2026-09-26T11:55:54.8005915Z   ApplicationPolicySyncState,
+2026-09-26T11:55:54.8006098Z } from '../src/domain/application-management.js';
+2026-09-26T11:55:54.8006361Z import type { ManagedDevice } from '../src/domain/managed-device.js';
+2026-09-26T11:55:54.8006642Z import { PersistenceError } from '../src/domain/persistence-errors.js';
+2026-09-26T11:55:54.8006650Z 
+2026-09-26T11:55:54.8006836Z const adminId = '11111111-1111-4111-8111-111111111111';
+2026-09-26T11:55:54.8007033Z const deviceId = '22222222-2222-4222-8222-222222222222';
+2026-09-26T11:55:54.8007222Z const policyId = '33333333-3333-4333-8333-333333333333';
+2026-09-26T11:55:54.8007235Z 
+2026-09-26T11:55:54.8007366Z const device: ManagedDevice = {
+2026-09-26T11:55:54.8007455Z   id: deviceId,
+2026-09-26T11:55:54.8007541Z   adminId,
+2026-09-26T11:55:54.8007790Z   stableIdentifier: 'installation-1',
+2026-09-26T11:55:54.8007886Z   name: 'Test device',
+2026-09-26T11:55:54.8007975Z   platform: 'android',
+2026-09-26T11:55:54.8008080Z   enrollmentStatus: 'ACTIVE',
+2026-09-26T11:55:54.8008201Z   operationalStatus: 'ACTIVE',
+2026-09-26T11:55:54.8008340Z   createdAt: new Date('2026-01-01T00:00:00Z'),
+2026-09-26T11:55:54.8008482Z   updatedAt: new Date('2026-01-01T00:00:00Z'),
+2026-09-26T11:55:54.8008580Z   lastSeenAt: new Date(),
+2026-09-26T11:55:54.8008661Z };
+2026-09-26T11:55:54.8008669Z 
+2026-09-26T11:55:54.8008874Z const policy = (version = 1): ApplicationPolicy => ({
+2026-09-26T11:55:54.8008962Z   id: policyId,
+2026-09-26T11:55:54.8009040Z   adminId,
+2026-09-26T11:55:54.8009131Z   name: 'Default',
+2026-09-26T11:55:54.8009219Z   description: null,
+2026-09-26T11:55:54.8009440Z   status: 'ACTIVE',
+2026-09-26T11:55:54.8009530Z   version,
+2026-09-26T11:55:54.8009663Z   createdAt: new Date('2026-01-01T00:00:00Z'),
+2026-09-26T11:55:54.8009800Z   updatedAt: new Date('2026-01-01T00:00:00Z'),
+2026-09-26T11:55:54.8009900Z   createdBy: adminId,
+2026-09-26T11:55:54.8009987Z   updatedBy: adminId,
+2026-09-26T11:55:54.8010245Z   rules: [{ policyId, packageName: 'com.example.blocked', action: 'BLOCK' }],
+2026-09-26T11:55:54.8010325Z });
+2026-09-26T11:55:54.8010332Z 
+2026-09-26T11:55:54.8010586Z class InventoryFake implements ApplicationInventoryRepository {
+2026-09-26T11:55:54.8010707Z   readonly name = 'inventory';
+2026-09-26T11:55:54.8010810Z   async replaceForDevice() {
+2026-09-26T11:55:54.8010969Z     return { applied: true, receivedAt: new Date() };
+2026-09-26T11:55:54.8011052Z   }
+2026-09-26T11:55:54.8011149Z   async listForAdmin() {
+2026-09-26T11:55:54.8011397Z     return { items: [], nextCursor: null, observedAt: null, receivedAt: null };
+2026-09-26T11:55:54.8011477Z   }
+2026-09-26T11:55:54.8011687Z   async findForAdmin() {
+2026-09-26T11:55:54.8011782Z     return null;
+2026-09-26T11:55:54.8011860Z   }
+2026-09-26T11:55:54.8011935Z }
+2026-09-26T11:55:54.8011942Z 
+2026-09-26T11:55:54.8012175Z class PolicyFake implements ApplicationPolicyRepository {
+2026-09-26T11:55:54.8012275Z   readonly name = 'policy';
+2026-09-26T11:55:54.8012457Z   assignment: ApplicationPolicyAssignment | null = null;
+2026-09-26T11:55:54.8012621Z   sync: ApplicationPolicySyncState | null = null;
+2026-09-26T11:55:54.8012707Z   async create() {
+2026-09-26T11:55:54.8012800Z     return policy();
+2026-09-26T11:55:54.8012882Z   }
+2026-09-26T11:55:54.8012969Z   async findOwned() {
+2026-09-26T11:55:54.8013060Z     return policy();
+2026-09-26T11:55:54.8013140Z   }
+2026-09-26T11:55:54.8013227Z   async listOwned() {
+2026-09-26T11:55:54.8013380Z     return { items: [policy()], nextCursor: null };
+2026-09-26T11:55:54.8013462Z   }
+2026-09-26T11:55:54.8013641Z   async updateOwned(input: { expectedVersion: number }) {
+2026-09-26T11:55:54.8013778Z     if (input.expectedVersion !== 1)
+2026-09-26T11:55:54.8013943Z       throw new PersistenceError('CONFLICT', 'stale');
+2026-09-26T11:55:54.8014041Z     return policy(2);
+2026-09-26T11:55:54.8014126Z   }
+2026-09-26T11:55:54.8014220Z   async disableOwned() {
+2026-09-26T11:55:54.8014311Z     return policy(2);
+2026-09-26T11:55:54.8014394Z   }
+2026-09-26T11:55:54.8014522Z   async listAssignmentsForPolicy() {
+2026-09-26T11:55:54.8014688Z     return this.assignment ? [this.assignment] : [];
+2026-09-26T11:55:54.8014770Z   }
+2026-09-26T11:55:54.8014864Z   async assign(input: {
+2026-09-26T11:55:54.8014969Z     managedDeviceId: string;
+2026-09-26T11:55:54.8015057Z     policyId: string;
+2026-09-26T11:55:54.8015158Z     policyVersion: number;
+2026-09-26T11:55:54.8015253Z     assignedBy: string;
+2026-09-26T11:55:54.8015332Z   }) {
+2026-09-26T11:55:54.8015430Z     this.assignment = {
+2026-09-26T11:55:54.8015517Z       ...input,
+2026-09-26T11:55:54.8015612Z       assignedAt: new Date(),
+2026-09-26T11:55:54.8015714Z       updatedAt: new Date(),
+2026-09-26T11:55:54.8015794Z     };
+2026-09-26T11:55:54.8015897Z     return this.assignment;
+2026-09-26T11:55:54.8015977Z   }
+2026-09-26T11:55:54.8016074Z   async removeAssignment() {
+2026-09-26T11:55:54.8016292Z     this.assignment = null;
+2026-09-26T11:55:54.8016370Z   }
+2026-09-26T11:55:54.8016465Z   async findAssignment() {
+2026-09-26T11:55:54.8016562Z     return this.assignment;
+2026-09-26T11:55:54.8016638Z   }
+2026-09-26T11:55:54.8016737Z   async findSyncState() {
+2026-09-26T11:55:54.8016829Z     return this.sync;
+2026-09-26T11:55:54.8016906Z   }
+2026-09-26T11:55:54.8017037Z   async setSyncRequested(input: {
+2026-09-26T11:55:54.8017133Z     managedDeviceId: string;
+2026-09-26T11:55:54.8017225Z     policyId: string | null;
+2026-09-26T11:55:54.8017346Z     policyVersion: number | null;
+2026-09-26T11:55:54.8017437Z     requestedAt: Date;
+2026-09-26T11:55:54.8017512Z   }) {
+2026-09-26T11:55:54.8017599Z     this.sync = {
+2026-09-26T11:55:54.8017755Z       managedDeviceId: input.managedDeviceId,
+2026-09-26T11:55:54.8017889Z       desiredPolicyId: input.policyId,
+2026-09-26T11:55:54.8018044Z       desiredPolicyVersion: input.policyVersion,
+2026-09-26T11:55:54.8018142Z       reportedPolicyId: null,
+2026-09-26T11:55:54.8018275Z       reportedPolicyVersion: null,
+2026-09-26T11:55:54.8018370Z       status: 'PENDING',
+2026-09-26T11:55:54.8018498Z       lastRequestedAt: input.requestedAt,
+2026-09-26T11:55:54.8018597Z       lastReportedAt: null,
+2026-09-26T11:55:54.8018693Z       lastErrorCode: null,
+2026-09-26T11:55:54.8018813Z       updatedAt: input.requestedAt,
+2026-09-26T11:55:54.8018897Z     };
+2026-09-26T11:55:54.8018984Z     return this.sync;
+2026-09-26T11:55:54.8019067Z   }
+2026-09-26T11:55:54.8019167Z   async reportSync(input: {
+2026-09-26T11:55:54.8019262Z     managedDeviceId: string;
+2026-09-26T11:55:54.8019483Z     policyId: string | null;
+2026-09-26T11:55:54.8019614Z     policyVersion: number | null;
+2026-09-26T11:55:54.8019900Z     status: ApplicationPolicySyncState['status'];
+2026-09-26T11:55:54.8019998Z     reportedAt: Date;
+2026-09-26T11:55:54.8020096Z     errorCode: string | null;
+2026-09-26T11:55:54.8020178Z   }) {
+2026-09-26T11:55:54.8020267Z     this.sync = {
+2026-09-26T11:55:54.8020413Z       managedDeviceId: input.managedDeviceId,
+2026-09-26T11:55:54.8020600Z       desiredPolicyId: this.sync?.desiredPolicyId ?? null,
+2026-09-26T11:55:54.8020828Z       desiredPolicyVersion: this.sync?.desiredPolicyVersion ?? null,
+2026-09-26T11:55:54.8020959Z       reportedPolicyId: input.policyId,
+2026-09-26T11:55:54.8021119Z       reportedPolicyVersion: input.policyVersion,
+2026-09-26T11:55:54.8021217Z       status: input.status,
+2026-09-26T11:55:54.8021392Z       lastRequestedAt: this.sync?.lastRequestedAt ?? null,
+2026-09-26T11:55:54.8021520Z       lastReportedAt: input.reportedAt,
+2026-09-26T11:55:54.8021645Z       lastErrorCode: input.errorCode,
+2026-09-26T11:55:54.8021762Z       updatedAt: input.reportedAt,
+2026-09-26T11:55:54.8021843Z     };
+2026-09-26T11:55:54.8021937Z     return this.sync;
+2026-09-26T11:55:54.8022021Z   }
+2026-09-26T11:55:54.8022103Z }
+2026-09-26T11:55:54.8022110Z 
+2026-09-26T11:55:54.8022316Z class DeviceFake implements ManagedDeviceRepository {
+2026-09-26T11:55:54.8022426Z   readonly name = 'devices';
+2026-09-26T11:55:54.8022519Z   async create() {
+2026-09-26T11:55:54.8022605Z     return device;
+2026-09-26T11:55:54.8022686Z   }
+2026-09-26T11:55:54.8022781Z   async findById() {
+2026-09-26T11:55:54.8022866Z     return device;
+2026-09-26T11:55:54.8022946Z   }
+2026-09-26T11:55:54.8023071Z   async findByStableIdentifier() {
+2026-09-26T11:55:54.8023162Z     return device;
+2026-09-26T11:55:54.8023245Z   }
+2026-09-26T11:55:54.8023328Z   async list() {
+2026-09-26T11:55:54.8023479Z     return { items: [device], nextCursor: null };
+2026-09-26T11:55:54.8023560Z   }
+2026-09-26T11:55:54.8023654Z   async listByAdminId() {
+2026-09-26T11:55:54.8023798Z     return { items: [device], nextCursor: null };
+2026-09-26T11:55:54.8023873Z   }
+2026-09-26T11:55:54.8023977Z   async updateStatus() {
+2026-09-26T11:55:54.8024072Z     return device;
+2026-09-26T11:55:54.8024149Z   }
+2026-09-26T11:55:54.8024230Z }
+2026-09-26T11:55:54.8024237Z 
+2026-09-26T11:55:54.8024353Z const createService = () => {
+2026-09-26T11:55:54.8024604Z   const policies = new PolicyFake();
+2026-09-26T11:55:54.8024697Z   const commands = {
+2026-09-26T11:55:54.8024888Z     createApplicationPolicyCommand: vi.fn(async () => ({
+2026-09-26T11:55:54.8025058Z       command: { id: '44444444-4444-4444-8444-444444444444' },
+2026-09-26T11:55:54.8025150Z       created: true,
+2026-09-26T11:55:54.8025228Z     })),
+2026-09-26T11:55:54.8025432Z     createApplicationInventoryRequest: vi.fn(async () => ({
+2026-09-26T11:55:54.8025597Z       command: { id: '55555555-5555-4555-8555-555555555555' },
+2026-09-26T11:55:54.8025682Z       created: true,
+2026-09-26T11:55:54.8025763Z     })),
+2026-09-26T11:55:54.8025891Z   } as unknown as CommandService;
+2026-09-26T11:55:54.8025976Z   const events = {
+2026-09-26T11:55:54.8026063Z     name: 'events',
+2026-09-26T11:55:54.8026197Z     record: vi.fn(async () => undefined),
+2026-09-26T11:55:54.8026381Z   } as unknown as ApplicationManagementEventRepository;
+2026-09-26T11:55:54.8026464Z   return {
+2026-09-26T11:55:54.8026551Z     policies,
+2026-09-26T11:55:54.8026721Z     service: new ApplicationManagementService(
+2026-09-26T11:55:54.8026818Z       new InventoryFake(),
+2026-09-26T11:55:54.8026900Z       policies,
+2026-09-26T11:55:54.8026995Z       new DeviceFake(),
+2026-09-26T11:55:54.8027079Z       commands,
+2026-09-26T11:55:54.8027158Z       events,
+2026-09-26T11:55:54.8027240Z       {
+2026-09-26T11:55:54.8027363Z         maxInventoryItems: 500,
+2026-09-26T11:55:54.8027463Z         maxPolicyRules: 500,
+2026-09-26T11:55:54.8027592Z         maxFutureSkewSeconds: 300,
+2026-09-26T11:55:54.8027683Z         staleSeconds: 300,
+2026-09-26T11:55:54.8027802Z         veryStaleSeconds: 86400,
+2026-09-26T11:55:54.8027883Z       },
+2026-09-26T11:55:54.8027965Z     ),
+2026-09-26T11:55:54.8028045Z   };
+2026-09-26T11:55:54.8028244Z };
+2026-09-26T11:55:54.8028258Z 
+2026-09-26T11:55:54.8028447Z describe('application management service', () => {
+2026-09-26T11:55:54.8028650Z   it('rejects duplicate inventory package names', async () => {
+2026-09-26T11:55:54.8028782Z     const { service } = createService();
+2026-09-26T11:55:54.8028872Z     await expect(
+2026-09-26T11:55:54.8028993Z       service.reportInventory({
+2026-09-26T11:55:54.8029113Z         managedDeviceId: deviceId,
+2026-09-26T11:55:54.8029227Z         observedAt: new Date(),
+2026-09-26T11:55:54.8029463Z         receivedAt: new Date(),
+2026-09-26T11:55:54.8029548Z         items: [
+2026-09-26T11:55:54.8029633Z           {
+2026-09-26T11:55:54.8029773Z             packageName: 'com.example.app',
+2026-09-26T11:55:54.8029859Z             label: null,
+2026-09-26T11:55:54.8029974Z             versionName: null,
+2026-09-26T11:55:54.8030082Z             versionCode: null,
+2026-09-26T11:55:54.8030211Z             installState: 'INSTALLED',
+2026-09-26T11:55:54.8030307Z             enabled: true,
+2026-09-26T11:55:54.8030422Z             sourceCategory: null,
+2026-09-26T11:55:54.8030506Z           },
+2026-09-26T11:55:54.8030588Z           {
+2026-09-26T11:55:54.8030734Z             packageName: 'com.example.app',
+2026-09-26T11:55:54.8030834Z             label: null,
+2026-09-26T11:55:54.8030946Z             versionName: null,
+2026-09-26T11:55:54.8031052Z             versionCode: null,
+2026-09-26T11:55:54.8031175Z             installState: 'INSTALLED',
+2026-09-26T11:55:54.8031262Z             enabled: true,
+2026-09-26T11:55:54.8031381Z             sourceCategory: null,
+2026-09-26T11:55:54.8031464Z           },
+2026-09-26T11:55:54.8031541Z         ],
+2026-09-26T11:55:54.8031622Z       }),
+2026-09-26T11:55:54.8031785Z     ).rejects.toMatchObject({ code: 'CONFLICT' });
+2026-09-26T11:55:54.8031861Z   });
+2026-09-26T11:55:54.8031869Z 
+2026-09-26T11:55:54.8032123Z   it('calculates an owned effective policy deterministically', async () => {
+2026-09-26T11:55:54.8032283Z     const { service, policies } = createService();
+2026-09-26T11:55:54.8032380Z     await policies.assign({
+2026-09-26T11:55:54.8032503Z       managedDeviceId: deviceId,
+2026-09-26T11:55:54.8032585Z       policyId,
+2026-09-26T11:55:54.8032806Z       policyVersion: 1,
+2026-09-26T11:55:54.8032903Z       assignedBy: adminId,
+2026-09-26T11:55:54.8032980Z     });
+2026-09-26T11:55:54.8033230Z     const effective = await service.getEffectivePolicy(adminId, deviceId);
+2026-09-26T11:55:54.8033391Z     expect(effective.policy?.id).toBe(policyId);
+2026-09-26T11:55:54.8033535Z     expect(effective.policy?.version).toBe(1);
+2026-09-26T11:55:54.8033731Z     expect(effective.synchronizationRequired).toBe(false);
+2026-09-26T11:55:54.8033812Z   });
+2026-09-26T11:55:54.8033820Z 
+2026-09-26T11:55:54.8033965Z   it('rejects stale policy updates', async () => {
+2026-09-26T11:55:54.8034094Z     const { service } = createService();
+2026-09-26T11:55:54.8034184Z     await expect(
+2026-09-26T11:55:54.8034284Z       service.updatePolicy({
+2026-09-26T11:55:54.8034376Z         adminId,
+2026-09-26T11:55:54.8034461Z         policyId,
+2026-09-26T11:55:54.8034555Z         name: 'Changed',
+2026-09-26T11:55:54.8034653Z         description: null,
+2026-09-26T11:55:54.8034743Z         status: 'ACTIVE',
+2026-09-26T11:55:54.8034850Z         expectedVersion: 9,
+2026-09-26T11:55:54.8035080Z         rules: [{ packageName: 'com.example.blocked', action: 'BLOCK' }],
+2026-09-26T11:55:54.8035160Z       }),
+2026-09-26T11:55:54.8035320Z     ).rejects.toMatchObject({ code: 'CONFLICT' });
+2026-09-26T11:55:54.8035401Z   });
+2026-09-26T11:55:54.8035478Z });
+2026-09-26T11:55:54.8035637Z ===== tests/command-service.test.ts =====
+2026-09-26T11:55:54.8035792Z import { randomUUID } from 'node:crypto';
+2026-09-26T11:55:54.8035963Z import { describe, expect, it } from 'vitest';
+2026-09-26T11:55:54.8036224Z import { CommandService } from '../src/services/command-service.js';
+2026-09-26T11:55:54.8036479Z import type { ManagedDevice } from '../src/domain/managed-device.js';
+2026-09-26T11:55:54.8036986Z import type { ManagedDeviceRepository } from '../src/repositories/managed-device-repository.js';
+2026-09-26T11:55:54.8037196Z import type { Command } from '../src/domain/command.js';
+2026-09-26T11:55:54.8037527Z import type { CommandRepository } from '../src/repositories/command-repository.js';
+2026-09-26T11:55:54.8037999Z import type { ScreenSharingSessionRepository } from '../src/repositories/screen-sharing-session-repository.js';
+2026-09-26T11:55:54.8038006Z 
+2026-09-26T11:55:54.8038204Z const device = (adminId: string): ManagedDevice => ({
+2026-09-26T11:55:54.8038297Z   id: randomUUID(),
+2026-09-26T11:55:54.8038382Z   adminId,
+2026-09-26T11:55:54.8038547Z   stableIdentifier: 'managed-installation-test',
+2026-09-26T11:55:54.8038637Z   name: 'Test Device',
+2026-09-26T11:55:54.8038732Z   platform: 'android',
+2026-09-26T11:55:54.8038830Z   enrollmentStatus: 'ACTIVE',
+2026-09-26T11:55:54.8038953Z   operationalStatus: 'ACTIVE',
+2026-09-26T11:55:54.8039050Z   createdAt: new Date(),
+2026-09-26T11:55:54.8039147Z   updatedAt: new Date(),
+2026-09-26T11:55:54.8039242Z   lastSeenAt: null,
+2026-09-26T11:55:54.8039441Z });
+2026-09-26T11:55:54.8039665Z class FakeDevices implements ManagedDeviceRepository {
+2026-09-26T11:55:54.8039795Z   readonly name = 'fake-devices';
+2026-09-26T11:55:54.8039925Z   item: ManagedDevice | null = null;
+2026-09-26T11:55:54.8040063Z   async create(): Promise<ManagedDevice> {
+2026-09-26T11:55:54.8040180Z     throw new Error('unused');
+2026-09-26T11:55:54.8040259Z   }
+2026-09-26T11:55:54.8040424Z   async findById(): Promise<ManagedDevice | null> {
+2026-09-26T11:55:54.8040517Z     return this.item;
+2026-09-26T11:55:54.8040594Z   }
+2026-09-26T11:55:54.8040819Z   async findByStableIdentifier(): Promise<ManagedDevice | null> {
+2026-09-26T11:55:54.8040909Z     return null;
+2026-09-26T11:55:54.8040987Z   }
+2026-09-26T11:55:54.8041078Z   async list() {
+2026-09-26T11:55:54.8041209Z     return { items: [], nextCursor: null };
+2026-09-26T11:55:54.8041295Z   }
+2026-09-26T11:55:54.8041394Z   async listByAdminId() {
+2026-09-26T11:55:54.8041523Z     return { items: [], nextCursor: null };
+2026-09-26T11:55:54.8041605Z   }
+2026-09-26T11:55:54.8041703Z   async updateStatus() {
+2026-09-26T11:55:54.8041786Z     return null;
+2026-09-26T11:55:54.8041991Z   }
+2026-09-26T11:55:54.8042068Z }
+2026-09-26T11:55:54.8042261Z class FakeCommands implements CommandRepository {
+2026-09-26T11:55:54.8042391Z   readonly name = 'fake-commands';
+2026-09-26T11:55:54.8042507Z   command: Command | null = null;
+2026-09-26T11:55:54.8042734Z   async create(input: Parameters<CommandRepository['create']>[0]) {
+2026-09-26T11:55:54.8042852Z     const command: Command = {
+2026-09-26T11:55:54.8042939Z       id: input.id,
+2026-09-26T11:55:54.8043090Z       managedDeviceId: input.managedDeviceId,
+2026-09-26T11:55:54.8043191Z       adminId: input.adminId,
+2026-09-26T11:55:54.8043284Z       type: 'FUTURE_COMMAND',
+2026-09-26T11:55:54.8043377Z       version: 1,
+2026-09-26T11:55:54.8043470Z       status: 'CREATED',
+2026-09-26T11:55:54.8043570Z       payload: input.payload,
+2026-09-26T11:55:54.8043708Z       correlationId: input.correlationId,
+2026-09-26T11:55:54.8043843Z       idempotencyKey: input.idempotencyKey,
+2026-09-26T11:55:54.8043944Z       createdAt: new Date(),
+2026-09-26T11:55:54.8044077Z       expiresAt: input.expiresAt,
+2026-09-26T11:55:54.8044167Z       deliveryAt: null,
+2026-09-26T11:55:54.8044269Z       acknowledgedAt: null,
+2026-09-26T11:55:54.8044364Z       startedAt: null,
+2026-09-26T11:55:54.8044454Z       completedAt: null,
+2026-09-26T11:55:54.8044551Z       cancelledAt: null,
+2026-09-26T11:55:54.8044647Z       failureCode: null,
+2026-09-26T11:55:54.8044742Z       errorCategory: null,
+2026-09-26T11:55:54.8044835Z       resultCode: null,
+2026-09-26T11:55:54.8044926Z       resultMetadata: null,
+2026-09-26T11:55:54.8045010Z     };
+2026-09-26T11:55:54.8045108Z     this.command = command;
+2026-09-26T11:55:54.8045231Z     return { command, created: true };
+2026-09-26T11:55:54.8045311Z   }
+2026-09-26T11:55:54.8045409Z   async findById() {
+2026-09-26T11:55:54.8045618Z     return this.command;
+2026-09-26T11:55:54.8045704Z   }
+2026-09-26T11:55:54.8045795Z   async findOwned() {
+2026-09-26T11:55:54.8045892Z     return this.command;
+2026-09-26T11:55:54.8045979Z   }
+2026-09-26T11:55:54.8046069Z   async cancelOwned() {
+2026-09-26T11:55:54.8046221Z     if (!this.command) throw new Error('unused');
+2026-09-26T11:55:54.8046315Z     return this.command;
+2026-09-26T11:55:54.8046390Z   }
+2026-09-26T11:55:54.8046656Z   async transition(input: Parameters<CommandRepository['transition']>[0]) {
+2026-09-26T11:55:54.8046802Z     if (!this.command) throw new Error('unused');
+2026-09-26T11:55:54.8046977Z     this.command = { ...this.command, status: input.to };
+2026-09-26T11:55:54.8047071Z     return this.command;
+2026-09-26T11:55:54.8047145Z   }
+2026-09-26T11:55:54.8047227Z }
+2026-09-26T11:55:54.8047418Z describe('Phase 6.1 command authorization', () => {
+2026-09-26T11:55:54.8047717Z   it('binds command creation to the authenticated administrator ownership', async () => {
+2026-09-26T11:55:54.8047843Z     const owner = randomUUID(),
+2026-09-26T11:55:54.8047941Z       other = randomUUID(),
+2026-09-26T11:55:54.8048061Z       devices = new FakeDevices();
+2026-09-26T11:55:54.8048191Z     devices.item = device(owner);
+2026-09-26T11:55:54.8048416Z     const service = new CommandService(new FakeCommands(), devices, {
+2026-09-26T11:55:54.8048504Z       ttlSeconds: 300,
+2026-09-26T11:55:54.8048605Z       maxPayloadBytes: 4096,
+2026-09-26T11:55:54.8048681Z     });
+2026-09-26T11:55:54.8048771Z     await expect(
+2026-09-26T11:55:54.8048870Z       service.create(other, {
+2026-09-26T11:55:54.8048988Z         deviceId: devices.item.id,
+2026-09-26T11:55:54.8049105Z         type: 'FUTURE_COMMAND',
+2026-09-26T11:55:54.8049193Z         version: 1,
+2026-09-26T11:55:54.8049283Z         payload: {},
+2026-09-26T11:55:54.8049507Z         idempotencyKey: null,
+2026-09-26T11:55:54.8049609Z         correlationId: null,
+2026-09-26T11:55:54.8049687Z       }),
+2026-09-26T11:55:54.8049955Z     ).rejects.toMatchObject({ statusCode: 403, code: 'AUTHORIZATION_DENIED' });
+2026-09-26T11:55:54.8050031Z   });
+2026-09-26T11:55:54.8050329Z   it('rejects arbitrary payload content in the neutral command registry', async () => {
+2026-09-26T11:55:54.8050572Z     const owner = randomUUID(),
+2026-09-26T11:55:54.8050689Z       devices = new FakeDevices();
+2026-09-26T11:55:54.8050809Z     devices.item = device(owner);
+2026-09-26T11:55:54.8051027Z     const service = new CommandService(new FakeCommands(), devices, {
+2026-09-26T11:55:54.8051115Z       ttlSeconds: 300,
+2026-09-26T11:55:54.8051214Z       maxPayloadBytes: 4096,
+2026-09-26T11:55:54.8051294Z     });
+2026-09-26T11:55:54.8051379Z     await expect(
+2026-09-26T11:55:54.8051476Z       service.create(owner, {
+2026-09-26T11:55:54.8051592Z         deviceId: devices.item.id,
+2026-09-26T11:55:54.8051706Z         type: 'FUTURE_COMMAND',
+2026-09-26T11:55:54.8051796Z         version: 1,
+2026-09-26T11:55:54.8051919Z         payload: { command: 'shell' },
+2026-09-26T11:55:54.8052026Z         idempotencyKey: null,
+2026-09-26T11:55:54.8052123Z         correlationId: null,
+2026-09-26T11:55:54.8052201Z       }),
+2026-09-26T11:55:54.8052304Z     ).rejects.toMatchObject({
+2026-09-26T11:55:54.8052401Z       statusCode: 400,
+2026-09-26T11:55:54.8052563Z       code: 'INVALID_COMMAND_PAYLOAD',
+2026-09-26T11:55:54.8052646Z     });
+2026-09-26T11:55:54.8052722Z   });
+2026-09-26T11:55:54.8052803Z });
+2026-09-26T11:55:54.8052811Z 
+2026-09-26T11:55:54.8053043Z describe('Phase 9.4 screen-sharing command binding', () => {
+2026-09-26T11:55:54.8053321Z   it('rejects a screen command whose session belongs to another device', async () => {
+2026-09-26T11:55:54.8053437Z     const owner = randomUUID();
+2026-09-26T11:55:54.8053555Z     const managed = device(owner);
+2026-09-26T11:55:54.8053684Z     const foreignDevice = randomUUID();
+2026-09-26T11:55:54.8053812Z     const sessionId = randomUUID();
+2026-09-26T11:55:54.8053910Z     const screenSessions = {
+2026-09-26T11:55:54.8054020Z       findById: async () => ({
+2026-09-26T11:55:54.8054226Z         id: sessionId,
+2026-09-26T11:55:54.8054356Z         managedDeviceId: foreignDevice,
+2026-09-26T11:55:54.8054449Z         adminId: owner,
+2026-09-26T11:55:54.8054545Z         status: 'AUTHORIZED',
+2026-09-26T11:55:54.8054629Z       }),
+2026-09-26T11:55:54.8054798Z     } as unknown as ScreenSharingSessionRepository;
+2026-09-26T11:55:54.8054924Z     const devices = new FakeDevices();
+2026-09-26T11:55:54.8055016Z     devices.item = managed;
+2026-09-26T11:55:54.8055141Z     const service = new CommandService(
+2026-09-26T11:55:54.8055239Z       new FakeCommands(),
+2026-09-26T11:55:54.8055322Z       devices,
+2026-09-26T11:55:54.8055474Z       { ttlSeconds: 300, maxPayloadBytes: 4096 },
+2026-09-26T11:55:54.8055557Z       undefined,
+2026-09-26T11:55:54.8055655Z       screenSessions,
+2026-09-26T11:55:54.8055737Z     );
+2026-09-26T11:55:54.8055744Z 
+2026-09-26T11:55:54.8055825Z     await expect(
+2026-09-26T11:55:54.8055983Z       service.createScreenShareCommand(owner, {
+2026-09-26T11:55:54.8056085Z         deviceId: managed.id,
+2026-09-26T11:55:54.8056201Z         type: 'START_SCREEN_SHARE',
+2026-09-26T11:55:54.8056323Z         screenSessionId: sessionId,
+2026-09-26T11:55:54.8056453Z         correlationId: randomUUID(),
+2026-09-26T11:55:54.8056530Z       }),
+2026-09-26T11:55:54.8056631Z     ).rejects.toMatchObject({
+2026-09-26T11:55:54.8056723Z       statusCode: 404,
+2026-09-26T11:55:54.8056842Z       code: 'SCREEN_SESSION_NOT_FOUND',
+2026-09-26T11:55:54.8056923Z     });
+2026-09-26T11:55:54.8056999Z   });
+2026-09-26T11:55:54.8057005Z 
+2026-09-26T11:55:54.8057259Z   it('rejects replayed screen start against an ACTIVE session', async () => {
+2026-09-26T11:55:54.8057375Z     const owner = randomUUID();
+2026-09-26T11:55:54.8057494Z     const managed = device(owner);
+2026-09-26T11:55:54.8057613Z     const sessionId = randomUUID();
+2026-09-26T11:55:54.8057714Z     const screenSessions = {
+2026-09-26T11:55:54.8057826Z       findById: async () => ({
+2026-09-26T11:55:54.8057915Z         id: sessionId,
+2026-09-26T11:55:54.8058040Z         managedDeviceId: managed.id,
+2026-09-26T11:55:54.8058127Z         adminId: owner,
+2026-09-26T11:55:54.8058219Z         status: 'ACTIVE',
+2026-09-26T11:55:54.8058385Z       }),
+2026-09-26T11:55:54.8058553Z     } as unknown as ScreenSharingSessionRepository;
+2026-09-26T11:55:54.8058679Z     const devices = new FakeDevices();
+2026-09-26T11:55:54.8058772Z     devices.item = managed;
+2026-09-26T11:55:54.8058901Z     const service = new CommandService(
+2026-09-26T11:55:54.8058996Z       new FakeCommands(),
+2026-09-26T11:55:54.8059076Z       devices,
+2026-09-26T11:55:54.8059226Z       { ttlSeconds: 300, maxPayloadBytes: 4096 },
+2026-09-26T11:55:54.8059432Z       undefined,
+2026-09-26T11:55:54.8059525Z       screenSessions,
+2026-09-26T11:55:54.8059603Z     );
+2026-09-26T11:55:54.8059611Z 
+2026-09-26T11:55:54.8059692Z     await expect(
+2026-09-26T11:55:54.8059847Z       service.createScreenShareCommand(owner, {
+2026-09-26T11:55:54.8059943Z         deviceId: managed.id,
+2026-09-26T11:55:54.8060065Z         type: 'START_SCREEN_SHARE',
+2026-09-26T11:55:54.8060187Z         screenSessionId: sessionId,
+2026-09-26T11:55:54.8060310Z         correlationId: randomUUID(),
+2026-09-26T11:55:54.8060391Z       }),
+2026-09-26T11:55:54.8060495Z     ).rejects.toMatchObject({
+2026-09-26T11:55:54.8060587Z       statusCode: 409,
+2026-09-26T11:55:54.8060720Z       code: 'SCREEN_SESSION_STATE_CONFLICT',
+2026-09-26T11:55:54.8060801Z     });
+2026-09-26T11:55:54.8060877Z   });
+2026-09-26T11:55:54.8060958Z });
+2026-09-26T11:55:54.8060965Z 
+2026-09-26T11:55:54.8061192Z describe('Phase 10.1 audio-access command binding', () => {
+2026-09-26T11:55:54.8061464Z   it('rejects an audio command whose session belongs to another device', async () => {
+2026-09-26T11:55:54.8061579Z     const owner = randomUUID();
+2026-09-26T11:55:54.8061698Z     const managed = device(owner);
+2026-09-26T11:55:54.8061825Z     const audioSessionId = randomUUID();
+2026-09-26T11:55:54.8061923Z     const audioSessions = {
+2026-09-26T11:55:54.8062159Z       findById: async () => ({
+2026-09-26T11:55:54.8062257Z         id: audioSessionId,
+2026-09-26T11:55:54.8062386Z         managedDeviceId: randomUUID(),
+2026-09-26T11:55:54.8062479Z         adminId: owner,
+2026-09-26T11:55:54.8062576Z         status: 'AUTHORIZED',
+2026-09-26T11:55:54.8062658Z       }),
+2026-09-26T11:55:54.8063086Z     } as unknown as import('../src/repositories/audio-access-session-repository.js').AudioAccessSessionRepository;
+2026-09-26T11:55:54.8063216Z     const devices = new FakeDevices();
+2026-09-26T11:55:54.8063314Z     devices.item = managed;
+2026-09-26T11:55:54.8063438Z     const service = new CommandService(
+2026-09-26T11:55:54.8063538Z       new FakeCommands(),
+2026-09-26T11:55:54.8063624Z       devices,
+2026-09-26T11:55:54.8063768Z       { ttlSeconds: 300, maxPayloadBytes: 4096 },
+2026-09-26T11:55:54.8063854Z       undefined,
+2026-09-26T11:55:54.8063940Z       undefined,
+2026-09-26T11:55:54.8064031Z       audioSessions,
+2026-09-26T11:55:54.8064109Z     );
+2026-09-26T11:55:54.8064122Z 
+2026-09-26T11:55:54.8064211Z     await expect(
+2026-09-26T11:55:54.8064362Z       service.createAudioAccessCommand(owner, {
+2026-09-26T11:55:54.8064459Z         deviceId: managed.id,
+2026-09-26T11:55:54.8064579Z         type: 'START_AUDIO_ACCESS',
+2026-09-26T11:55:54.8064673Z         audioSessionId,
+2026-09-26T11:55:54.8064798Z         correlationId: randomUUID(),
+2026-09-26T11:55:54.8064874Z       }),
+2026-09-26T11:55:54.8064977Z     ).rejects.toMatchObject({
+2026-09-26T11:55:54.8065068Z       statusCode: 404,
+2026-09-26T11:55:54.8065186Z       code: 'AUDIO_SESSION_NOT_FOUND',
+2026-09-26T11:55:54.8065267Z     });
+2026-09-26T11:55:54.8065342Z   });
+2026-09-26T11:55:54.8065353Z 
+2026-09-26T11:55:54.8065593Z   it('rejects replayed audio start against an ACTIVE session', async () => {
+2026-09-26T11:55:54.8065707Z     const owner = randomUUID();
+2026-09-26T11:55:54.8065822Z     const managed = device(owner);
+2026-09-26T11:55:54.8065952Z     const audioSessionId = randomUUID();
+2026-09-26T11:55:54.8066052Z     const audioSessions = {
+2026-09-26T11:55:54.8066164Z       findById: async () => ({
+2026-09-26T11:55:54.8066260Z         id: audioSessionId,
+2026-09-26T11:55:54.8066382Z         managedDeviceId: managed.id,
+2026-09-26T11:55:54.8066587Z         adminId: owner,
+2026-09-26T11:55:54.8066679Z         status: 'ACTIVE',
+2026-09-26T11:55:54.8066757Z       }),
+2026-09-26T11:55:54.8067167Z     } as unknown as import('../src/repositories/audio-access-session-repository.js').AudioAccessSessionRepository;
+2026-09-26T11:55:54.8067293Z     const devices = new FakeDevices();
+2026-09-26T11:55:54.8067388Z     devices.item = managed;
+2026-09-26T11:55:54.8067513Z     const service = new CommandService(
+2026-09-26T11:55:54.8067608Z       new FakeCommands(),
+2026-09-26T11:55:54.8067688Z       devices,
+2026-09-26T11:55:54.8067834Z       { ttlSeconds: 300, maxPayloadBytes: 4096 },
+2026-09-26T11:55:54.8067918Z       undefined,
+2026-09-26T11:55:54.8067999Z       undefined,
+2026-09-26T11:55:54.8068089Z       audioSessions,
+2026-09-26T11:55:54.8068174Z     );
+2026-09-26T11:55:54.8068181Z 
+2026-09-26T11:55:54.8068263Z     await expect(
+2026-09-26T11:55:54.8068416Z       service.createAudioAccessCommand(owner, {
+2026-09-26T11:55:54.8068517Z         deviceId: managed.id,
+2026-09-26T11:55:54.8068632Z         type: 'START_AUDIO_ACCESS',
+2026-09-26T11:55:54.8068724Z         audioSessionId,
+2026-09-26T11:55:54.8068842Z         correlationId: randomUUID(),
+2026-09-26T11:55:54.8068925Z       }),
+2026-09-26T11:55:54.8069026Z     ).rejects.toMatchObject({
+2026-09-26T11:55:54.8069113Z       statusCode: 409,
+2026-09-26T11:55:54.8069251Z       code: 'AUDIO_SESSION_STATE_CONFLICT',
+2026-09-26T11:55:54.8069447Z     });
+2026-09-26T11:55:54.8069528Z   });
+2026-09-26T11:55:54.8069820Z   it('creates only the allowlisted application policy command payload', async () => {
+2026-09-26T11:55:54.8069936Z     const owner = randomUUID();
+2026-09-26T11:55:54.8070058Z     const devices = new FakeDevices();
+2026-09-26T11:55:54.8070294Z     devices.item = device(owner);
+2026-09-26T11:55:54.8070517Z     const service = new CommandService(new FakeCommands(), devices, {
+2026-09-26T11:55:54.8070610Z       ttlSeconds: 300,
+2026-09-26T11:55:54.8070711Z       maxPayloadBytes: 4096,
+2026-09-26T11:55:54.8070793Z     });
+2026-09-26T11:55:54.8070800Z 
+2026-09-26T11:55:54.8070888Z     await expect(
+2026-09-26T11:55:54.8071071Z       service.createApplicationPolicyCommand(owner, {
+2026-09-26T11:55:54.8071188Z         deviceId: devices.item.id,
+2026-09-26T11:55:54.8071306Z         policyId: randomUUID(),
+2026-09-26T11:55:54.8071403Z         policyVersion: 3,
+2026-09-26T11:55:54.8071544Z         correlationId: 'policy-sync-test',
+2026-09-26T11:55:54.8071626Z       }),
+2026-09-26T11:55:54.8071778Z     ).resolves.toMatchObject({ created: true });
+2026-09-26T11:55:54.8071786Z 
+2026-09-26T11:55:54.8071866Z     await expect(
+2026-09-26T11:55:54.8071964Z       service.create(owner, {
+2026-09-26T11:55:54.8072079Z         deviceId: devices.item.id,
+2026-09-26T11:55:54.8072211Z         type: 'SYNC_APPLICATION_POLICY',
+2026-09-26T11:55:54.8072299Z         version: 1,
+2026-09-26T11:55:54.8072419Z         payload: { arbitrary: 'code' },
+2026-09-26T11:55:54.8072539Z         idempotencyKey: 'bad',
+2026-09-26T11:55:54.8072640Z         correlationId: null,
+2026-09-26T11:55:54.8072716Z       }),
+2026-09-26T11:55:54.8072925Z     ).rejects.toMatchObject({ code: 'INVALID_COMMAND_PAYLOAD' });
+2026-09-26T11:55:54.8073004Z   });
+2026-09-26T11:55:54.8073011Z 
+2026-09-26T11:55:54.8073207Z   it('creates a bounded inventory-request command', async () => {
+2026-09-26T11:55:54.8073319Z     const owner = randomUUID();
+2026-09-26T11:55:54.8073443Z     const devices = new FakeDevices();
+2026-09-26T11:55:54.8073557Z     devices.item = device(owner);
+2026-09-26T11:55:54.8073774Z     const service = new CommandService(new FakeCommands(), devices, {
+2026-09-26T11:55:54.8073864Z       ttlSeconds: 300,
+2026-09-26T11:55:54.8073962Z       maxPayloadBytes: 4096,
+2026-09-26T11:55:54.8074039Z     });
+2026-09-26T11:55:54.8074051Z 
+2026-09-26T11:55:54.8074135Z     await expect(
+2026-09-26T11:55:54.8074329Z       service.createApplicationInventoryRequest(owner, {
+2026-09-26T11:55:54.8074451Z         deviceId: devices.item.id,
+2026-09-26T11:55:54.8074699Z         correlationId: 'inventory-test',
+2026-09-26T11:55:54.8074781Z       }),
+2026-09-26T11:55:54.8074937Z     ).resolves.toMatchObject({ created: true });
+2026-09-26T11:55:54.8075014Z   });
+2026-09-26T11:55:54.8075097Z });
+2026-09-26T11:55:54.8181824Z Post job cleanup.
+2026-09-26T11:55:54.9413929Z (node:2346) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-09-26T11:55:54.9414908Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-09-26T11:55:54.9628053Z Post job cleanup.
+2026-09-26T11:55:55.0486415Z [command]/usr/bin/git version
+2026-09-26T11:55:55.0529886Z git version 2.55.0
+2026-09-26T11:55:55.0577927Z Temporarily overriding HOME='/home/runner/work/_temp/e10b3868-31a5-407b-8847-8b75dea1f11f' before making global git config changes
+2026-09-26T11:55:55.0582190Z Adding repository directory to the temporary git global config as a safe directory
+2026-09-26T11:55:55.0592887Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/parento-backend/parento-backend
+2026-09-26T11:55:55.0622758Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-09-26T11:55:55.0657952Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-09-26T11:55:55.0912112Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-09-26T11:55:55.0939645Z http.https://github.com/.extraheader
+2026-09-26T11:55:55.0950673Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-09-26T11:55:55.0985996Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-09-26T11:55:55.1242621Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-09-26T11:55:55.1292542Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-09-26T11:55:55.1707369Z Cleaning up orphan processes
+2026-09-26T11:55:55.1985732Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-node@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
