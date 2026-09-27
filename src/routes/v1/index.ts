@@ -36,6 +36,10 @@ import { PostgresApplicationPolicyRepository } from '../../repositories/postgres
 import { PostgresApplicationManagementEventRepository } from '../../repositories/postgres-application-management-event-repository.js';
 import { ApplicationManagementService } from '../../services/application-management-service.js';
 import { createApplicationManagementRouter } from './application-management.routes.js';
+import { PostgresNetworkPolicyRepository } from '../../repositories/postgres-network-policy-repository.js';
+import { PostgresNetworkPolicyEventRepository } from '../../repositories/postgres-network-policy-event-repository.js';
+import { NetworkPolicyService } from '../../services/network-policy-service.js';
+import { createNetworkPolicyRouter } from './network-policy.routes.js';
 
 export const createV1Router = (
   database: Database,
@@ -206,6 +210,30 @@ export const createV1Router = (
         maxPolicyRules: security.applicationPolicyMaxRules,
         maxPayloadBytes: security.applicationInventoryMaxPayloadBytes,
       },
+    ),
+  );
+
+  const networkPolicies = new PostgresNetworkPolicyRepository(database);
+  const networkPolicyEvents = new PostgresNetworkPolicyEventRepository(database);
+  const networkPolicy = new NetworkPolicyService(
+    networkPolicies,
+    managedDevices,
+    commandService,
+    networkPolicyEvents,
+    {
+      maxRules: security.networkPolicyMaxRules,
+      maxFutureSkewSeconds: security.monitoringMaxFutureSkewSeconds,
+      staleSeconds: security.monitoringStaleSeconds,
+      veryStaleSeconds: security.monitoringVeryStaleSeconds,
+    },
+  );
+  router.use(
+    createNetworkPolicyRouter(
+      networkPolicy,
+      authentication,
+      deviceSessions,
+      rateLimit,
+      { maxRules: security.networkPolicyMaxRules },
     ),
   );
 
