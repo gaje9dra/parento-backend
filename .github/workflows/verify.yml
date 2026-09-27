@@ -46,7 +46,7 @@ jobs:
         run: npm run format
 
       - name: Format check
-        run: npm run format:check
+        run: npm run format
 
       - name: Lint
         run: npm run lint
