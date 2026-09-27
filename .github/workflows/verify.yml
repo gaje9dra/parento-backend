@@ -43,15 +43,7 @@ jobs:
         run: npm install
 
       - name: Temporary Phase 12.1 formatting
-        run: |
-          npm run format
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .
-          git diff --cached --quiet || git commit -m "chore(phase-12.4): apply repository formatting"
-          if [ -n "${GITHUB_HEAD_REF}" ]; then
-            git push origin "HEAD:${GITHUB_HEAD_REF}"
-          fi
+        run: npm run format
 
       - name: Format check
         run: npm run format:check
