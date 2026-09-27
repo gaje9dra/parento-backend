@@ -1,5 +1,5 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { randomUUID as cryptoRandomUUID } from 'node:crypto';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { loadConfig } from '../src/config/env.js';
 import { createDatabase } from '../src/db/index.js';
 import { runMigrations } from '../src/db/migrate.js';
