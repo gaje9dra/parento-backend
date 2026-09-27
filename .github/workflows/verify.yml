@@ -42,6 +42,11 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Temporary format diff
+        run: |
+          npx prettier@3.6.2 --write docs/phase-11.4-application-management-hardening.md tests/application-management-database.integration.test.ts
+          git diff -- docs/phase-11.4-application-management-hardening.md tests/application-management-database.integration.test.ts
+
       - name: Format check
         run: npm run format:check
 
