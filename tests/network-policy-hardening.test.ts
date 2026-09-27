@@ -39,7 +39,7 @@ describe('Phase 12.4 network-policy hardening',()=>{
   it('ignores a report older than the current desired policy version',async()=>{
     const service=makeService();
     const result=await service.reportDeviceStatus({deviceId,policyId,policyVersion:2,status:'FAILED',reportedAt:new Date(),errorCode:'OLD'});
-    expect(result.desiredPolicyVersion).toBe(3);
+    expect(result?.desiredPolicyVersion).toBe(3);
   });
 
   it('rejects a report for a policy outside the device administrative scope',async()=>{
