@@ -47,7 +47,7 @@ const loadRules = async (
   query: <T extends QueryResultRow>(sql: string, values?: readonly unknown[]) => Promise<{rows:T[]}>,
   policyId: string,
 ) => (await query<RuleRow>(
-  `SELECT ${ruleColumns} FROM network_policy_rules WHERE policy_id=$1 ORDER BY domain,id`,
+  `SELECT ${ruleColumns} FROM network_policy_rules WHERE policy_id=$1 ORDER BY CASE WHEN domain LIKE '*.%' THEN 1 ELSE 0 END, CASE WHEN action='BLOCK' THEN 0 ELSE 1 END, domain,id`,
   [policyId],
 )).rows.map(toRule);
 
