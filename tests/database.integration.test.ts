@@ -82,6 +82,11 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
         applied: true,
         name: 'phase_11_1_application_management',
       },
+      {
+        id: '0018',
+        applied: true,
+        name: 'phase_10_4_audio_security_hardening',
+      },
     ]);
   });
 
@@ -210,7 +215,7 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
       [deviceId, adminId, `audio-${deviceId}`, 'Audio Test', 'android'],
     );
     await database.query(
-      "INSERT INTO device_connection_sessions (id,managed_device_id,session_token_hash,expires_at,last_seen_at) VALUES ($1,$2,$3,NOW()+INTERVAL '1 hour',NOW())",
+      "INSERT INTO device_connection_sessions (id,managed_device_id,session_token_hash,state,connected_at,expires_at,last_activity_at) VALUES ($1,$2,$3,'CONNECTED',NOW(),NOW()+INTERVAL '1 hour',NOW())",
       [connectionId, deviceId, `hash-${connectionId}`],
     );
     await database.query(
