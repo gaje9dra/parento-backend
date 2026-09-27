@@ -166,10 +166,18 @@ export class PostgresNetworkPolicyRepository extends PostgresRepository implemen
     });
   }
   async setCapability(input:{managedDeviceId:string;supported:boolean;mode:NetworkPolicyCapability['mode'];capabilityVersion:number|null;reportedAt:Date}){
-    const r=await this.query<CapabilityRow>(
-      'INSERT INTO network_policy_capabilities(managed_device_id,supported,mode,capability_version,reported_at,updated_at) VALUES($1,$2,$3,$4,$5,NOW()) ON CONFLICT(managed_device_id) DO UPDATE SET supported=EXCLUDED.supported,mode=EXCLUDED.mode,capability_version=EXCLUDED.capability_version,reported_at=EXCLUDED.reported_at,updated_at=NOW() RETURNING managed_device_id,supported,mode,capability_version,reported_at,updated_at',
-      [input.managedDeviceId,input.supported,input.mode,input.capabilityVersion,input.reportedAt],
-    ); return toCapability(r.rows[0]!);
+    return this.transaction(async client=>{
+      const current=(await client.query<CapabilityRow>(
+        'SELECT managed_device_id,supported,mode,capability_version,reported_at,updated_at FROM network_policy_capabilities WHERE managed_device_id=$1 FOR UPDATE',
+        [input.managedDeviceId],
+      )).rows[0];
+      if(current?.reported_at && input.reportedAt.getTime()<current.reported_at.getTime()) return toCapability(current);
+      const r=await client.query<CapabilityRow>(
+        'INSERT INTO network_policy_capabilities(managed_device_id,supported,mode,capability_version,reported_at,updated_at) VALUES($1,$2,$3,$4,$5,NOW()) ON CONFLICT(managed_device_id) DO UPDATE SET supported=EXCLUDED.supported,mode=EXCLUDED.mode,capability_version=EXCLUDED.capability_version,reported_at=EXCLUDED.reported_at,updated_at=NOW() RETURNING managed_device_id,supported,mode,capability_version,reported_at,updated_at',
+        [input.managedDeviceId,input.supported,input.mode,input.capabilityVersion,input.reportedAt],
+      );
+      return toCapability(r.rows[0]!);
+    });
   }
   async findCapability(managedDeviceId:string){const r=await this.query<CapabilityRow>('SELECT managed_device_id,supported,mode,capability_version,reported_at,updated_at FROM network_policy_capabilities WHERE managed_device_id=$1',[managedDeviceId]);return r.rows[0]?toCapability(r.rows[0]):null;}
 }
