@@ -73,6 +73,25 @@ export class PostgresApplicationInventoryRepository
     >[];
   }): Promise<{ applied: boolean; receivedAt: Date }> {
     return this.transaction(async (client) => {
+      const device = await client.query<{
+        enrollment_status: string;
+        operational_status: string;
+      }>(
+        'SELECT enrollment_status, operational_status FROM managed_devices WHERE id=$1 FOR UPDATE',
+        [input.managedDeviceId],
+      );
+      const deviceRow = device.rows[0];
+      if (
+        deviceRow === undefined ||
+        deviceRow.enrollment_status !== 'ACTIVE' ||
+        deviceRow.operational_status !== 'ACTIVE'
+      ) {
+        throw new PersistenceError(
+          'CONFLICT',
+          'Application inventory reporting is not authorized for this device.',
+        );
+      }
+
       const current = await client.query<{ last_received_at: Date | null }>(
         'SELECT MAX(last_received_at) AS last_received_at FROM application_inventory WHERE managed_device_id=$1',
         [input.managedDeviceId],
