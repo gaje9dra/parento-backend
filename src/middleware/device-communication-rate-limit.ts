@@ -5,6 +5,8 @@ export const createDeviceCommunicationRateLimiter = (input: {
   enabled: boolean;
   windowMs: number;
   maxRequests: number;
+  identifier?: string;
+  message?: string;
 }): RequestHandler | undefined => {
   if (!input.enabled) return undefined;
   return rateLimit({
@@ -12,7 +14,7 @@ export const createDeviceCommunicationRateLimiter = (input: {
     limit: input.maxRequests,
     standardHeaders: 'draft-8',
     legacyHeaders: false,
-    identifier: 'device-communication',
+    identifier: input.identifier ?? 'device-communication',
     keyGenerator: (req) =>
       ipKeyGenerator(req.ip ?? req.socket.remoteAddress ?? 'unknown-client'),
     handler: (_req, res) =>
@@ -20,7 +22,7 @@ export const createDeviceCommunicationRateLimiter = (input: {
         error: {
           code: 'RATE_LIMITED',
           message:
-            'Too many device communication requests. Please try again later.',
+            input.message ?? 'Too many device communication requests. Please try again later.',
         },
         requestId: res.locals.requestId,
       }),
