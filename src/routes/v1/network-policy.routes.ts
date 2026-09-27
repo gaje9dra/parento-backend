@@ -26,17 +26,17 @@ export const createNetworkPolicyRouter=(
  router.post('/device/network-policy/status',...deviceAuth,controller.reportStatus);
  router.post('/device/network-policy/capability',...deviceAuth,controller.reportCapability);
 
- router.post('/admin/network-policies',adminAuth,requireAdminAuthorization,controller.createPolicy);
- router.get('/admin/network-policies',adminAuth,requireAdminAuthorization,controller.listPolicies);
- router.get('/admin/network-policies/:policyId',adminAuth,requireAdminAuthorization,controller.getPolicy);
- router.patch('/admin/network-policies/:policyId',adminAuth,requireAdminAuthorization,controller.updatePolicy);
- router.get('/admin/devices/:deviceId/network-policy',adminAuth,requireAdminAuthorization,controller.effectivePolicy);
- router.post('/admin/devices/:deviceId/network-policy',adminAuth,requireAdminAuthorization,controller.assignPolicy);
- router.delete('/admin/devices/:deviceId/network-policy',adminAuth,requireAdminAuthorization,controller.removePolicy);
- router.get('/admin/devices/:deviceId/network-policy/status',adminAuth,requireAdminAuthorization,controller.enforcementStatus);
- router.get('/admin/devices/:deviceId/network-policy/capability',adminAuth,requireAdminAuthorization,controller.capability);
- router.post('/admin/devices/:deviceId/network-policy/sync',adminAuth,requireAdminAuthorization,controller.syncPolicy);
- router.post('/admin/devices/:deviceId/network-policy/status/request',adminAuth,requireAdminAuthorization,controller.requestStatus);
+ router.post('/admin/network-policies',...adminAuth,controller.createPolicy);
+ router.get('/admin/network-policies',...adminAuth,controller.listPolicies);
+ router.get('/admin/network-policies/:policyId',...adminAuth,controller.getPolicy);
+ router.patch('/admin/network-policies/:policyId',...adminAuth,controller.updatePolicy);
+ router.get('/admin/devices/:deviceId/network-policy',...adminAuth,controller.effectivePolicy);
+ router.post('/admin/devices/:deviceId/network-policy',...adminAuth,controller.assignPolicy);
+ router.delete('/admin/devices/:deviceId/network-policy',...adminAuth,controller.removePolicy);
+ router.get('/admin/devices/:deviceId/network-policy/status',...adminAuth,controller.enforcementStatus);
+ router.get('/admin/devices/:deviceId/network-policy/capability',...adminAuth,controller.capability);
+ router.post('/admin/devices/:deviceId/network-policy/sync',...adminAuth,controller.syncPolicy);
+ router.post('/admin/devices/:deviceId/network-policy/status/request',...adminAuth,controller.requestStatus);
 
  router.all('/admin/network-policies',methodNotAllowed('GET, POST, OPTIONS'));
  router.all('/admin/devices/:deviceId/network-policy',methodNotAllowed('GET, POST, DELETE, OPTIONS'));
