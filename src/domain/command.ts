@@ -6,6 +6,8 @@ export const COMMAND_TYPES = [
   'STOP_AUDIO_ACCESS',
   'SYNC_APPLICATION_POLICY',
   'REQUEST_APPLICATION_INVENTORY',
+  'SYNC_NETWORK_POLICY',
+  'REQUEST_NETWORK_POLICY_STATUS',
 ] as const;
 export type CommandType = (typeof COMMAND_TYPES)[number];
 export const COMMAND_TYPE = 'FUTURE_COMMAND' as const;
