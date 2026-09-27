@@ -134,11 +134,7 @@ describe.skipIf(!hasDatabase)(
       await expect(
         database.query(
           "UPDATE application_policy_sync_state SET reported_policy_id=$2,reported_policy_version=3,status='STALE',last_reported_at=$3 WHERE managed_device_id=$1",
-          [
-            deviceId,
-            policyId,
-            new Date('2026-09-27T00:59:59.000Z'),
-          ],
+          [deviceId, policyId, new Date('2026-09-27T00:59:59.000Z')],
         ),
       ).rejects.toThrow(/older than the stored report/i);
     });
