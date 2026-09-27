@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { QueryResultRow } from 'pg';
 import type {
   NetworkPolicy,
@@ -90,8 +91,8 @@ export class PostgresNetworkPolicyRepository extends PostgresRepository implemen
         [input.id,input.adminId,input.name,input.description,input.createdBy],
       );
       for(const rule of input.rules) await client.query(
-        'INSERT INTO network_policy_rules(id,policy_id,domain,action,enabled) VALUES(gen_random_uuid(),$1,$2,$3,$4)',
-        [input.id,rule.domain,rule.action,rule.enabled],
+        'INSERT INTO network_policy_rules(id,policy_id,domain,action,enabled) VALUES($1,$2,$3,$4,$5)',
+        [randomUUID(),input.id,rule.domain,rule.action,rule.enabled],
       );
       return toPolicy(result.rows[0]!,input.rules.map((r,i)=>({id:'',policyId:input.id,domain:r.domain,action:r.action,enabled:r.enabled,createdAt:result.rows[0]!.created_at,updatedAt:result.rows[0]!.updated_at})));
     });
@@ -128,8 +129,8 @@ export class PostgresNetworkPolicyRepository extends PostgresRepository implemen
       )).rows[0]!;
       await client.query('DELETE FROM network_policy_rules WHERE policy_id=$1',[input.id]);
       for(const rule of input.rules) await client.query(
-        'INSERT INTO network_policy_rules(id,policy_id,domain,action,enabled) VALUES(gen_random_uuid(),$1,$2,$3,$4)',
-        [input.id,rule.domain,rule.action,rule.enabled],
+        'INSERT INTO network_policy_rules(id,policy_id,domain,action,enabled) VALUES($1,$2,$3,$4,$5)',
+        [randomUUID(),input.id,rule.domain,rule.action,rule.enabled],
       );
       return toPolicy(updated,input.rules.map(r=>({id:'',policyId:input.id,domain:r.domain,action:r.action,enabled:r.enabled,createdAt:updated.created_at,updatedAt:updated.updated_at})));
     });
