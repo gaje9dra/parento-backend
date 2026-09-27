@@ -9,6 +9,7 @@ export interface AudioAccessSessionRepository extends Repository {
   create(input: {
     id: string;
     managedDeviceId: string;
+    deviceConnectionSessionId: string;
     adminId: string;
     correlationId: string;
     expiresAt: Date;

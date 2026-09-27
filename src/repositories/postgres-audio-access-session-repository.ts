@@ -13,6 +13,7 @@ import { PostgresRepository } from './postgres-repository.js';
 interface Row {
   id: string;
   managed_device_id: string;
+  device_connection_session_id: string | null;
   admin_id: string;
   status: AudioAccessSessionStatus;
   created_at: Date;
@@ -27,11 +28,12 @@ interface Row {
 }
 
 const columns =
-  'id,managed_device_id,admin_id,status,created_at,authorized_at,started_at,stopped_at,expires_at,last_activity_at,termination_reason,correlation_id,transport_state';
+  'id,managed_device_id,device_connection_session_id,admin_id,status,created_at,authorized_at,started_at,stopped_at,expires_at,last_activity_at,termination_reason,correlation_id,transport_state';
 
 const map = (row: Row): AudioAccessSession => ({
   id: row.id,
   managedDeviceId: row.managed_device_id,
+  deviceConnectionSessionId: row.device_connection_session_id,
   adminId: row.admin_id,
   status: row.status,
   createdAt: row.created_at,
@@ -54,6 +56,7 @@ export class PostgresAudioAccessSessionRepository
   async create(input: {
     id: string;
     managedDeviceId: string;
+    deviceConnectionSessionId: string;
     adminId: string;
     correlationId: string;
     expiresAt: Date;
@@ -76,11 +79,12 @@ export class PostgresAudioAccessSessionRepository
         }
 
         const result = await client.query<Row>(
-          'INSERT INTO audio_access_sessions (id,managed_device_id,admin_id,correlation_id,expires_at,transport_state) VALUES ($1,$2,$3,$4,$5,$6) RETURNING ' +
+          'INSERT INTO audio_access_sessions (id,managed_device_id,device_connection_session_id,admin_id,correlation_id,expires_at,transport_state) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING ' +
             columns,
           [
             input.id,
             input.managedDeviceId,
+            input.deviceConnectionSessionId,
             input.adminId,
             input.correlationId,
             input.expiresAt,

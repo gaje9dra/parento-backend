@@ -22,6 +22,8 @@ export type AudioAccessTerminationReason =
 export interface AudioAccessSession {
   readonly id: string;
   readonly managedDeviceId: string;
+  /** Exact device-connection session that authorized this audio session. */
+  readonly deviceConnectionSessionId: string | null;
   readonly adminId: string;
   readonly status: AudioAccessSessionStatus;
   readonly createdAt: Date;
