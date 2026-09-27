@@ -22,7 +22,6 @@ export const createNetworkPolicyRouter=(
  const adminAuth=requireAdminAuthentication(authentication);
  const limiter=createDeviceCommunicationRateLimiter({enabled:rateLimitConfig.enabled,windowMs:rateLimitConfig.windowMs,maxRequests:rateLimitConfig.maxRequests});
  const deviceAuth=[...(limiter?[limiter]:[]),requireDeviceSession(sessions)];
- router.post('/device/network-policy',...deviceAuth,controller.getDevicePolicy);
  router.get('/device/network-policy',...deviceAuth,controller.getDevicePolicy);
  router.post('/device/network-policy/status',...deviceAuth,controller.reportStatus);
  router.post('/device/network-policy/capability',...deviceAuth,controller.reportCapability);
