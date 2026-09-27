@@ -1,5 +1,7 @@
 # Phase 12.1 — Backend Website & Network Blocking Foundation
 
+<!-- Verification: formatting is repository-enforced. -->
+
 ## Scope
 
 This phase changes only gaje9dra/parento-backend. It establishes authoritative policy/control contracts for later Managed Android enforcement. It does not block traffic and does not implement VPN interception, DNS interception, packet inspection, TLS interception, certificate installation, traffic decryption, root firewalling, hidden APIs, or arbitrary commands.
