@@ -1,0 +1,21 @@
+name: Temporary Format Inspection
+
+on:
+  push:
+    branches:
+      - phase-11.4-backend-hardening
+
+permissions:
+  contents: read
+
+jobs:
+  format-inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.21.0
+      - run: npm install
+      - run: npx prettier@3.6.2 --write docs/phase-11.4-application-management-hardening.md tests/application-management-database.integration.test.ts
+      - run: git diff -- docs/phase-11.4-application-management-hardening.md tests/application-management-database.integration.test.ts
