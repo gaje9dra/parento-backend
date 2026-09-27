@@ -6,8 +6,6 @@ import type { NetworkPolicyEventRepository } from '../repositories/network-polic
 import type {
   NetworkEnforcementStatus,
   NetworkPolicy,
-  NetworkPolicyCapability,
-  NetworkPolicyRule,
   NetworkRuleAction,
 } from '../domain/network-policy.js';
 import { isValidNetworkDomain, normalizeDomain } from '../domain/network-policy.js';
@@ -85,7 +83,7 @@ export class NetworkPolicyService {
   async updatePolicy(input:{adminId:string;policyId:string;name:string;description:string|null;status:'ACTIVE'|'DISABLED';expectedVersion:number;rules:readonly {domain:string;action:NetworkRuleAction;enabled:boolean}[]}){
     const rules=validateRules(input.rules,this.options.maxRules);
     try {
-      const policy=await this.policies.updateOwned({...input,rules});
+      const policy=await this.policies.updateOwned({...input,rules,updatedBy:input.adminId});
       await this.events.record({id:randomUUID(),eventType:input.status==='DISABLED'?'POLICY_DISABLED':'POLICY_UPDATED',adminId:input.adminId,managedDeviceId:null,policyId:policy.id,policyVersion:policy.version,metadata:{ruleCount:policy.rules.length}});
       return policy;
     } catch(error) {
@@ -180,10 +178,10 @@ export class NetworkPolicyService {
     )) throw new AppError(409,'CONFLICT','APPLIED state must match the current network policy assignment.');
     if(input.status==='APPLIED'&&assignment===null&&input.policyId!==null) throw new AppError(409,'CONFLICT','An unassigned device cannot report an applied policy.');
     const current=await this.policies.findSyncState(input.deviceId);
-    if(current?.desiredPolicyVersion!==null && input.policyVersion!==null && input.policyVersion<current.desiredPolicyVersion){
+    if(current && current.desiredPolicyVersion!==null && input.policyVersion!==null && input.policyVersion<current.desiredPolicyVersion){
       return current;
     }
-    const result=await this.policies.reportSync({...input,errorCode:input.errorCode?.slice(0,128)??null});
+    const result=await this.policies.reportSync({managedDeviceId:input.deviceId,policyId:input.policyId,policyVersion:input.policyVersion,status:input.status,reportedAt:input.reportedAt,errorCode:input.errorCode?.slice(0,128)??null});
     if(current?.status!==result.status||current?.reportedPolicyVersion!==result.reportedPolicyVersion)
       await this.events.record({id:randomUUID(),eventType:'ENFORCEMENT_STATUS_CHANGED',adminId:device.adminId,managedDeviceId:device.id,policyId:result.reportedPolicyId,policyVersion:result.reportedPolicyVersion,metadata:{status:result.status}});
     return result;
@@ -196,7 +194,7 @@ export class NetworkPolicyService {
     if(input.mode==='SUPPORTED'&&!input.supported) throw new AppError(400,'INVALID_REQUEST','Supported mode requires supported=true.');
     if(input.capabilityVersion!==null&&(!Number.isInteger(input.capabilityVersion)||input.capabilityVersion<=0)) throw new AppError(400,'INVALID_REQUEST','Capability version is invalid.');
     const previous=await this.policies.findCapability(input.deviceId);
-    const capability=await this.policies.setCapability(input);
+    const capability=await this.policies.setCapability({managedDeviceId:input.deviceId,supported:input.supported,mode:input.mode,capabilityVersion:input.capabilityVersion,reportedAt:input.reportedAt});
     if(!previous||previous.supported!==capability.supported||previous.mode!==capability.mode||previous.capabilityVersion!==capability.capabilityVersion)
       await this.events.record({id:randomUUID(),eventType:'CAPABILITY_CHANGED',adminId:device.adminId,managedDeviceId:device.id,policyId:null,policyVersion:null,metadata:{supported:capability.supported,mode:capability.mode,capabilityVersion:capability.capabilityVersion}});
     return capability;
