@@ -92,6 +92,16 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
         applied: true,
         name: 'phase_11_4_application_management_hardening',
       },
+      {
+        id: '0020',
+        applied: true,
+        name: 'phase_12_1_network_policy_foundation',
+      },
+      {
+        id: '0021',
+        applied: true,
+        name: 'phase_12_4_network_policy_hardening',
+      },
     ]);
   });
 
