@@ -298,9 +298,9 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
     await runMigrations(database);
     const status = await migrationStatus(database);
     expect(status.at(-1)).toEqual({
-      id: '0018',
+      id: '0019',
       applied: true,
-      name: 'phase_10_4_audio_security_hardening',
+      name: 'phase_11_4_application_management_hardening',
     });
   });
 
