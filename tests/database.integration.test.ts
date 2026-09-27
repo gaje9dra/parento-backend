@@ -80,7 +80,7 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
       {
         id: '0017',
         applied: true,
-        name: 'phase_10_4_audio_security_hardening',
+        name: 'phase_11_1_application_management',
       },
     ]);
   });
@@ -90,7 +90,7 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
     await runMigrations(database);
 
     const status = await migrationStatus(database);
-    expect(status.filter((migration) => migration.applied)).toHaveLength(17);
+    expect(status.filter((migration) => migration.applied)).toHaveLength(18);
   });
 
   it('verifies the final schema has the Phase 2 integrity constraints and query indexes', async () => {
@@ -179,12 +179,15 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
       "SELECT indexname FROM pg_indexes WHERE schemaname = 'public' AND indexname IN ('audio_access_one_active_device_idx','audio_access_expiry_idx','audio_access_expired_cleanup_idx','audio_access_connection_session_idx') ORDER BY indexname",
     );
     expect(audioIndexes.rows.map((row) => row.indexname)).toEqual([
+      'audio_access_expired_cleanup_idx',
+      'audio_access_expiry_idx',
       'audio_access_connection_session_idx',
       'audio_access_expired_cleanup_idx',
       'audio_access_expiry_idx',
       'audio_access_one_active_device_idx',
     ]);
   });
+
 
   it('enforces audio ownership and command binding at the database boundary', async () => {
     const adminId = randomUUID();
@@ -282,7 +285,7 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
     await runMigrations(database);
     const status = await migrationStatus(database);
     expect(status.at(-1)).toEqual({
-      id: '0017',
+      id: '0018',
       applied: true,
       name: 'phase_10_4_audio_security_hardening',
     });
