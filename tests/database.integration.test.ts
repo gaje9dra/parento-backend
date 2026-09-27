@@ -220,7 +220,13 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
     );
     await database.query(
       "INSERT INTO audio_access_sessions (id,managed_device_id,device_connection_session_id,admin_id,expires_at,correlation_id) VALUES ($1,$2,$3,$4,NOW()+INTERVAL '15 minutes',$5)",
-      [audioSessionId, deviceId, connectionId, adminId, `audio-${audioSessionId}`],
+      [
+        audioSessionId,
+        deviceId,
+        connectionId,
+        adminId,
+        `audio-${audioSessionId}`,
+      ],
     );
 
     await expect(
