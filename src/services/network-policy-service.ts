@@ -150,7 +150,11 @@ export class NetworkPolicyService {
 
   async getEnforcementStatus(adminId:string,deviceId:string){
     await this.requireOwnedDevice(adminId,deviceId);
-    return this.policies.findSyncState(deviceId);
+    const state=await this.policies.findSyncState(deviceId);
+    if(!state) return null;
+    const age=state.lastReportedAt===null?null:(Date.now()-state.lastReportedAt.getTime())/1000;
+    const freshness=age===null?'NEVER_REPORTED':age<=this.options.staleSeconds?'FRESH':age<=this.options.veryStaleSeconds?'STALE':'VERY_STALE';
+    return {...state,freshness};
   }
 
   async requestStatus(adminId:string,deviceId:string){
