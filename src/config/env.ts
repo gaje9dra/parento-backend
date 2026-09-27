@@ -117,6 +117,12 @@ const rawEnvSchema = z.object({
     .min(1)
     .max(5000)
     .default(500),
+  NETWORK_POLICY_MAX_RULES: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(5000)
+    .default(500),
   SCREEN_SHARING_MAX_DURATION_SECONDS: z.coerce
     .number()
     .int()
@@ -235,6 +241,7 @@ export interface AppConfig {
     readonly applicationInventoryMaxItems: number;
     readonly applicationInventoryMaxPayloadBytes: number;
     readonly applicationPolicyMaxRules: number;
+    readonly networkPolicyMaxRules: number;
     readonly screenSharingMaxDurationSeconds: number;
     readonly screenSharingRetentionSeconds: number;
     readonly audioAccessMaxDurationSeconds: number;
@@ -538,6 +545,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       applicationInventoryMaxPayloadBytes:
         parsed.data.APPLICATION_INVENTORY_MAX_PAYLOAD_BYTES,
       applicationPolicyMaxRules: parsed.data.APPLICATION_POLICY_MAX_RULES,
+      networkPolicyMaxRules: parsed.data.NETWORK_POLICY_MAX_RULES,
       screenSharingMaxDurationSeconds:
         parsed.data.SCREEN_SHARING_MAX_DURATION_SECONDS,
       screenSharingRetentionSeconds:
