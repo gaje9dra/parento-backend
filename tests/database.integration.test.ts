@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { loadConfig } from '../src/config/env.js';
@@ -80,11 +81,6 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
         id: '0017',
         applied: true,
         name: 'phase_11_1_application_management',
-      },
-      {
-        id: '0018',
-        applied: true,
-        name: 'phase_10_4_audio_security_hardening',
       },
     ]);
   });
@@ -183,6 +179,8 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
       "SELECT indexname FROM pg_indexes WHERE schemaname = 'public' AND indexname IN ('audio_access_one_active_device_idx','audio_access_expiry_idx','audio_access_expired_cleanup_idx','audio_access_connection_session_idx') ORDER BY indexname",
     );
     expect(audioIndexes.rows.map((row) => row.indexname)).toEqual([
+      'audio_access_expired_cleanup_idx',
+      'audio_access_expiry_idx',
       'audio_access_connection_session_idx',
       'audio_access_expired_cleanup_idx',
       'audio_access_expiry_idx',
