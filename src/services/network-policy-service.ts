@@ -83,7 +83,7 @@ export class NetworkPolicyService {
   async updatePolicy(input:{adminId:string;policyId:string;name:string;description:string|null;status:'ACTIVE'|'DISABLED';expectedVersion:number;rules:readonly {domain:string;action:NetworkRuleAction;enabled:boolean}[]}){
     const rules=validateRules(input.rules,this.options.maxRules);
     try {
-      const policy=await this.policies.updateOwned({...input,rules,updatedBy:input.adminId});
+      const policy=await this.policies.updateOwned({id:input.policyId,adminId:input.adminId,name:input.name,description:input.description,status:input.status,expectedVersion:input.expectedVersion,updatedBy:input.adminId,rules});
       await this.events.record({id:randomUUID(),eventType:input.status==='DISABLED'?'POLICY_DISABLED':'POLICY_UPDATED',adminId:input.adminId,managedDeviceId:null,policyId:policy.id,policyVersion:policy.version,metadata:{ruleCount:policy.rules.length}});
       return policy;
     } catch(error) {
@@ -143,7 +143,7 @@ export class NetworkPolicyService {
     const command=await this.commands.createNetworkPolicyCommand(adminId,{deviceId,policyId,policyVersion,correlationId:randomUUID()});
     const sync=await this.policies.setSyncRequested({managedDeviceId:deviceId,policyId,policyVersion,requestedAt:new Date()});
     await this.events.record({id:randomUUID(),eventType:'POLICY_SYNC_REQUESTED',adminId,managedDeviceId:deviceId,policyId,policyVersion,metadata:{commandId:command.command.id}});
-    return {command:command.command,sync};
+    return {command:command.command,created:command.created,sync};
   }
 
   async getEnforcementStatus(adminId:string,deviceId:string){
