@@ -153,6 +153,11 @@ export class NetworkPolicyService {
     return this.policies.findSyncState(deviceId);
   }
 
+  async requestStatus(adminId:string,deviceId:string){
+    await this.requireOwnedDevice(adminId,deviceId,true);
+    return this.commands.createNetworkPolicyStatusRequest(adminId,{deviceId,correlationId:randomUUID()});
+  }
+
   async reportDeviceStatus(input:{deviceId:string;policyId:string|null;policyVersion:number|null;status:NetworkEnforcementStatus;reportedAt:Date;errorCode:string|null}){
     const device=await this.devices.findById(input.deviceId);
     if(!device||device.enrollmentStatus!=='ACTIVE'||device.operationalStatus!=='ACTIVE') throw new AppError(403,'DEVICE_AUTHORIZATION_DENIED','Network policy reporting is not authorized.');
