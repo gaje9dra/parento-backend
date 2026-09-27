@@ -388,20 +388,38 @@ export class PostgresApplicationPolicyRepository
     reportedAt: Date;
     errorCode: string | null;
   }) {
-    const result = await this.query<SyncRow>(
-      'UPDATE application_policy_sync_state SET reported_policy_id=$2,reported_policy_version=$3,status=$4,last_reported_at=$5,last_error_code=$6,updated_at=NOW() WHERE managed_device_id=$1 RETURNING managed_device_id,desired_policy_id,desired_policy_version,reported_policy_id,reported_policy_version,status,last_requested_at,last_reported_at,last_error_code,updated_at',
-      [
-        input.managedDeviceId,
-        input.policyId,
-        input.policyVersion,
-        input.status,
-        input.reportedAt,
-        input.errorCode,
-      ],
-    );
-    if (result.rows[0] === undefined) {
-      const created = await this.query<SyncRow>(
-        'INSERT INTO application_policy_sync_state(managed_device_id,desired_policy_id,desired_policy_version,reported_policy_id,reported_policy_version,status,last_reported_at,last_error_code,updated_at) VALUES($1,NULL,NULL,$2,$3,$4,$5,$6,NOW()) RETURNING managed_device_id,desired_policy_id,desired_policy_version,reported_policy_id,reported_policy_version,status,last_requested_at,last_reported_at,last_error_code,updated_at',
+    return this.transaction(async (client) => {
+      const current = await client.query<SyncRow>(
+        'SELECT managed_device_id,desired_policy_id,desired_policy_version,reported_policy_id,reported_policy_version,status,last_requested_at,last_reported_at,last_error_code,updated_at FROM application_policy_sync_state WHERE managed_device_id=$1 FOR UPDATE',
+        [input.managedDeviceId],
+      );
+      const existing = current.rows[0];
+
+      if (
+        existing?.last_reported_at !== null &&
+        existing?.last_reported_at !== undefined &&
+        input.reportedAt.getTime() < existing.last_reported_at.getTime()
+      ) {
+        return toSync(existing);
+      }
+
+      if (existing === undefined) {
+        const created = await client.query<SyncRow>(
+          'INSERT INTO application_policy_sync_state(managed_device_id,desired_policy_id,desired_policy_version,reported_policy_id,reported_policy_version,status,last_reported_at,last_error_code,updated_at) VALUES($1,NULL,NULL,$2,$3,$4,$5,$6,NOW()) RETURNING managed_device_id,desired_policy_id,desired_policy_version,reported_policy_id,reported_policy_version,status,last_requested_at,last_reported_at,last_error_code,updated_at',
+          [
+            input.managedDeviceId,
+            input.policyId,
+            input.policyVersion,
+            input.status,
+            input.reportedAt,
+            input.errorCode,
+          ],
+        );
+        return toSync(created.rows[0]!);
+      }
+
+      const result = await client.query<SyncRow>(
+        'UPDATE application_policy_sync_state SET reported_policy_id=$2,reported_policy_version=$3,status=$4,last_reported_at=$5,last_error_code=$6,updated_at=NOW() WHERE managed_device_id=$1 RETURNING managed_device_id,desired_policy_id,desired_policy_version,reported_policy_id,reported_policy_version,status,last_requested_at,last_reported_at,last_error_code,updated_at',
         [
           input.managedDeviceId,
           input.policyId,
@@ -411,8 +429,7 @@ export class PostgresApplicationPolicyRepository
           input.errorCode,
         ],
       );
-      return toSync(created.rows[0]!);
-    }
-    return toSync(result.rows[0]);
+      return toSync(result.rows[0]!);
+    });
   }
 }
