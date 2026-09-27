@@ -541,6 +541,20 @@ The default rate limiter uses the library's process-local store. It is suitable 
 
 No password-change endpoint, OAuth, RBAC system, device enrollment, pairing, realtime communication, device control, monitoring, location, media capture, policy enforcement, or remote command functionality is introduced by Phase 3.2.
 
+## Development admin provisioning
+
+Phase 3 authentication intentionally does not invent credentials for existing administrator rows. For local development/test use, provision a dedicated administrator through the development-only CLI:
+
+1. Copy `.env.example` to `.env`.
+2. Set `NODE_ENV=development` and a development `DATABASE_URL`.
+3. Set `PARENTO_DEV_ADMIN_EMAIL` and a password of 15–256 characters in the local environment. Never commit these values.
+4. Apply migrations with `npm run db:migrate`.
+5. Run `npm run admin:provision:dev`.
+
+The command is disabled when `NODE_ENV=production`, uses the existing scrypt `PasswordHasher`, creates an `ACTIVE` administrator with a generated UUID, and never prints the password. If the email already exists, it is not modified; the command succeeds only when the configured password already matches.
+
+The Admin Android client uses the normal `POST /api/v1/auth/admin/login` endpoint with the configured development credentials. The authenticated current-admin endpoint is `GET /api/v1/auth/admin/me`.
+
 ## Phase 3.3 — Admin Session Lifecycle, Authorization & Account Security
 
 Phase 3.3 hardens the existing opaque server-side administrator session

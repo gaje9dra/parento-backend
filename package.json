@@ -22,7 +22,8 @@
     "verify": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build && npm run audit",
     "db:migrate": "tsx src/db/migrate.ts up",
     "db:migrate:status": "tsx src/db/migrate.ts status",
-    "db:reset": "tsx src/db/migrate.ts reset"
+    "db:reset": "tsx src/db/migrate.ts reset",
+    "admin:provision:dev": "tsx src/scripts/provision-development-admin.ts"
   },
   "dependencies": {
     "dotenv": "^17.2.2",
