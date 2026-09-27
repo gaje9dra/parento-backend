@@ -99,6 +99,24 @@ const rawEnvSchema = z.object({
     .min(1024)
     .max(1048576)
     .default(32768),
+  APPLICATION_INVENTORY_MAX_ITEMS: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(5000)
+    .default(500),
+  APPLICATION_INVENTORY_MAX_PAYLOAD_BYTES: z.coerce
+    .number()
+    .int()
+    .min(1024)
+    .max(1048576)
+    .default(100 * 1024),
+  APPLICATION_POLICY_MAX_RULES: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(5000)
+    .default(500),
   SCREEN_SHARING_MAX_DURATION_SECONDS: z.coerce
     .number()
     .int()
@@ -214,6 +232,9 @@ export interface AppConfig {
     readonly monitoringVeryStaleSeconds: number;
     readonly monitoringMaxFutureSkewSeconds: number;
     readonly monitoringMaxPayloadBytes: number;
+    readonly applicationInventoryMaxItems: number;
+    readonly applicationInventoryMaxPayloadBytes: number;
+    readonly applicationPolicyMaxRules: number;
     readonly screenSharingMaxDurationSeconds: number;
     readonly screenSharingRetentionSeconds: number;
     readonly audioAccessMaxDurationSeconds: number;
@@ -513,6 +534,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       monitoringMaxFutureSkewSeconds:
         parsed.data.MONITORING_MAX_FUTURE_SKEW_SECONDS,
       monitoringMaxPayloadBytes: parsed.data.MONITORING_MAX_PAYLOAD_BYTES,
+      applicationInventoryMaxItems: parsed.data.APPLICATION_INVENTORY_MAX_ITEMS,
+      applicationInventoryMaxPayloadBytes:
+        parsed.data.APPLICATION_INVENTORY_MAX_PAYLOAD_BYTES,
+      applicationPolicyMaxRules: parsed.data.APPLICATION_POLICY_MAX_RULES,
       screenSharingMaxDurationSeconds:
         parsed.data.SCREEN_SHARING_MAX_DURATION_SECONDS,
       screenSharingRetentionSeconds:
