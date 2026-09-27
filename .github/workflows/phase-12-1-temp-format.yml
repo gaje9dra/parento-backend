@@ -7,7 +7,7 @@ permissions:
   contents: write
 jobs:
   format:
-    if: ${{ !startsWith(github.event.head_commit.message, 'chore(phase-12.1): format generated files') }}
+    if: "${{ !startsWith(github.event.head_commit.message, 'chore(phase-12.1): format generated files') }}"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
