@@ -179,15 +179,12 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
       "SELECT indexname FROM pg_indexes WHERE schemaname = 'public' AND indexname IN ('audio_access_one_active_device_idx','audio_access_expiry_idx','audio_access_expired_cleanup_idx','audio_access_connection_session_idx') ORDER BY indexname",
     );
     expect(audioIndexes.rows.map((row) => row.indexname)).toEqual([
-      'audio_access_expired_cleanup_idx',
-      'audio_access_expiry_idx',
       'audio_access_connection_session_idx',
       'audio_access_expired_cleanup_idx',
       'audio_access_expiry_idx',
       'audio_access_one_active_device_idx',
     ]);
   });
-
 
   it('enforces audio ownership and command binding at the database boundary', async () => {
     const adminId = randomUUID();
