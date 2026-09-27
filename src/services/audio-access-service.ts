@@ -38,8 +38,16 @@ const sanitizeTransportState = (
   ]);
   const result: Record<string, string> = {};
   const forbidden = new Set([
-    'token', 'credential', 'secret', 'authorization', 'accessToken',
-    'refreshToken', 'audio', 'media', 'bytes', 'payload',
+    'token',
+    'credential',
+    'secret',
+    'authorization',
+    'accessToken',
+    'refreshToken',
+    'audio',
+    'media',
+    'bytes',
+    'payload',
   ]);
 
   for (const [key, raw] of Object.entries(value)) {
