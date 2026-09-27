@@ -81,7 +81,7 @@ export const createNetworkPolicyController=(service:NetworkPolicyService,limits:
 
   requestStatus:(async(req,res,next)=>{
     const p=deviceParam.safeParse(req.params); if(!p.success||!req.authenticatedAdmin){res.status(p.success?401:400).json({error:{code:p.success?'AUTHENTICATION_REQUIRED':'INVALID_REQUEST',message:'Invalid device identifier.'},requestId:res.locals.requestId});return;}
-    try{const r=await service.requestPolicySync(req.authenticatedAdmin.id,p.data.deviceId,null,null);res.status(r.command.created?201:200).json({data:{command:r.command},requestId:res.locals.requestId});}catch(e){next(e);}
+    try{const r=await service.requestStatus(req.authenticatedAdmin.id,p.data.deviceId);res.status(r.command.created?201:200).json({data:{command:r.command},requestId:res.locals.requestId});}catch(e){next(e);}
   }) as RequestHandler,
 
   getDevicePolicy:(async(req,res,next)=>{
