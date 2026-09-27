@@ -168,12 +168,21 @@ export class NetworkPolicyService {
     validateTimestamp(input.reportedAt,new Date(),this.options.maxFutureSkewSeconds);
     if(input.policyId!==null&&!UUID.test(input.policyId)) throw new AppError(400,'INVALID_REQUEST','Policy identifier is invalid.');
     if(input.policyVersion!==null&&(!Number.isInteger(input.policyVersion)||input.policyVersion<=0)) throw new AppError(400,'INVALID_REQUEST','Policy version is invalid.');
+    if(input.policyId!==null){
+      const reportedPolicy=await this.policies.findOwned(input.policyId,device.adminId);
+      if(!reportedPolicy) throw new AppError(409,'CONFLICT','Reported network policy is not authorized for this device.');
+      if(input.policyVersion===null || input.policyVersion>reportedPolicy.version)
+        throw new AppError(409,'CONFLICT','Reported network policy version is invalid.');
+    }
     const assignment=await this.policies.findAssignment(input.deviceId);
     if(input.status==='APPLIED'&&(
       assignment?.policyId!==input.policyId||assignment.policyVersion!==input.policyVersion
     )) throw new AppError(409,'CONFLICT','APPLIED state must match the current network policy assignment.');
     if(input.status==='APPLIED'&&assignment===null&&input.policyId!==null) throw new AppError(409,'CONFLICT','An unassigned device cannot report an applied policy.');
     const current=await this.policies.findSyncState(input.deviceId);
+    if(current?.desiredPolicyVersion!==null && input.policyVersion!==null && input.policyVersion<current.desiredPolicyVersion){
+      return current;
+    }
     const result=await this.policies.reportSync({...input,errorCode:input.errorCode?.slice(0,128)??null});
     if(current?.status!==result.status||current?.reportedPolicyVersion!==result.reportedPolicyVersion)
       await this.events.record({id:randomUUID(),eventType:'ENFORCEMENT_STATUS_CHANGED',adminId:device.adminId,managedDeviceId:device.id,policyId:result.reportedPolicyId,policyVersion:result.reportedPolicyVersion,metadata:{status:result.status}});
