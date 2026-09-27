@@ -83,7 +83,10 @@ export class CommandService {
       const key = keys[0];
       const validCapability =
         keys.length === 1 &&
-        (key === 'screenSessionId' || key === 'audioSessionId');
+        ((key === 'screenSessionId' &&
+          (input.type === 'START_SCREEN_SHARE' || input.type === 'STOP_SCREEN_SHARE')) ||
+          (key === 'audioSessionId' &&
+            (input.type === 'START_AUDIO_ACCESS' || input.type === 'STOP_AUDIO_ACCESS')));
       const validCapabilityValue =
         (key === 'screenSessionId' &&
           typeof payload.screenSessionId === 'string' &&
