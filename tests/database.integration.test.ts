@@ -100,7 +100,7 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
     await runMigrations(database);
 
     const status = await migrationStatus(database);
-    expect(status.filter((migration) => migration.applied)).toHaveLength(19);
+    expect(status.filter((migration) => migration.applied)).toHaveLength(21);
   });
 
   it('verifies the final schema has the Phase 2 integrity constraints and query indexes', async () => {
@@ -298,9 +298,9 @@ describe.skipIf(!hasDatabase)('PostgreSQL persistence foundation', () => {
     await runMigrations(database);
     const status = await migrationStatus(database);
     expect(status.at(-1)).toEqual({
-      id: '0019',
+      id: '0021',
       applied: true,
-      name: 'phase_11_4_application_management_hardening',
+      name: 'phase_12_4_network_policy_hardening',
     });
   });
 
