@@ -50,7 +50,7 @@ export const createNetworkPolicyController=(service:NetworkPolicyService,limits:
   assignPolicy:(async(req,res,next)=>{
     const p=deviceParam.safeParse(req.params); const b=z.object({policyId}).strict().safeParse(req.body);
     if(!p.success||!b.success||!req.authenticatedAdmin){res.status(p.success&&b.success?401:400).json({error:{code:p.success&&b.success?'AUTHENTICATION_REQUIRED':'INVALID_REQUEST',message:'Invalid network policy assignment.'},requestId:res.locals.requestId});return;}
-    try{const r=await service.assignPolicy(req.authenticatedAdmin.id,p.data.deviceId,b.data.policyId);res.status(r.sync.command.created?201:200).json({data:{assignment:toAssignment(r.assignment),synchronization:{command:r.sync.command,state:toSync(r.sync.sync)}},requestId:res.locals.requestId});}catch(e){next(e);}
+    try{const r=await service.assignPolicy(req.authenticatedAdmin.id,p.data.deviceId,b.data.policyId);res.status(r.sync.created?201:200).json({data:{assignment:toAssignment(r.assignment),synchronization:{command:r.sync.command,state:toSync(r.sync.sync)}},requestId:res.locals.requestId});}catch(e){next(e);}
   }) as RequestHandler,
 
   removePolicy:(async(req,res,next)=>{
@@ -76,7 +76,7 @@ export const createNetworkPolicyController=(service:NetworkPolicyService,limits:
 
   syncPolicy:(async(req,res,next)=>{
     const p=deviceParam.safeParse(req.params); if(!p.success||!req.authenticatedAdmin){res.status(p.success?401:400).json({error:{code:p.success?'AUTHENTICATION_REQUIRED':'INVALID_REQUEST',message:'Invalid device identifier.'},requestId:res.locals.requestId});return;}
-    try{const e=await service.getEffectivePolicy(req.authenticatedAdmin.id,p.data.deviceId);const r=await service.requestPolicySync(req.authenticatedAdmin.id,p.data.deviceId,e.policy?.id??null,e.policy?.version??null);res.status(r.command.created?201:200).json({data:{command:r.command,synchronization:toSync(r.sync)},requestId:res.locals.requestId});}catch(e){next(e);}
+    try{const e=await service.getEffectivePolicy(req.authenticatedAdmin.id,p.data.deviceId);const r=await service.requestPolicySync(req.authenticatedAdmin.id,p.data.deviceId,e.policy?.id??null,e.policy?.version??null);res.status(r.created?201:200).json({data:{command:r.command,synchronization:toSync(r.sync)},requestId:res.locals.requestId});}catch(e){next(e);}
   }) as RequestHandler,
 
   requestStatus:(async(req,res,next)=>{
