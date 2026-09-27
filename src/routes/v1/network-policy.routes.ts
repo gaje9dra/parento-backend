@@ -20,8 +20,10 @@ export const createNetworkPolicyRouter=(
 ):Router=>{
  const router=Router(); const controller=createNetworkPolicyController(service,limits);
  const adminAuth=requireAdminAuthentication(authentication);
- const limiter=createDeviceCommunicationRateLimiter({enabled:rateLimitConfig.enabled,windowMs:rateLimitConfig.windowMs,maxRequests:rateLimitConfig.maxRequests});
+ const limiter=createDeviceCommunicationRateLimiter({enabled:rateLimitConfig.enabled,windowMs:rateLimitConfig.windowMs,maxRequests:rateLimitConfig.maxRequests,identifier:'network-policy-device',message:'Too many network-policy device requests. Please try again later.'});
+ const adminLimiter=createDeviceCommunicationRateLimiter({enabled:rateLimitConfig.enabled,windowMs:rateLimitConfig.windowMs,maxRequests:rateLimitConfig.maxRequests,identifier:'network-policy-admin',message:'Too many network-policy administrative requests. Please try again later.'});
  const deviceAuth=[...(limiter?[limiter]:[]),requireDeviceSession(sessions)];
+ const adminAuth=[...(adminLimiter?[adminLimiter]:[]),requireAdminAuthentication(authentication),requireAdminAuthorization];
  router.get('/device/network-policy',...deviceAuth,controller.getDevicePolicy);
  router.post('/device/network-policy/status',...deviceAuth,controller.reportStatus);
  router.post('/device/network-policy/capability',...deviceAuth,controller.reportCapability);
