@@ -335,7 +335,9 @@ export class CommandService {
         'application-policy:' +
         input.deviceId +
         ':' +
-        (input.policyVersion === null ? 'none' : input.policyVersion),
+        (input.policyVersion === null ? 'none' : input.policyVersion) +
+        ':' +
+        input.correlationId,
       correlationId: input.correlationId,
     });
   }

@@ -157,7 +157,19 @@ export class ApplicationManagementService {
       );
     }
 
-    const result = await this.inventory.replaceForDevice(input);
+    let result: { applied: boolean; receivedAt: Date };
+    try {
+      result = await this.inventory.replaceForDevice(input);
+    } catch (error) {
+      if (error instanceof PersistenceError && error.code === 'CONFLICT') {
+        throw new AppError(
+          403,
+          'DEVICE_AUTHORIZATION_DENIED',
+          'Application inventory reporting is not authorized.',
+        );
+      }
+      throw error;
+    }
     if (result.applied) {
       await this.events.record({
         id: randomUUID(),
@@ -285,6 +297,7 @@ export class ApplicationManagementService {
     expectedVersion: number;
     rules: readonly { packageName: string; action: ApplicationRuleAction }[];
   }) {
+    this.assertUuid(input.policyId, 'Policy identifier is invalid.');
     validateRules(input.rules, this.options.maxPolicyRules);
     try {
       const policy = await this.policies.updateOwned({
