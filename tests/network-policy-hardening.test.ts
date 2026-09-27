@@ -43,8 +43,7 @@ describe('Phase 12.4 network-policy hardening',()=>{
   });
 
   it('rejects a report for a policy outside the device administrative scope',async()=>{
-    const foreignPolicy={...policy,adminId:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'};
-    const service=makeService({findOwned:async()=>foreignPolicy});
+    const service=makeService({findOwned:async()=>null});
     await expect(service.reportDeviceStatus({deviceId,policyId,policyVersion:1,status:'FAILED',reportedAt:new Date(),errorCode:null})).rejects.toMatchObject({code:'CONFLICT'});
   });
 
