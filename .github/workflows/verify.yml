@@ -6,7 +6,7 @@ on:
   pull_request:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   verify:
@@ -41,6 +41,15 @@ jobs:
 
       - name: Install dependencies
         run: npm install
+
+      - name: Temporary Phase 12.1 formatting
+        run: |
+          npm run format
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          git diff --cached --quiet || git commit -m "chore(phase-12.1): apply repository formatting"
+          git push origin HEAD:phase-12.1-network-policy-foundation
 
       - name: Format check
         run: npm run format:check

@@ -1000,6 +1000,157 @@ paths:
         '403': { $ref: '#/components/responses/ApiErrorResponse' }
         '409': { $ref: '#/components/responses/ApiErrorResponse' }
 
+  /api/v1/admin/network-policies:
+    post:
+      summary: Create an admin-owned network policy
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [name, rules]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 160 }
+                description: { type: string, maxLength: 2000, nullable: true }
+                rules:
+                  type: array
+                  maxItems: 500
+                  items:
+                    $ref: '#/components/schemas/NetworkPolicyRuleInput'
+      responses:
+        '201': { description: Network policy created }
+        '400': { $ref: '#/components/responses/ApiErrorResponse' }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+        '409': { $ref: '#/components/responses/ApiErrorResponse' }
+    get:
+      summary: List owned network policies
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Network policy page }
+        '401': { $ref: '#/components/responses/ApiErrorResponse' }
+  /api/v1/admin/network-policies/{policyId}:
+    get:
+      summary: Get an owned network policy
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: policyId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: Network policy }
+        '404': { $ref: '#/components/responses/ApiErrorResponse' }
+    patch:
+      summary: Update an owned network policy using optimistic concurrency
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: policyId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: Updated network policy }
+        '409': { $ref: '#/components/responses/ApiErrorResponse' }
+  /api/v1/admin/devices/{deviceId}/network-policy:
+    get:
+      summary: Get effective network policy for an owned device
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: deviceId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: Desired network policy state }
+    post:
+      summary: Assign an owned active device a network policy
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: deviceId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '201': { description: Assignment and synchronization command }
+        '409': { $ref: '#/components/responses/ApiErrorResponse' }
+    delete:
+      summary: Remove a network policy assignment
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: deviceId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: Assignment removed and synchronization requested }
+  /api/v1/admin/devices/{deviceId}/network-policy/status:
+    get:
+      summary: Get desired, reported, enforcement, and freshness state
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: deviceId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: Network policy synchronization state }
+  /api/v1/admin/devices/{deviceId}/network-policy/capability:
+    get:
+      summary: Get managed-device network-policy capability
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: deviceId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: Network-policy capability }
+  /api/v1/admin/devices/{deviceId}/network-policy/sync:
+    post:
+      summary: Request network policy synchronization
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: deviceId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '201': { description: Synchronization command created }
+  /api/v1/admin/devices/{deviceId}/network-policy/status/request:
+    post:
+      summary: Request current network-policy status from a managed device
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: deviceId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '201': { description: Status command created }
+  /api/v1/device/network-policy:
+    get:
+      summary: Get desired network policy for the authenticated managed device
+      security: [{ deviceSessionBearer: [] }]
+      responses:
+        '200': { description: Desired network policy }
+  /api/v1/device/network-policy/status:
+    post:
+      summary: Report network policy synchronization/enforcement state
+      security: [{ deviceSessionBearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [policyId, policyVersion, status, reportedAt, errorCode]
+              properties:
+                policyId: { type: string, format: uuid, nullable: true }
+                policyVersion: { type: integer, minimum: 1, nullable: true }
+                status:
+                  type: string
+                  enum: [UNKNOWN, PENDING, APPLIED, PARTIALLY_APPLIED, FAILED, UNSUPPORTED, STALE, REVOKED]
+                reportedAt: { type: string, format: date-time }
+                errorCode: { type: string, maxLength: 128, nullable: true }
+      responses:
+        '200': { description: Recorded network policy state }
+  /api/v1/device/network-policy/capability:
+    post:
+      summary: Report network-policy enforcement capability
+      security: [{ deviceSessionBearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [supported, mode, capabilityVersion, reportedAt]
+              properties:
+                supported: { type: boolean }
+                mode: { type: string, enum: [UNKNOWN, UNSUPPORTED, SUPPORTED] }
+                capabilityVersion: { type: integer, minimum: 1, nullable: true }
+                reportedAt: { type: string, format: date-time }
+      responses:
+        '200': { description: Recorded capability }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1011,6 +1162,14 @@ components:
       scheme: bearer
       bearerFormat: opaque
   schemas:
+    NetworkPolicyRuleInput:
+      type: object
+      additionalProperties: false
+      required: [domain, action, enabled]
+      properties:
+        domain: { type: string, minLength: 3, maxLength: 255 }
+        action: { type: string, enum: [ALLOW, BLOCK] }
+        enabled: { type: boolean }
     ApiSuccessHealth:
       allOf:
         - $ref: '#/components/schemas/ApiSuccess'

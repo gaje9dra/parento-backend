@@ -51,6 +51,8 @@ export class CommandService {
         'STOP_AUDIO_ACCESS',
         'SYNC_APPLICATION_POLICY',
         'REQUEST_APPLICATION_INVENTORY',
+        'SYNC_NETWORK_POLICY',
+        'REQUEST_NETWORK_POLICY_STATUS',
       ].includes(input.type) ||
       input.version !== 1
     )
@@ -81,7 +83,10 @@ export class CommandService {
       const key = keys[0];
       const validCapability =
         keys.length === 1 &&
-        (key === 'screenSessionId' || key === 'audioSessionId');
+        ((key === 'screenSessionId' &&
+          (input.type === 'START_SCREEN_SHARE' || input.type === 'STOP_SCREEN_SHARE')) ||
+          (key === 'audioSessionId' &&
+            (input.type === 'START_AUDIO_ACCESS' || input.type === 'STOP_AUDIO_ACCESS')));
       const validCapabilityValue =
         (key === 'screenSessionId' &&
           typeof payload.screenSessionId === 'string' &&
@@ -105,11 +110,30 @@ export class CommandService {
         input.type === 'REQUEST_APPLICATION_INVENTORY' &&
         keys.length === 1 &&
         payload.schemaVersion === 1;
+      const validNetworkPolicySync =
+        input.type === 'SYNC_NETWORK_POLICY' &&
+        keys.length === 2 &&
+        typeof payload.policyId === 'string' &&
+        UUID.test(payload.policyId) &&
+        Number.isInteger(payload.policyVersion) &&
+        Number(payload.policyVersion) > 0;
+      const validNetworkPolicyRemoval =
+        input.type === 'SYNC_NETWORK_POLICY' &&
+        keys.length === 2 &&
+        payload.policyId === null &&
+        payload.policyVersion === null;
+      const validNetworkPolicyStatusRequest =
+        input.type === 'REQUEST_NETWORK_POLICY_STATUS' &&
+        keys.length === 1 &&
+        payload.schemaVersion === 1;
       if (
         !(validCapability && validCapabilityValue) &&
         !validApplicationPolicy &&
         !validApplicationPolicyRemoval &&
-        !validInventoryRequest
+        !validInventoryRequest &&
+        !validNetworkPolicySync &&
+        !validNetworkPolicyRemoval &&
+        !validNetworkPolicyStatusRequest
       ) {
         throw new AppError(
           400,
@@ -302,6 +326,46 @@ export class CommandService {
       payload: { audioSessionId: input.audioSessionId },
       idempotencyKey:
         'audio-session:' + input.audioSessionId + ':' + input.type,
+      correlationId: input.correlationId,
+    });
+  }
+
+  async createNetworkPolicyCommand(
+    adminId: string,
+    input: {
+      deviceId: string;
+      policyId: string | null;
+      policyVersion: number | null;
+      correlationId: string;
+    },
+  ): Promise<{ command: Command; created: boolean }> {
+    const isRemoval = input.policyId === null && input.policyVersion === null;
+    if (!isRemoval && (input.policyId === null || input.policyVersion === null)) {
+      throw new AppError(400, 'INVALID_REQUEST', 'Network policy identity is incomplete.');
+    }
+    return this.create(adminId, {
+      deviceId: input.deviceId,
+      type: 'SYNC_NETWORK_POLICY',
+      version: 1,
+      payload: { policyId: input.policyId, policyVersion: input.policyVersion },
+      idempotencyKey:
+        'network-policy:' + input.deviceId + ':' +
+        (input.policyVersion === null ? 'none' : input.policyVersion) + ':' +
+        input.correlationId,
+      correlationId: input.correlationId,
+    });
+  }
+
+  async createNetworkPolicyStatusRequest(
+    adminId: string,
+    input: { deviceId: string; correlationId: string },
+  ): Promise<{ command: Command; created: boolean }> {
+    return this.create(adminId, {
+      deviceId: input.deviceId,
+      type: 'REQUEST_NETWORK_POLICY_STATUS',
+      version: 1,
+      payload: { schemaVersion: 1 },
+      idempotencyKey: 'network-policy-status:' + input.deviceId + ':' + input.correlationId,
       correlationId: input.correlationId,
     });
   }
